@@ -1,0 +1,9 @@
+def b() {
+    return 10;
+}
+
+def a() {
+    return b();
+}
+
+print a();
