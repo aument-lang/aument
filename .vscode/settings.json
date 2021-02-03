@@ -1,0 +1,4 @@
+{
+    "telemetry.enableTelemetry": false,
+    "telemetry.enableCrashReporter": false
+}
