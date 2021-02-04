@@ -30,8 +30,8 @@ sources = [
     'src/main.c',
 ]
 
-if get_option('compiler').enabled()
-    src += [
+if get_option('compiler').enabled() and host_machine.system() != 'windows'
+    sources += [
         'src/compiler/c_comp.c',
         'src/compiler/c_comp.h'
     ]

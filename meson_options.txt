@@ -1,1 +1,1 @@
-option('compiler', type : 'feature', value : 'disabled')
+option('compiler', type : 'feature', value : 'enabled')
