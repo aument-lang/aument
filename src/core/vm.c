@@ -113,7 +113,7 @@ au_value_t au_vm_exec_unverified(
 #define MAYBE_DISPATCH_DEBUG
 #endif
 
-#ifndef OPT_DISPATCH_JMP
+#ifndef USE_DISPATCH_JMP
 #define CASE(x) case x
 #define DISPATCH MAYBE_DISPATCH_DEBUG; frame.pc += 4; continue
 #define DISPATCH_JMP MAYBE_DISPATCH_DEBUG; continue
@@ -410,7 +410,7 @@ do { au_value_deref(dest); \
             DISPATCH;
         }
 #undef COPY_VALUE
-#ifndef OPT_DISPATCH_JMP
+#ifndef USE_DISPATCH_JMP
     }
 #endif
     }
