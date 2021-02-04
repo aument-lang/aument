@@ -22,3 +22,9 @@
 #else
 #define _AlwaysInline __attribute__((always_inline)) inline
 #endif
+
+#ifdef _MSC_VER
+#define _Unreachable __assume(0)
+#else
+#define _Unreachable __builtin_unreachable()
+#endif

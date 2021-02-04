@@ -7,7 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#else
 #include <libgen.h>
+#endif
 
 #include "platform/mmap.h"
 
@@ -109,7 +113,7 @@ au_value_t au_vm_exec_unverified(
 #define MAYBE_DISPATCH_DEBUG
 #endif
 
-#ifdef NO_DISPATCH_JMP
+#ifndef OPT_DISPATCH_JMP
 #define CASE(x) case x
 #define DISPATCH MAYBE_DISPATCH_DEBUG; frame.pc += 4; continue
 #define DISPATCH_JMP MAYBE_DISPATCH_DEBUG; continue
@@ -389,15 +393,24 @@ do { au_value_deref(dest); \
             struct au_program program;
             assert(au_parse(mmap.bytes, mmap.size, &program) == 1);
             au_mmap_close(&mmap);
+#ifdef _WIN32
+{
+            char program_path[_MAX_DIR];
+            _splitpath_s(abspath, 0, 0, program_path, _MAX_DIR, 0, 0, 0, 0);
+            program.data.cwd = strdup(program_path);
+            free(abspath);
+}
+#else
             program.data.cwd = dirname(abspath);
             // abspath is transferred to program.data
+#endif
 
             au_vm_exec_unverified_main(tl, &program);
             au_program_del(&program);
             DISPATCH;
         }
 #undef COPY_VALUE
-#ifdef NO_DISPATCH_JMP
+#ifndef OPT_DISPATCH_JMP
     }
 #endif
     }

@@ -249,7 +249,7 @@ static struct token lexer_peek(struct lexer *l, int lh_pos) {
 #endif
         return lh->token;
     } else {
-        __builtin_unreachable();
+        _Unreachable;
     }
 }
 

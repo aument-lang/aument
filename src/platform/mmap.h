@@ -10,7 +10,9 @@
 struct au_mmap_info {
     char *bytes;
     size_t size;
+#ifdef USE_MMAP
     int _fd;
+#endif
 };
 
 int au_mmap_read(const char *path, struct au_mmap_info *info);

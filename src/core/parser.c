@@ -133,7 +133,7 @@ static void parser_emit_bc_u16(struct parser *p, uint16_t val) {
 }
 
 static void parser_emit_pad8(struct parser *p) {
-    return parser_emit_bc_u8(p, 0);
+    parser_emit_bc_u8(p, 0);
 }
 
 static int parser_exec_statement(struct parser *p, struct lexer *l);
