@@ -4,7 +4,6 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #include <stdlib.h>
-#include <ctype.h>
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
