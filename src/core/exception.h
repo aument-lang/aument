@@ -5,5 +5,7 @@
 // See LICENSE.txt for license information
 #pragma once
 
-__attribute__((noreturn)) void au_fatal(const char *fmt, ...);
-__attribute__((noreturn)) void au_perror(const char *msg);
+#include "platform/platform.h"
+
+_NoReturn void au_fatal(const char *fmt, ...);
+_NoReturn void au_perror(const char *msg);

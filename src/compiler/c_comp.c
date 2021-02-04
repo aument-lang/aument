@@ -7,13 +7,15 @@
 #include <assert.h>
 #include <libgen.h>
 
-#include "tmpfile.h"
-#include "mmap.h"
-#include "bc.h"
-#include "exception.h"
+#include "platform/tmpfile.h"
+#include "platform/mmap.h"
+
+#include "core/bc.h"
+#include "core/exception.h"
+#include "core/program.h"
+#include "core/bit_array.h"
+
 #include "c_comp.h"
-#include "program.h"
-#include "bit_array.h"
 
 struct au_c_comp_global_state {
     struct au_str_array includes;
