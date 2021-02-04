@@ -6,17 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <signal.h>
 #include <assert.h>
-#include <unistd.h>
 #include <ctype.h>
 #include <stdint.h>
 #include <string.h>
-
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <libgen.h>
-#include <limits.h>
 
 #include "platform/mmap.h"
 #include "platform/tmpfile.h"
@@ -26,7 +19,21 @@
 #include "core/vm.h"
 #include "core/exception.h"
 
+#ifdef FEAT_COMPILER
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <libgen.h>
+#include <limits.h>
+
 #include "compiler/c_comp.h"
+#endif
+
+#ifdef _WIN32
+#else
+#include <signal.h>
+#include <unistd.h>
+#include <libgen.h>
+#endif
 
 #define FLAG_GENERATE_C (1 << 0)
 #define FLAG_DUMP_BYTECODE (1 << 1)
@@ -75,7 +82,11 @@ int main(int argc, char **argv) {
     if(strcmp(action, "run") == 0)
         action_id = ACTION_RUN;
     else if(strcmp(action, "build") == 0)
+#ifdef FEAT_COMPILER
         action_id = ACTION_BUILD;
+#else
+        au_fatal("the compiler feature isn't enabled");
+#endif
     else
         au_fatal("unknown action %s\n", action);
 
@@ -87,8 +98,18 @@ int main(int argc, char **argv) {
     assert(au_parse(mmap.bytes, mmap.size, &program) == 1);
     au_mmap_close(&mmap);
 
-    char *program_path = realpath(input_file, 0);
-    program.data.cwd = dirname(program_path);
+#ifdef _WIN32
+    {
+        char program_path[_MAX_DIR];
+        _splitpath_s(input_file, 0, 0, program_path, _MAX_DIR, 0, 0, 0, 0);
+        program.data.cwd = strdup(program_path);
+    }
+#else
+    {
+        char *program_path = realpath(input_file, 0);
+        program.data.cwd = dirname(program_path);
+    }
+#endif
     if(has_flag(flags, FLAG_DUMP_BYTECODE))
         au_program_dbg(&program);
     
@@ -100,7 +121,9 @@ int main(int argc, char **argv) {
 
         au_program_del(&program);
         au_vm_thread_local_del(&tl);
-    } else if(action_id == ACTION_BUILD) {
+    }
+#ifdef FEAT_COMPILER
+    else if(action_id == ACTION_BUILD) {
         if(has_flag(flags, FLAG_GENERATE_C)) {
             struct au_c_comp_state c_state = {
                 .f = fopen(output_file, "w"),
@@ -147,6 +170,7 @@ int main(int argc, char **argv) {
                 execvp(args[0],args);
             }
         }
-    } 
+    }
+#endif
     return 0;
 }

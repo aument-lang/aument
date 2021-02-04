@@ -1,8 +1,6 @@
 project('aulang', 'c')
 
 sources = [
-    'src/compiler/c_comp.c',
-    'src/compiler/c_comp.h',
     'src/core/array.h',
     'src/core/au_string.c',
     'src/core/au_string.h',
@@ -30,6 +28,14 @@ sources = [
     'src/platform/tmpfile.h',
     'src/main.c',
 ]
+
+if get_option('compiler').enabled()
+    src += [
+        'src/compiler/c_comp.c',
+        'src/compiler/c_comp.h'
+    ]
+    add_project_arguments('-DFEAT_COMPILER', language : ['c'])
+endif
 
 if get_option('buildtype') == 'debugoptimized'
     add_project_arguments('-pg', language : ['c'])
