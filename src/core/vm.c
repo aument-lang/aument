@@ -9,7 +9,8 @@
 #include <string.h>
 #include <libgen.h>
 
-#include "mmap.h"
+#include "platform/mmap.h"
+
 #include "vm.h"
 #include "exception.h"
 #include "au_string.h"

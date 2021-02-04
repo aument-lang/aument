@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "platform/platform.h"
 #include "exception.h"
 
 #define ARRAY_TYPE(INNER, NAME, IN_CAP) \
@@ -15,7 +16,7 @@ struct NAME { \
     size_t len; \
     size_t cap; \
 }; \
-static void __attribute__ ((unused)) NAME ## _add(struct NAME *array, INNER el) { \
+static _Unused void NAME ## _add(struct NAME *array, INNER el) { \
     if(array->cap == 0) { \
         array->data = (INNER *)malloc(sizeof(INNER) * IN_CAP); \
         array->cap = IN_CAP; \
@@ -25,7 +26,7 @@ static void __attribute__ ((unused)) NAME ## _add(struct NAME *array, INNER el) 
     } \
     array->data[array->len++] = el; \
 } \
-static const __attribute__ ((unused)) INNER NAME ## _at(const struct NAME *array, size_t idx) { \
+static _Unused const INNER NAME ## _at(const struct NAME *array, size_t idx) { \
     if(idx > array->len) \
         au_fatal("trying to access idx %ld in array with len %ld", idx, array->len); \
     return array->data[idx]; \

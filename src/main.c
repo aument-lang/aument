@@ -18,13 +18,15 @@
 #include <libgen.h>
 #include <limits.h>
 
-#include "program.h"
-#include "bc.h"
-#include "vm.h"
-#include "c_comp.h"
-#include "exception.h"
-#include "mmap.h"
-#include "tmpfile.h"
+#include "platform/mmap.h"
+#include "platform/tmpfile.h"
+
+#include "core/program.h"
+#include "core/bc.h"
+#include "core/vm.h"
+#include "core/exception.h"
+
+#include "compiler/c_comp.h"
 
 #define FLAG_GENERATE_C (1 << 0)
 #define FLAG_DUMP_BYTECODE (1 << 1)

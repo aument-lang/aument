@@ -9,11 +9,12 @@
 #include <assert.h>
 #include <string.h>
 
+#include "platform/mmap.h"
+
 #include "bc.h"
 #include "exception.h"
 #include "program.h"
 #include "array.h"
-#include "mmap.h"
 
 #include "lexer.c"
 

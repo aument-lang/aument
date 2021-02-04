@@ -5,10 +5,10 @@
 // See LICENSE.txt for license information
 #pragma once
 
-#include "bc.h"
-#include "str_array.h"
-
 #include <stdio.h>
+
+#include "core/bc.h"
+#include "core/str_array.h"
 
 struct au_c_comp_state {
     FILE *f;
