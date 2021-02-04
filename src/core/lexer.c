@@ -18,6 +18,22 @@ struct token {
     size_t len;
 };
 
+static inline int l_isspace(int ch) {
+    return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
+}
+
+static inline int l_isdigit(int ch) {
+    return ch >= '0' && ch <= '9';
+}
+
+static inline int l_isalpha(int ch) {
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+}
+
+static inline int l_isalnum(int ch) {
+    return l_isalpha(ch) || l_isdigit(ch);
+}
+
 #ifdef DEBUG_LEXER
 static const char *token_type_dbg[] = {
     "TOK_EOF",
@@ -91,7 +107,7 @@ static struct token lexer_next_(struct lexer *l) {
     }
 
 #define L_EOF (l->pos >= l->len)
-    while(isspace(l->src[l->pos]) && !L_EOF) {
+    while(l_isspace(l->src[l->pos]) && !L_EOF) {
         l->pos++;
     }
     if(L_EOF) {
@@ -118,10 +134,10 @@ static struct token lexer_next_(struct lexer *l) {
             .src = l->src + start + 1,
             .len = len,
         };
-    } else if (isdigit(start_ch)) {
+    } else if (l_isdigit(start_ch)) {
         l->pos++;
         while(!L_EOF) {
-            if(!isdigit(l->src[l->pos])) {
+            if(!l_isdigit(l->src[l->pos])) {
                 break;
             }
             l->pos++;
@@ -132,10 +148,10 @@ static struct token lexer_next_(struct lexer *l) {
             .src = l->src + start,
             .len = len,
         };
-    } else if (isalpha(start_ch)) {
+    } else if (l_isalpha(start_ch)) {
         l->pos++;
         while(!L_EOF) {
-            if(!isalnum(l->src[l->pos])) {
+            if(!l_isalnum(l->src[l->pos])) {
                 break;
             }
             l->pos++;
