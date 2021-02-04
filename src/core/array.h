@@ -3,12 +3,17 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+#ifdef AU_IS_INTERPRETER
 #pragma once
+#endif
+
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef AU_IS_INTERPRETER
 #include "platform/platform.h"
 #include "exception.h"
+#endif
 
 #define ARRAY_TYPE(INNER, NAME, IN_CAP) \
 struct NAME { \

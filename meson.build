@@ -31,9 +31,40 @@ sources = [
 ]
 
 if get_option('compiler').enabled() and host_machine.system() != 'windows'
+    prog_python = import('python').find_installation('python3')
+
+    rt_hdr_depends = files(
+        'src/platform/platform.h',
+        'src/core/exception.h',
+        'src/core/au_string.h',
+        'src/core/array.h',
+        'src/core/value.h',
+    )
+    rt_hdr_src = custom_target(
+        'comp_hdr.c',
+        output : 'comp_hdr.c',
+        input : 'gen_rt.py',
+        depend_files : rt_hdr_depends,
+        command : [prog_python, '@INPUT@', '@OUTPUT@', 'AU_RT_HDR'] + rt_hdr_depends,
+    )
+
+    rt_code_depends = files(
+        'src/core/au_string.c',
+        'src/core/value.c',
+    )
+    rt_code_src = custom_target(
+        'comp_code.c',
+        output : 'comp_code.c',
+        input : 'gen_rt.py',
+        depend_files : rt_code_depends,
+        command : [prog_python, '@INPUT@', '@OUTPUT@', 'AU_RT_CODE'] + rt_code_depends,
+    )
+
     sources += [
         'src/compiler/c_comp.c',
-        'src/compiler/c_comp.h'
+        'src/compiler/c_comp.h',
+        rt_hdr_src,
+        rt_code_src,
     ]
     add_project_arguments('-DFEAT_COMPILER', language : ['c'])
 endif
@@ -72,5 +103,7 @@ endif
 if get_option('buildtype') == 'release' or get_option('buildtype') == 'debugoptimized'
     add_project_arguments('-flto', language : ['c'])
 endif
+
+add_project_arguments('-DAU_IS_INTERPRETER', language : ['c'])
 
 executable('aulang', sources, include_directories: include_directories('src'))
