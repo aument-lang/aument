@@ -5,7 +5,9 @@
 // See LICENSE.txt for license information
 #include <stdio.h>
 
+#ifdef AU_IS_INTERPRETER
 #include "value.h"
+#endif
 
 void au_value_print(au_value_t value) {
     switch(au_value_get_type(value)) {

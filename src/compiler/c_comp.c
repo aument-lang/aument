@@ -381,8 +381,14 @@ void au_c_comp_module(
     fprintf(state->f, "}\n");
 }
 
+extern const char AU_RT_HDR[];
+extern const size_t AU_RT_HDR_LEN;
+
+extern const char AU_RT_CODE[];
+extern const size_t AU_RT_CODE_LEN;
+
 void au_c_comp(struct au_c_comp_state *state, const struct au_program *program) {
-    fprintf(state->f, "#include <stdlib.h>\n");
+    fwrite(AU_RT_HDR, 1, AU_RT_HDR_LEN, state->f);
     fprintf(state->f, "ARRAY_TYPE(au_value_t, au_value_stack, 1)\n");
 
     struct au_c_comp_global_state g_state = (struct au_c_comp_global_state){0};
@@ -392,6 +398,7 @@ void au_c_comp(struct au_c_comp_state *state, const struct au_program *program) 
     for(size_t i = 0; i < g_state.includes.len; i++) {
         fprintf(state->f, "#include \"%s\"\n", g_state.includes.data[i]);
     }
+    fwrite(AU_RT_CODE, 1, AU_RT_CODE_LEN, state->f);
 
     // Cleanup
     for(size_t i = 0; i < g_state.includes.len; i++) {

@@ -3,13 +3,18 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+#ifdef AU_IS_INTERPRETER
 #pragma once
+#endif
+
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
 
+#ifdef AU_IS_INTERPRETER
 #include "platform/platform.h"
 #include "au_string.h"
+#endif
 
 #ifdef USE_NAN_TAGGING
 #else
@@ -197,5 +202,3 @@ static _AlwaysInline au_value_t au_value_neq(au_value_t lhs, au_value_t rhs) {
 }
 
 void au_value_print(au_value_t value);
-
-#undef _AlwaysInline

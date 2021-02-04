@@ -151,12 +151,7 @@ int main(int argc, char **argv) {
                 "-flto",
                 "-O2",
                 "-o", output_file,
-                "-include", "src/au_string.h",
-                "-include", "src/value.h",
-                "-include", "src/array.h",
                 c_file,
-                "src/value.c",
-                "src/au_string.c",
                 NULL,
             };
             pid_t pid = fork();

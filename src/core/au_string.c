@@ -5,7 +5,9 @@
 // See LICENSE.txt for license information
 #include <string.h>
 
+#ifdef AU_IS_INTERPRETER
 #include "au_string.h"
+#endif
 
 struct au_string *au_string_from_const(
     const char *s,
