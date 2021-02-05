@@ -10,5 +10,8 @@
 
 extern struct au_lib_func au_stdlib_funcs[];
 
+struct au_program_data;
+void au_install_stdlib(struct au_program_data *data);
+
 // IO
-au_value_t au_std_input(const au_value_t *args, const size_t n_args);
+AU_EXTERN_FUNC_DECL(au_std_input);

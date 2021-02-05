@@ -7,9 +7,24 @@
 
 #include "value.h"
 
-typedef au_value_t (*au_extern_func_t)(const au_value_t *args, const size_t n_args);
+struct au_vm_thread_local;
+struct au_program_data;
+
+typedef au_value_t (*au_extern_func_t)(
+    struct au_vm_thread_local *tl,
+    const struct au_program_data *p_data,
+    const au_value_t *args
+);
 
 struct au_lib_func {
-    const char *name;
     au_extern_func_t func;
+    const char *name;
+    int num_args;
 };
+
+#define AU_EXTERN_FUNC_DECL(NAME) \
+au_value_t NAME ( \
+    struct au_vm_thread_local *tl, \
+    const struct au_program_data *p_data, \
+    const au_value_t *args \
+)

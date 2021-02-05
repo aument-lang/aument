@@ -115,7 +115,6 @@ int main(int argc, char **argv) {
     
     if(action_id == ACTION_RUN) {
         struct au_vm_thread_local tl;
-
         au_vm_thread_local_init(&tl, &program.data);
         au_vm_exec_unverified_main(&tl, &program);
 

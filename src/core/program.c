@@ -7,15 +7,25 @@
 
 #include "program.h"
 
+#include "stdlib/au_stdlib.h"
+
 void au_program_data_init(struct au_program_data *data) {
     memset(data, 0, sizeof(struct au_program_data));
     au_bc_vars_init(&data->fn_map);
+    au_install_stdlib(data);
+}
+
+void au_fn_del(struct au_fn *fn) {
+    if(fn->type == AU_FN_BC) {
+        au_bc_storage_del(&fn->as.bc_func);
+    }
+    memset(fn, 0, sizeof(struct au_fn));
 }
 
 void au_program_data_del(struct au_program_data *data) {
     au_bc_vars_del(&data->fn_map);
     for(size_t i = 0; i < data->fns.len; i++)
-        au_bc_storage_del(&data->fns.data[i]);
+        au_fn_del(&data->fns.data[i]);
     free(data->fns.data);
     free(data->data_val.data);
     free(data->data_buf);

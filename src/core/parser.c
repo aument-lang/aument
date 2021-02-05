@@ -47,6 +47,7 @@ struct parser {
     char *self_name;
     size_t self_len;
     struct size_t_array self_fill_call;
+    int self_num_args;
 };
 
 static void parser_flush_free_regs(struct parser *p) {
@@ -70,6 +71,7 @@ static void parser_init(struct parser *p, struct au_program_data *p_data) {
     p->self_name = 0;
     p->self_len = 0;
     p->self_fill_call = (struct size_t_array){0};
+    p->self_num_args = 0;
 }
 
 static void parser_del(struct parser *p) {
@@ -294,9 +296,10 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
     } else if(tok.len == 1 && tok.src[0] == ')') {
         lexer_next(l);
     } else {
-        assert(0);
+        au_fatal("unexpected character");
     }
 
+    func_p.self_num_args = bcs.num_args;
     assert(parser_exec_block(&func_p, l) == 1);
     parser_emit_bc_u8(&func_p, OP_RET_NULL);
 
@@ -321,7 +324,12 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
             const size_t offset = func_p.self_fill_call.data[i];
             replace_bc_u16(&bcs.bc, offset, var_value.idx);
         }
-        au_bc_storage_vals_add(&p->p_data->fns, bcs);
+        struct au_fn fn = (struct au_fn){
+            .type = AU_FN_BC,
+            // bcs is moved
+            .as.bc_func = bcs,
+        };
+        au_fn_array_add(&p->p_data->fns, fn);
     }
 
     parser_del(&func_p);
@@ -834,6 +842,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 lexer_next(l);
                 int n_args = 0;
                 if(!parser_exec_call_args(p, l, &n_args)) return 0;
+                assert(n_args <= AU_MAX_ARGS);
 
                 const struct au_bc_var_value *val = 0;
                 int execute_self = 0;
@@ -842,10 +851,31 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 } else {
                     val = au_bc_vars_get(&p->p_data->fn_map, t.src, t.len);
                 }
+
                 if(!execute_self && val == NULL) {
                     au_fatal("unknown function '%.*s'\n", t.len, t.src);
                 }
-                assert(n_args <= AU_MAX_ARGS);
+
+                if (execute_self) {
+                    if(p->self_num_args != n_args) {
+                        au_fatal("unexpected number of arguments (got %d, expected %d)\n", n_args, p->self_num_args);
+                    }
+                } else {
+                    assert(val->idx < p->p_data->fns.len);
+                    const struct au_fn *fn = &p->p_data->fns.data[val->idx];
+                    if(fn->type == AU_FN_BC) {
+                        const struct au_bc_storage *bcs = &fn->as.bc_func;
+                        if(bcs->num_args != n_args) {
+                            au_fatal("unexpected number of arguments (got %d, expected %d)\n", n_args, bcs->num_args);
+                        }
+                    } else if (fn->type == AU_FN_NATIVE) {
+                        const struct au_lib_func *lib_func = &fn->as.native_func;
+                        if (lib_func->num_args != n_args) {
+                            au_fatal("unexpected number of arguments (got %d, expected %d)\n", n_args, lib_func->num_args);
+                        }
+                    }
+                }
+
                 parser_emit_bc_u8(p, OP_CALL0 + n_args);
                 parser_emit_bc_u8(p, parser_new_reg(p));
                 const size_t offset = p->bc.len;

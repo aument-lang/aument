@@ -14,6 +14,7 @@
 #endif
 
 #include "platform/mmap.h"
+#include "stdlib/au_stdlib.h"
 
 #include "vm.h"
 #include "exception.h"
@@ -324,13 +325,19 @@ do { au_value_deref(dest); \
         CASE(OP_CALL14):
         CASE(OP_CALL15): {
             const int n_regs = frame.bc[frame.pc] - OP_CALL0;
-            assert(frame.arg_stack.len >= n_regs);
             const uint8_t ret_reg = frame.bc[frame.pc+1];
             const uint16_t func_id = *((uint16_t*)(&frame.bc[frame.pc+2]));
-            const struct au_bc_storage *call_bcs = &p_data->fns.data[func_id];
+            const struct au_fn *call_fn = &p_data->fns.data[func_id];
             const au_value_t *args = &frame.arg_stack.data[frame.arg_stack.len - n_regs];
-            const au_value_t callee_retval = au_vm_exec_unverified(tl, call_bcs, p_data, args);
-            frame.regs[ret_reg] = callee_retval;
+            if(call_fn->type == AU_FN_BC) {
+                const struct au_bc_storage *call_bcs = &call_fn->as.bc_func;
+                const au_value_t callee_retval = au_vm_exec_unverified(tl, call_bcs, p_data, args);
+                frame.regs[ret_reg] = callee_retval;
+            } else if (call_fn->type == AU_FN_NATIVE) {
+                const struct au_lib_func *lib_func = &call_fn->as.native_func;
+                const au_value_t callee_retval = lib_func->func(tl, p_data, args);
+                frame.regs[ret_reg] = callee_retval;
+            }
             for(int i = frame.arg_stack.len - n_regs; i < frame.arg_stack.len; i++)
                 au_value_deref(frame.arg_stack.data[i]);
             frame.arg_stack.len -= n_regs;
