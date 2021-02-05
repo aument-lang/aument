@@ -27,6 +27,9 @@ sources = [
     'src/platform/mmap.h',
     'src/platform/platform.h',
     'src/platform/tmpfile.h',
+    'src/stdlib/au_stdlib.c',
+    'src/stdlib/au_stdlib.h',
+    'src/stdlib/io.c',
     'src/main.c',
 ]
 

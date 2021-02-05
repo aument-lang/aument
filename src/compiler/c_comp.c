@@ -225,14 +225,19 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                 DEF_BC16(func_id, 1)
 
                 assert(func_id <= p_data->fns.len);
-                const struct au_bc_storage *fn = &p_data->fns.data[func_id];
-                assert(n_args == fn->num_args);
-                fprintf(state->f, "au_value_deref(r%d); r%d =", reg, reg);
-                if(n_args > 0) {
-                    // TODO: deref arguments
-                    fprintf(state->f, "_M%ld_f%d(&s.data[s.len-%d]); s.len-=%d;\n", module_idx, func_id, n_args, n_args);
-                } else {
-                    fprintf(state->f, "_M%ld_f%d();\n", module_idx, n_args);
+                const struct au_fn *fn = &p_data->fns.data[func_id];
+                if(fn->type == AU_FN_BC) {
+                    const struct au_bc_storage *bcs = &fn->as.bc_func;
+                    assert(n_args == bcs->num_args);
+                    fprintf(state->f, "au_value_deref(r%d); r%d =", reg, reg);
+                    if(n_args > 0) {
+                        // TODO: deref arguments
+                        fprintf(state->f, "_M%ld_f%d(&s.data[s.len-%d]); s.len-=%d;\n", module_idx, func_id, n_args, n_args);
+                    } else {
+                        fprintf(state->f, "_M%ld_f%d();\n", module_idx, n_args);
+                    }
+                } else if(fn->type == AU_FN_NATIVE) {
+                    assert(0);
                 }
                 break;
             }
@@ -360,21 +365,25 @@ void au_c_comp_module(
         }
     }
     for(size_t i = 0; i < program->data.fns.len; i++) {
-        if (program->data.fns.data[i].num_args > 0)  {
+        assert(program->data.fns.data[i].type == AU_FN_BC);
+        if (program->data.fns.data[i].as.bc_func.num_args > 0)  {
            fprintf(state->f, "static au_value_t _M%ld_f%ld(const au_value_t *args);\n", module_idx, i);
         } else {
            fprintf(state->f, "static au_value_t _M%ld_f%ld();\n", module_idx, i);
         }
     }
     for(size_t i = 0; i < program->data.fns.len; i++) {
-        const struct au_bc_storage *bcs = &program->data.fns.data[i];
-        if(bcs->num_args > 0) {
-            fprintf(state->f, "au_value_t _M%ld_f%ld(const au_value_t *args) {\n", module_idx, i);
-        } else {
-            fprintf(state->f, "au_value_t _M%ld_f%ld() {\n", module_idx, i);
+        const struct au_fn *fn = &program->data.fns.data[i];
+        if (fn->type == AU_FN_BC) {
+            const struct au_bc_storage *bcs = &fn->as.bc_func;
+            if(bcs->num_args > 0) {
+                fprintf(state->f, "au_value_t _M%ld_f%ld(const au_value_t *args) {\n", module_idx, i);
+            } else {
+                fprintf(state->f, "au_value_t _M%ld_f%ld() {\n", module_idx, i);
+            }
+            au_c_comp_func(state, bcs, &program->data, module_idx, g_state);
+            fprintf(state->f, "}\n");
         }
-        au_c_comp_func(state, bcs, &program->data, module_idx, g_state);
-        fprintf(state->f, "}\n");
     }
     fprintf(state->f, "au_value_t _M%ld_main() {\n", module_idx);
     au_c_comp_func(state, &program->main, &program->data, module_idx, g_state);

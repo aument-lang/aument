@@ -13,6 +13,7 @@
 #include "value.h"
 #include "array.h"
 #include "str_array.h"
+#include "extern_fn.h"
 
 struct au_program_data_val {
     au_value_t real_value;
@@ -21,10 +22,22 @@ struct au_program_data_val {
 };
 
 ARRAY_TYPE(struct au_program_data_val, au_program_data_vals, 1)
-ARRAY_TYPE(struct au_bc_storage, au_bc_storage_vals, 1)
+
+enum au_fn_type { AU_FN_NATIVE, AU_FN_BC };
+
+struct au_fn {
+    enum au_fn_type type;
+    union {
+        struct au_lib_func native_func;
+        struct au_bc_storage bc_func;
+    } as;
+};
+void au_fn_del(struct au_fn *fn);
+
+ARRAY_TYPE(struct au_fn, au_fn_array, 1)
 
 struct au_program_data {
-    struct au_bc_storage_vals fns;
+    struct au_fn_array fns;
     struct au_bc_vars fn_map;
     struct au_program_data_vals data_val;
     uint8_t *data_buf;

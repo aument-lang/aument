@@ -238,7 +238,9 @@ void au_program_dbg(const struct au_program *p) {
     printf("(main):\n");
     au_bc_dbg(&p->main, &p->data);
     for(size_t i = 0; i < p->data.fns.len; i++) {
-        printf("(%ld):\n", i);
-        au_bc_dbg(&p->data.fns.data[i], &p->data);
+        if (p->data.fns.data[i].type == AU_FN_BC) {
+            printf("(%ld):\n", i);
+            au_bc_dbg(&p->data.fns.data[i].as.bc_func, &p->data);
+        }
     }
 }
