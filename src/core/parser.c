@@ -231,8 +231,6 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
 }
 
 static int parser_exec_import_statement(struct parser *p, struct lexer *l) {
-    assert(p->block_level == 0);
-
     const struct token path_tok = lexer_next(l);
     assert(path_tok.type == TOK_STRING);
 
