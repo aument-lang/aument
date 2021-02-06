@@ -11,9 +11,9 @@
 #include "platform/mmap.h"
 
 #include "core/bc.h"
-#include "core/exception.h"
 #include "core/program.h"
 #include "core/bit_array.h"
+#include "core/rt/exception.h"
 
 #include "c_comp.h"
 
@@ -365,11 +365,12 @@ void au_c_comp_module(
         }
     }
     for(size_t i = 0; i < program->data.fns.len; i++) {
-        assert(program->data.fns.data[i].type == AU_FN_BC);
-        if (program->data.fns.data[i].as.bc_func.num_args > 0)  {
-           fprintf(state->f, "static au_value_t _M%ld_f%ld(const au_value_t *args);\n", module_idx, i);
-        } else {
-           fprintf(state->f, "static au_value_t _M%ld_f%ld();\n", module_idx, i);
+        if(program->data.fns.data[i].type == AU_FN_BC) {
+            if (program->data.fns.data[i].as.bc_func.num_args > 0)  {
+                fprintf(state->f, "static au_value_t _M%ld_f%ld(const au_value_t *args);\n", module_idx, i);
+            } else {
+                fprintf(state->f, "static au_value_t _M%ld_f%ld();\n", module_idx, i);
+            }
         }
     }
     for(size_t i = 0; i < program->data.fns.len; i++) {

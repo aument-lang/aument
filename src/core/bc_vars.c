@@ -9,8 +9,8 @@
 #include <assert.h>
 
 #include "bc_vars.h"
-#include "exception.h"
 #include "hash.h"
+#include "rt/exception.h"
 
 void au_bc_vars_init(struct au_bc_vars *vars) {
     vars->buckets = 0;

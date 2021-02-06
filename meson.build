@@ -3,26 +3,28 @@ project('aulang', 'c')
 compiler = meson.get_compiler('c')
 sources = [
     'src/core/array.h',
-    'src/core/au_string.c',
-    'src/core/au_string.h',
     'src/core/bc.c',
     'src/core/bc.h',
     'src/core/bc_dbg.c',
     'src/core/bc_vars.c',
     'src/core/bc_vars.h',
     'src/core/bit_array.h',
-    'src/core/exception.c',
-    'src/core/exception.h',
     'src/core/hash.c',
     'src/core/hash.h',
     'src/core/parser.c',
     'src/core/program.c',
     'src/core/program.h',
+    'src/core/rt/au_string.c',
+    'src/core/rt/au_string.h',
+    'src/core/rt/exception.c',
+    'src/core/rt/exception.h',
+    'src/core/rt/extern_fn.h',
+    'src/core/rt/value.c',
+    'src/core/rt/value.h',
     'src/core/str_array.h',
-    'src/core/value.c',
-    'src/core/value.h',
     'src/core/vm.c',
     'src/core/vm.h',
+    'src/main.c',
     'src/platform/mmap.c',
     'src/platform/mmap.h',
     'src/platform/platform.h',
@@ -30,7 +32,6 @@ sources = [
     'src/stdlib/au_stdlib.c',
     'src/stdlib/au_stdlib.h',
     'src/stdlib/io.c',
-    'src/main.c',
 ]
 
 if get_option('compiler').enabled() and host_machine.system() != 'windows'
@@ -38,10 +39,10 @@ if get_option('compiler').enabled() and host_machine.system() != 'windows'
 
     rt_hdr_depends = files(
         'src/platform/platform.h',
-        'src/core/exception.h',
-        'src/core/au_string.h',
+        'src/core/rt/exception.h',
+        'src/core/rt/au_string.h',
         'src/core/array.h',
-        'src/core/value.h',
+        'src/core/rt/value.h',
     )
     rt_hdr_src = custom_target(
         'comp_hdr.c',
@@ -52,8 +53,8 @@ if get_option('compiler').enabled() and host_machine.system() != 'windows'
     )
 
     rt_code_depends = files(
-        'src/core/au_string.c',
-        'src/core/value.c',
+        'src/core/rt/au_string.c',
+        'src/core/rt/value.c',
     )
     rt_code_src = custom_target(
         'comp_code.c',

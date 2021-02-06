@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "core/extern_fn.h"
+#include "core/rt/extern_fn.h"
 
 extern struct au_lib_func au_stdlib_funcs[];
 

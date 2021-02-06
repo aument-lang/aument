@@ -11,9 +11,9 @@
 #include "platform/mmap.h"
 
 #include "bc.h"
-#include "exception.h"
 #include "program.h"
 #include "array.h"
+#include "rt/exception.h"
 
 #include "lexer.c"
 

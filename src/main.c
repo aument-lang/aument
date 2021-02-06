@@ -17,7 +17,7 @@
 #include "core/program.h"
 #include "core/bc.h"
 #include "core/vm.h"
-#include "core/exception.h"
+#include "core/rt/exception.h"
 
 #ifdef FEAT_COMPILER
 #include <sys/types.h>
