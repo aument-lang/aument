@@ -229,15 +229,21 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                 if(fn->type == AU_FN_BC) {
                     const struct au_bc_storage *bcs = &fn->as.bc_func;
                     assert(n_args == bcs->num_args);
-                    fprintf(state->f, "au_value_deref(r%d); r%d =", reg, reg);
+                    fprintf(state->f, "au_value_deref(r%d); r%d=", reg, reg);
                     if(n_args > 0) {
-                        // TODO: deref arguments
                         fprintf(state->f, "_M%ld_f%d(&s.data[s.len-%d]); s.len-=%d;\n", module_idx, func_id, n_args, n_args);
                     } else {
                         fprintf(state->f, "_M%ld_f%d();\n", module_idx, n_args);
                     }
                 } else if(fn->type == AU_FN_NATIVE) {
-                    assert(0);
+                    const struct au_lib_func *lib_func = &fn->as.native_func;
+                    assert(n_args == lib_func->num_args);
+                    fprintf(state->f, "au_value_deref(r%d); r%d=", reg, reg);
+                    if(n_args > 0) {
+                        fprintf(state->f, "%s(0,0,&s.data[s.len-%d]); s.len-=%d;\n", lib_func->symbol, n_args, n_args);
+                    } else {
+                        fprintf(state->f, "%s(0,0,0);\n", lib_func->symbol);
+                    }
                 }
                 break;
             }
@@ -365,12 +371,15 @@ void au_c_comp_module(
         }
     }
     for(size_t i = 0; i < program->data.fns.len; i++) {
-        if(program->data.fns.data[i].type == AU_FN_BC) {
-            if (program->data.fns.data[i].as.bc_func.num_args > 0)  {
+        const struct au_fn *fn = &program->data.fns.data[i];
+        if(fn->type == AU_FN_BC) {
+            if (fn->as.bc_func.num_args > 0)  {
                 fprintf(state->f, "static au_value_t _M%ld_f%ld(const au_value_t *args);\n", module_idx, i);
             } else {
                 fprintf(state->f, "static au_value_t _M%ld_f%ld();\n", module_idx, i);
             }
+        } else if(fn->type == AU_FN_NATIVE) {
+            fprintf(state->f, "extern AU_EXTERN_FUNC_DECL(%s);\n", fn->as.native_func.symbol);
         }
     }
     for(size_t i = 0; i < program->data.fns.len; i++) {

@@ -3,9 +3,10 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+#ifdef AU_IS_INTERPRETER
 #pragma once
-
 #include "value.h"
+#endif
 
 struct au_vm_thread_local;
 struct au_program_data;
@@ -19,6 +20,7 @@ typedef au_value_t (*au_extern_func_t)(
 struct au_lib_func {
     au_extern_func_t func;
     const char *name;
+    const char *symbol;
     int num_args;
 };
 

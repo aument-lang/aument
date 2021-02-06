@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**"
             ],
             "defines": [
-                "AU_IS_INTERPRETER"
+                "AU_IS_INTERPRETER",
+                "FEAT_COMPILER"
             ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
