@@ -15,3 +15,8 @@ void au_install_stdlib(struct au_program_data *data);
 
 // IO
 AU_EXTERN_FUNC_DECL(au_std_input);
+
+// Types
+AU_EXTERN_FUNC_DECL(au_std_int);
+AU_EXTERN_FUNC_DECL(au_std_bool);
+AU_EXTERN_FUNC_DECL(au_std_str);

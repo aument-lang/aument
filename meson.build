@@ -32,6 +32,7 @@ sources = [
     'src/stdlib/au_stdlib.c',
     'src/stdlib/au_stdlib.h',
     'src/stdlib/io.c',
+    'src/stdlib/types.c',
 ]
 
 if get_option('compiler').enabled() and host_machine.system() != 'windows'

@@ -8,7 +8,12 @@
 #include "core/program.h"
 
 struct au_lib_func au_stdlib_funcs[] = {
+    // IO
     (struct au_lib_func){ .name = "input", .symbol = "au_std_input", .num_args = 0, .func = au_std_input },
+    // Types
+    (struct au_lib_func){ .name = "int", .symbol = "au_std_int", .num_args = 1, .func = au_std_int },
+    (struct au_lib_func){ .name = "str", .symbol = "au_std_str", .num_args = 1, .func = au_std_str },
+    (struct au_lib_func){ .name = "bool", .symbol = "au_std_bool", .num_args = 1, .func = au_std_bool },
 };
 
 void au_install_stdlib(struct au_program_data *data) {
