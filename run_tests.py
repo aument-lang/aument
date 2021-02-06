@@ -7,7 +7,12 @@
 import glob
 import subprocess
 
-for fn in glob.glob('tests/*.out'):
+OK = "  [\033[1;32mOK\033[0m] %s"
+ERR = "  [\033[1;31mERR\033[0m] %s"
+oks, errs = 0, 0
+files = glob.glob('tests/*.out')
+print("Executing %d tests" % len(files))
+for fn in files:
     output = subprocess.check_output([
         './build/aulang',
         'run',
@@ -16,7 +21,10 @@ for fn in glob.glob('tests/*.out'):
     with open(fn, "r") as f:
         output_chk = f.read().encode('utf-8')
         if output == output_chk:
-            print("[OK] %s" % fn)
+            print(OK % fn)
+            oks += 1
         else:
-            print("[ERR] %s" % fn)
-            print(" Expected %s, got %s" %(output_chk, output))
+            print(ERR % fn)
+            print("    Expected %s, got %s" %(output_chk, output))
+            errs += 1
+print("Result: %d ok, %d errors" % (oks, errs))
