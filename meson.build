@@ -39,10 +39,11 @@ if get_option('compiler').enabled() and host_machine.system() != 'windows'
 
     rt_hdr_depends = files(
         'src/platform/platform.h',
+        'src/core/array.h',
         'src/core/rt/exception.h',
         'src/core/rt/au_string.h',
-        'src/core/array.h',
         'src/core/rt/value.h',
+        'src/core/rt/extern_fn.h',
     )
     rt_hdr_src = custom_target(
         'comp_hdr.c',
