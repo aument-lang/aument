@@ -123,6 +123,8 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                     fprintf(state->f, "au_value_deref(r%d);", i);
                 for(int i = 0; i < bcs->locals_len; i++)
                     fprintf(state->f, "au_value_deref(l%d);", i);
+                if(has_args)
+                    fprintf(state->f, "free(s.data);");
                 fprintf(state->f, "return au_value_none();\n");
                 break;
             }
@@ -231,19 +233,25 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                     assert(n_args == bcs->num_args);
                     fprintf(state->f, "au_value_deref(r%d); r%d=", reg, reg);
                     if(n_args > 0) {
-                        fprintf(state->f, "_M%ld_f%d(&s.data[s.len-%d]); s.len-=%d;\n", module_idx, func_id, n_args, n_args);
+                        fprintf(state->f, "_M%ld_f%d(&s.data[s.len-%d]);\n", module_idx, func_id, n_args);
                     } else {
-                        fprintf(state->f, "_M%ld_f%d();\n", module_idx, n_args);
+                        fprintf(state->f, "_M%ld_f%d();\n", module_idx, func_id);
                     }
                 } else if(fn->type == AU_FN_NATIVE) {
                     const struct au_lib_func *lib_func = &fn->as.native_func;
                     assert(n_args == lib_func->num_args);
                     fprintf(state->f, "au_value_deref(r%d); r%d=", reg, reg);
                     if(n_args > 0) {
-                        fprintf(state->f, "%s(0,0,&s.data[s.len-%d]); s.len-=%d;\n", lib_func->symbol, n_args, n_args);
+                        fprintf(state->f, "%s(0,0,&s.data[s.len-%d]);\n", lib_func->symbol, n_args);
                     } else {
                         fprintf(state->f, "%s(0,0,0);\n", lib_func->symbol);
                     }
+                }
+                if(n_args > 0) {
+                    for(int i = 0; i < n_args; i++) {
+                        fprintf(state->f, "au_value_deref(s.data[s.len-%d]);", i + 1);
+                    }
+                    fprintf(state->f, "s.len-=%d;", n_args);
                 }
                 break;
             }
@@ -267,6 +275,8 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                         fprintf(state->f, "au_value_deref(r%d);", i);
                 for(int i = 0; i < bcs->locals_len; i++)
                     fprintf(state->f, "au_value_deref(l%d);", i);
+                if(has_args)
+                    fprintf(state->f, "free(s.data);");
                 fprintf(state->f, "return r%d;\n", reg);
                 break;
             }
@@ -277,6 +287,8 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                 for(int i = 0; i < bcs->locals_len; i++)
                     if(i != local)
                         fprintf(state->f, "au_value_deref(l%d);", i);
+                if(has_args)
+                    fprintf(state->f, "free(s.data);");
                 fprintf(state->f, "return l%d;\n", local);
                 break;
             }
@@ -285,6 +297,8 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                     fprintf(state->f, "au_value_deref(r%d);", i);
                 for(int i = 0; i < bcs->locals_len; i++)
                     fprintf(state->f, "au_value_deref(l%d);", i);
+                if(has_args)
+                    fprintf(state->f, "free(s.data);");
                 fprintf(state->f, "return au_value_none();\n");
                 break;
             }
