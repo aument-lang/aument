@@ -17,6 +17,8 @@
 
 #include "c_comp.h"
 
+#define ARG_STACK_THRESHOLD 4
+
 struct au_c_comp_global_state {
     struct au_str_array includes;
 };
@@ -30,6 +32,23 @@ static void au_c_comp_module(
 
 void au_c_comp_state_del(struct au_c_comp_state *state) {
     fclose(state->f);
+}
+
+static void comp_cleanup(
+    struct au_c_comp_state *state,
+    const struct au_bc_storage *bcs,
+    int has_dyn_arg_stack,
+    int except_register,
+    int except_local
+) {
+    for(int i = 0; i < bcs->num_registers; i++)
+        if(i != except_register)
+            fprintf(state->f, "au_value_deref(r%d);", i);
+    for(int i = 0; i < bcs->locals_len; i++)
+        if(i != except_local)
+            fprintf(state->f, "au_value_deref(l%d);", i);
+    if(has_dyn_arg_stack)
+        fprintf(state->f, "free(s.data);");
 }
 
 #define INDENT "    "
@@ -69,7 +88,8 @@ assert(pos + n + 2 <= bcs->bc.len); \
 uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
 
     bit_array labelled_lines = calloc(1, BA_LEN(bcs->bc.len / 4));
-    int has_args = 0;
+    int has_dyn_arg_stack = 0;
+    int arg_stack_max = 0, arg_stack_len = 0;
     for(size_t pos = 0; pos < bcs->bc.len;) {
         uint8_t opcode = bc(pos);
         pos++;
@@ -92,7 +112,30 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                 break;
             }
             case OP_PUSH_ARG: {
-                has_args = 1;
+                arg_stack_len++;
+                arg_stack_max = arg_stack_max>arg_stack_len?arg_stack_max:arg_stack_len;
+                if(arg_stack_max > ARG_STACK_THRESHOLD)
+                    has_dyn_arg_stack = 1;
+                break;
+            }
+            case OP_CALL0:
+            case OP_CALL1:
+            case OP_CALL2:
+            case OP_CALL3:
+            case OP_CALL4:
+            case OP_CALL5:
+            case OP_CALL6:
+            case OP_CALL7:
+            case OP_CALL8:
+            case OP_CALL9:
+            case OP_CALL10:
+            case OP_CALL11:
+            case OP_CALL12:
+            case OP_CALL13:
+            case OP_CALL14:
+            case OP_CALL15: {
+                const uint8_t n_args = opcode - OP_CALL0;
+                arg_stack_len -= n_args;
                 break;
             }
             default: break;
@@ -100,8 +143,10 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
         pos += 3;
     }
 
-    if(has_args) {
-        fprintf(state->f, INDENT "struct au_value_stack s = {0};\n");
+    if(has_dyn_arg_stack) {
+        fprintf(state->f, INDENT "struct au_value_stack s={0};\n");
+    } else if (arg_stack_max > 0) {
+        fprintf(state->f, INDENT "au_value_t s_data[%d];struct au_value_stack s=(struct au_value_stack){.data=s_data,.len=0,.cap=%d};\n", arg_stack_max, arg_stack_max);
     }
 
     for(size_t pos = 0; pos < bcs->bc.len;) {
@@ -119,12 +164,7 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
 
         switch(opcode) {
             case OP_EXIT: {
-                for(int i = 0; i < bcs->num_registers; i++)
-                    fprintf(state->f, "au_value_deref(r%d);", i);
-                for(int i = 0; i < bcs->locals_len; i++)
-                    fprintf(state->f, "au_value_deref(l%d);", i);
-                if(has_args)
-                    fprintf(state->f, "free(s.data);");
+                comp_cleanup(state, bcs, has_dyn_arg_stack, -1, -1);
                 fprintf(state->f, "return au_value_none();\n");
                 break;
             }
@@ -233,18 +273,18 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                     assert(n_args == bcs->num_args);
                     fprintf(state->f, "au_value_deref(r%d); r%d=", reg, reg);
                     if(n_args > 0) {
-                        fprintf(state->f, "_M%ld_f%d(&s.data[s.len-%d]);\n", module_idx, func_id, n_args);
+                        fprintf(state->f, "_M%ld_f%d(&s.data[s.len-%d]);", module_idx, func_id, n_args);
                     } else {
-                        fprintf(state->f, "_M%ld_f%d();\n", module_idx, func_id);
+                        fprintf(state->f, "_M%ld_f%d();", module_idx, func_id);
                     }
                 } else if(fn->type == AU_FN_NATIVE) {
                     const struct au_lib_func *lib_func = &fn->as.native_func;
                     assert(n_args == lib_func->num_args);
                     fprintf(state->f, "au_value_deref(r%d); r%d=", reg, reg);
                     if(n_args > 0) {
-                        fprintf(state->f, "%s(0,0,&s.data[s.len-%d]);\n", lib_func->symbol, n_args);
+                        fprintf(state->f, "%s(0,0,&s.data[s.len-%d]);", lib_func->symbol, n_args);
                     } else {
-                        fprintf(state->f, "%s(0,0,0);\n", lib_func->symbol);
+                        fprintf(state->f, "%s(0,0,0);", lib_func->symbol);
                     }
                 }
                 if(n_args > 0) {
@@ -253,6 +293,7 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
                     }
                     fprintf(state->f, "s.len-=%d;", n_args);
                 }
+                fprintf(state->f,"\n");
                 break;
             }
 #define BIN_OP_ASG(NAME) \
@@ -270,35 +311,18 @@ uint16_t VAR = *((uint16_t*)(&bcs->bc.data[pos+n]));
 #undef BIN_OP_ASG
             case OP_RET: {
                 uint8_t reg = bc(pos);
-                for(int i = 0; i < bcs->num_registers; i++)
-                    if(i != reg)
-                        fprintf(state->f, "au_value_deref(r%d);", i);
-                for(int i = 0; i < bcs->locals_len; i++)
-                    fprintf(state->f, "au_value_deref(l%d);", i);
-                if(has_args)
-                    fprintf(state->f, "free(s.data);");
+                comp_cleanup(state, bcs, has_dyn_arg_stack, reg, -1);
                 fprintf(state->f, "return r%d;\n", reg);
                 break;
             }
             case OP_RET_LOCAL: {
                 uint8_t local = bc(pos);
-                for(int i = 0; i < bcs->num_registers; i++)
-                    fprintf(state->f, "au_value_deref(r%d);", i);
-                for(int i = 0; i < bcs->locals_len; i++)
-                    if(i != local)
-                        fprintf(state->f, "au_value_deref(l%d);", i);
-                if(has_args)
-                    fprintf(state->f, "free(s.data);");
+                comp_cleanup(state, bcs, has_dyn_arg_stack, -1, local);
                 fprintf(state->f, "return l%d;\n", local);
                 break;
             }
             case OP_RET_NULL: {
-                for(int i = 0; i < bcs->num_registers; i++)
-                    fprintf(state->f, "au_value_deref(r%d);", i);
-                for(int i = 0; i < bcs->locals_len; i++)
-                    fprintf(state->f, "au_value_deref(l%d);", i);
-                if(has_args)
-                    fprintf(state->f, "free(s.data);");
+                comp_cleanup(state, bcs, has_dyn_arg_stack, -1, -1);
                 fprintf(state->f, "return au_value_none();\n");
                 break;
             }
