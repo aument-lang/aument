@@ -1,0 +1,10 @@
+import glob
+files = glob.glob('src/**/*.c')
+files += glob.glob('src/**/*.h')
+files += glob.glob('src/**/**/*.c')
+files += glob.glob('src/**/**/*.h')
+files += glob.glob('src/*.c')
+files.sort()
+exclude = set(glob.glob('src/compiler/*') + ['src/core/lexer.c'])
+files = filter(lambda x: x not in exclude, files)
+print('\n'.join(map(lambda s: "'%s',"%s, files)))

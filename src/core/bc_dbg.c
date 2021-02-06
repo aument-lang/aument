@@ -8,7 +8,7 @@
 
 #include "program.h"
 #include "bc.h"
-#include "exception.h"
+#include "rt/exception.h"
 
 const char *au_opcode_dbg[256] = {
     "(exit)",

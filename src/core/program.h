@@ -10,10 +10,11 @@
 
 #include "bc.h"
 #include "bc_vars.h"
-#include "value.h"
 #include "array.h"
 #include "str_array.h"
-#include "extern_fn.h"
+
+#include "rt/value.h"
+#include "rt/extern_fn.h"
 
 struct au_program_data_val {
     au_value_t real_value;

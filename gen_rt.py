@@ -1,3 +1,4 @@
+import re
 import sys
 
 output = sys.argv[1]
@@ -6,7 +7,9 @@ files = sys.argv[3:]
 total = ""
 for fn in files:
     with open(fn, "r") as f:
-        total += f.read()
+        src = re.sub(r'//.*', '', f.read())
+        total += src.strip()
+        total += '\n'
 total_bytes = total.encode('ascii')
 values = ','.join(map(str, total_bytes))
 with open(output, "w") as f:

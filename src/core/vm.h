@@ -7,8 +7,8 @@
 
 #include "program.h"
 #include "bc.h"
-#include "value.h"
 #include "array.h"
+#include "rt/value.h"
 
 ARRAY_TYPE(au_value_t, au_value_stack, 1)
 

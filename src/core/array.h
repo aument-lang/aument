@@ -12,7 +12,7 @@
 
 #ifdef AU_IS_INTERPRETER
 #include "platform/platform.h"
-#include "exception.h"
+#include "rt/exception.h"
 #endif
 
 #define ARRAY_TYPE(INNER, NAME, IN_CAP) \

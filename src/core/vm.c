@@ -15,10 +15,9 @@
 
 #include "platform/mmap.h"
 #include "stdlib/au_stdlib.h"
-
+#include "rt/exception.h"
+#include "rt/au_string.h"
 #include "vm.h"
-#include "exception.h"
-#include "au_string.h"
 
 static void au_vm_frame_del(struct au_vm_frame *frame, const struct au_bc_storage *bcs) {
     for(int i = 0; i < bcs->num_registers; i++) {
