@@ -13,9 +13,8 @@
 #include "bc.h"
 #include "program.h"
 #include "array.h"
+#include "lexer.h"
 #include "rt/exception.h"
-
-#include "lexer.c"
 
 ARRAY_TYPE(size_t, size_t_array, 1)
 
