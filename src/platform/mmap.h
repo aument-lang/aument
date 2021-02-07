@@ -15,7 +15,8 @@ struct au_mmap_info {
 #endif
 };
 
-/// Loads a file into memory and stores a reference into a au_mmap_info instance
+/// Loads a file into memory and stores a reference into a au_mmap_info
+/// instance
 /// @param path path of file
 /// @param info info
 /// @return 1 if success, 0 if errored

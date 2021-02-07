@@ -3,25 +3,23 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
-#include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "platform/mmap.h"
 
-#include "program.h"
 #include "array.h"
-#include "parser.h"
 #include "lexer.h"
+#include "parser.h"
+#include "program.h"
 #include "rt/exception.h"
 
 ARRAY_TYPE(size_t, size_t_array, 1)
 
 static inline int is_return_op(uint8_t op) {
-    return op == OP_RET_LOCAL ||
-           op == OP_RET ||
-           op == OP_RET_NULL;
+    return op == OP_RET_LOCAL || op == OP_RET || op == OP_RET_NULL;
 }
 
 struct parser {
@@ -29,7 +27,7 @@ struct parser {
 
     uint8_t rstack[AU_REGS];
     size_t rstack_len;
-    
+
     uint8_t free_regs[AU_REGS];
     size_t free_regs_len;
 
@@ -51,7 +49,7 @@ struct parser {
 
 static void parser_flush_free_regs(struct parser *p) {
     p->rstack_len = 0;
-    for(int i = 0; i < AU_REGS; i++) {
+    for (int i = 0; i < AU_REGS; i++) {
         p->free_regs[i] = AU_REGS - i - 1;
     }
     p->free_regs_len = AU_REGS;
@@ -85,7 +83,7 @@ static uint8_t parser_new_reg(struct parser *p) {
     assert(p->free_regs_len > 0);
     uint8_t reg = p->free_regs[--p->free_regs_len];
     p->rstack[p->rstack_len++] = reg;
-    if(reg > p->max_register)
+    if (reg > p->max_register)
         p->max_register = reg;
     return reg;
 }
@@ -114,13 +112,15 @@ static void parser_emit_bc_u8(struct parser *p, uint8_t val) {
     au_bc_buf_add(&p->bc, val);
 }
 
-static void replace_bc_u16(struct au_bc_buf *bc, size_t idx, uint16_t val) {
+static void replace_bc_u16(struct au_bc_buf *bc, size_t idx,
+                           uint16_t val) {
     assert(idx + 1 < bc->len);
-    uint16_t *ptr = (uint16_t*)(&bc->data[idx]);
+    uint16_t *ptr = (uint16_t *)(&bc->data[idx]);
     ptr[0] = val;
 }
 
-static void parser_replace_bc_u16(struct parser *p, size_t idx, uint16_t val) {
+static void parser_replace_bc_u16(struct parser *p, size_t idx,
+                                  uint16_t val) {
     replace_bc_u16(&p->bc, idx, val);
 }
 
@@ -128,13 +128,11 @@ static void parser_emit_bc_u16(struct parser *p, uint16_t val) {
     const size_t offset = p->bc.len;
     parser_emit_bc_u8(p, 0);
     parser_emit_bc_u8(p, 0);
-    uint16_t *ptr = (uint16_t*)(&p->bc.data[offset]);
+    uint16_t *ptr = (uint16_t *)(&p->bc.data[offset]);
     ptr[0] = val;
 }
 
-static void parser_emit_pad8(struct parser *p) {
-    parser_emit_bc_u8(p, 0);
-}
+static void parser_emit_pad8(struct parser *p) { parser_emit_bc_u8(p, 0); }
 
 static int parser_exec_statement(struct parser *p, struct lexer *l);
 static int parser_exec_expr(struct parser *p, struct lexer *l);
@@ -147,10 +145,12 @@ static int parser_exec_muldiv(struct parser *p, struct lexer *l);
 static int parser_exec_val(struct parser *p, struct lexer *l);
 
 static int parser_exec(struct parser *p, struct lexer *l) {
-    while(1) {
+    while (1) {
         int retval = parser_exec_statement(p, l);
-        if(retval == 0) return 0;
-        else if (retval == -1) break;
+        if (retval == 0)
+            return 0;
+        else if (retval == -1)
+            break;
         parser_flush_free_regs(p);
     }
     parser_emit_bc_u8(p, OP_EXIT);
@@ -165,10 +165,12 @@ static int parser_exec_print_statement(struct parser *p, struct lexer *l);
 static int parser_exec_return_statement(struct parser *p, struct lexer *l);
 
 static int parser_exec_with_semicolon(struct lexer *l, int retval) {
-    if(!retval) return retval;
+    if (!retval)
+        return retval;
     struct token t = lexer_next(l);
-    if(t.type == TOK_EOF) return 1;
-    if(!(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ';'))
+    if (t.type == TOK_EOF)
+        return 1;
+    if (!(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ';'))
         return 0;
     return 1;
 }
@@ -182,18 +184,20 @@ static int parser_exec_block(struct parser *p, struct lexer *l) {
         assert(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == '{');
     }
 
-    while(1) {
+    while (1) {
         {
             struct token t = lexer_peek(l, 0);
-            if(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == '}') {
+            if (t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == '}') {
                 lexer_next(l);
                 break;
             }
         }
 
         int retval = parser_exec_statement(p, l);
-        if(retval == 0) return 0;
-        else if (retval == -1) break;
+        if (retval == 0)
+            return 0;
+        else if (retval == -1)
+            break;
         parser_flush_free_regs(p);
     }
 
@@ -203,33 +207,37 @@ static int parser_exec_block(struct parser *p, struct lexer *l) {
 
 static int parser_exec_statement(struct parser *p, struct lexer *l) {
     const struct token t = lexer_peek(l, 0);
-    if(t.type == TOK_EOF) {
+    if (t.type == TOK_EOF) {
         return -1;
-    } else if(t.type == TOK_IDENTIFIER) {
-        if(token_keyword_cmp(&t, "def")) {
+    } else if (t.type == TOK_IDENTIFIER) {
+        if (token_keyword_cmp(&t, "def")) {
             lexer_next(l);
             return parser_exec_def_statement(p, l);
-        } else if(token_keyword_cmp(&t, "if")) {
+        } else if (token_keyword_cmp(&t, "if")) {
             lexer_next(l);
             return parser_exec_if_statement(p, l);
-        } else if(token_keyword_cmp(&t, "while")) {
+        } else if (token_keyword_cmp(&t, "while")) {
             lexer_next(l);
             return parser_exec_while_statement(p, l);
-        } else if(token_keyword_cmp(&t, "print")) {
+        } else if (token_keyword_cmp(&t, "print")) {
             lexer_next(l);
-            return parser_exec_with_semicolon(l, parser_exec_print_statement(p, l));
-        } else if(token_keyword_cmp(&t, "return")) {
+            return parser_exec_with_semicolon(
+                l, parser_exec_print_statement(p, l));
+        } else if (token_keyword_cmp(&t, "return")) {
             lexer_next(l);
-            return parser_exec_with_semicolon(l, parser_exec_return_statement(p, l));
-        } else if(token_keyword_cmp(&t, "import")) {
+            return parser_exec_with_semicolon(
+                l, parser_exec_return_statement(p, l));
+        } else if (token_keyword_cmp(&t, "import")) {
             lexer_next(l);
-            return parser_exec_with_semicolon(l, parser_exec_import_statement(p, l));
+            return parser_exec_with_semicolon(
+                l, parser_exec_import_statement(p, l));
         }
     }
     return parser_exec_with_semicolon(l, parser_exec_expr(p, l));
 }
 
-static int parser_exec_import_statement(struct parser *p, struct lexer *l) {
+static int parser_exec_import_statement(struct parser *p,
+                                        struct lexer *l) {
     const struct token path_tok = lexer_next(l);
     assert(path_tok.type == TOK_STRING);
 
@@ -261,28 +269,32 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
     struct token tok = lexer_next(l);
     assert(tok.type == TOK_OPERATOR && tok.len == 1 && tok.src[0] == '(');
     tok = lexer_peek(l, 0);
-    if(tok.type == TOK_IDENTIFIER) {
+    if (tok.type == TOK_IDENTIFIER) {
         lexer_next(l);
-        const struct au_bc_var_value v = (struct au_bc_var_value) {
+        const struct au_bc_var_value v = (struct au_bc_var_value){
             .idx = bcs.num_args,
         };
-        const struct au_bc_var_value *old = au_bc_vars_add(&func_p.vars, tok.src, tok.len, &v);
+        const struct au_bc_var_value *old =
+            au_bc_vars_add(&func_p.vars, tok.src, tok.len, &v);
         assert(old == NULL);
         func_p.locals_len++;
         bcs.num_args++;
-        while(1){
+        while (1) {
             tok = lexer_peek(l, 0);
-            if(tok.type == TOK_OPERATOR && tok.len == 1 && tok.src[0] == ')') {
+            if (tok.type == TOK_OPERATOR && tok.len == 1 &&
+                tok.src[0] == ')') {
                 lexer_next(l);
                 break;
-            } else if(tok.type == TOK_OPERATOR && tok.len == 1 && tok.src[0] == ',') {
+            } else if (tok.type == TOK_OPERATOR && tok.len == 1 &&
+                       tok.src[0] == ',') {
                 lexer_next(l);
                 tok = lexer_next(l);
                 assert(tok.type == TOK_IDENTIFIER);
-                const struct au_bc_var_value v = (struct au_bc_var_value) {
+                const struct au_bc_var_value v = (struct au_bc_var_value){
                     .idx = bcs.num_args,
                 };
-                const struct au_bc_var_value *old = au_bc_vars_add(&func_p.vars, tok.src, tok.len, &v);
+                const struct au_bc_var_value *old =
+                    au_bc_vars_add(&func_p.vars, tok.src, tok.len, &v);
                 assert(old == NULL);
                 func_p.locals_len++;
                 bcs.num_args++;
@@ -290,7 +302,7 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
                 assert(0);
             }
         }
-    } else if(tok.len == 1 && tok.src[0] == ')') {
+    } else if (tok.len == 1 && tok.src[0] == ')') {
         lexer_next(l);
     } else {
         au_fatal("unexpected character");
@@ -309,15 +321,12 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
         .idx = p->p_data->fns.len,
     };
     struct au_bc_var_value *old_value = au_bc_vars_add(
-        &p->p_data->fn_map,
-        id_tok.src, id_tok.len,
-        &var_value
-    );
-    if(old_value) {
+        &p->p_data->fn_map, id_tok.src, id_tok.len, &var_value);
+    if (old_value) {
         // Forward declaration
         assert(0);
     } else {
-        for(int i = 0; i < func_p.self_fill_call.len; i++) {
+        for (int i = 0; i < func_p.self_fill_call.len; i++) {
             const size_t offset = func_p.self_fill_call.data[i];
             replace_bc_u16(&bcs.bc, offset, var_value.idx);
         }
@@ -330,14 +339,15 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
     }
 
     parser_del(&func_p);
-    
+
     return 1;
 }
 
 static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
     // condition
     int has_else_part = 0;
-    if(!parser_exec_expr(p, l)) return 0;
+    if (!parser_exec_expr(p, l))
+        return 0;
     const size_t c_len = p->bc.len;
     parser_emit_bc_u8(p, OP_JNIF);
     parser_emit_bc_u8(p, parser_pop_reg(p));
@@ -347,8 +357,9 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
     // body
     size_t body_len;
     size_t body_replace_idx = (size_t)-1;
-    if(!parser_exec_block(p, l)) return 0;
-    if(!is_return_op(p->bc.data[p->bc.len - 4])) {
+    if (!parser_exec_block(p, l))
+        return 0;
+    if (!is_return_op(p->bc.data[p->bc.len - 4])) {
         body_len = p->bc.len;
         parser_emit_bc_u8(p, OP_JREL);
         parser_emit_pad8(p);
@@ -359,24 +370,26 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
     // else
     {
         const struct token t = lexer_peek(l, 0);
-        if(token_keyword_cmp(&t, "else")) {
+        if (token_keyword_cmp(&t, "else")) {
             lexer_next(l);
 
             const size_t else_start = p->bc.len;
             {
                 const struct token t = lexer_peek(l, 0);
-                if(token_keyword_cmp(&t, "if")) {
+                if (token_keyword_cmp(&t, "if")) {
                     lexer_next(l);
-                    if(!parser_exec_if_statement(p, l)) return 0;
+                    if (!parser_exec_if_statement(p, l))
+                        return 0;
                 } else {
-                    if(!parser_exec_block(p, l)) return 0;
+                    if (!parser_exec_block(p, l))
+                        return 0;
                 }
             }
             has_else_part = 1;
 
             const size_t else_len = p->bc.len;
             size_t else_replace_idx = (size_t)-1;
-            if(!is_return_op(p->bc.data[p->bc.len - 4])) {
+            if (!is_return_op(p->bc.data[p->bc.len - 4])) {
                 parser_emit_bc_u8(p, OP_JREL);
                 parser_emit_pad8(p);
                 else_replace_idx = p->bc.len;
@@ -389,15 +402,16 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
             // Else jump
             if (else_replace_idx != (size_t)-1) {
                 const size_t offset = (end_len - else_len) / 4;
-                if(offset > (uint16_t)-1)
+                if (offset > (uint16_t)-1)
                     au_fatal("offset is more than (uint16_t)-1\n");
-                parser_replace_bc_u16(p, else_replace_idx, (uint16_t)offset);
+                parser_replace_bc_u16(p, else_replace_idx,
+                                      (uint16_t)offset);
             }
 
             // Condition jump
             {
                 const size_t offset = (else_start - c_len) / 4;
-                if(offset > (uint16_t)-1)
+                if (offset > (uint16_t)-1)
                     au_fatal("offset is more than (uint16_t)-1\n");
                 parser_replace_bc_u16(p, c_replace_idx, (uint16_t)offset);
             }
@@ -409,7 +423,7 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
     // Condition jump
     if (!has_else_part) {
         const size_t offset = (end_len - c_len) / 4;
-        if(offset > (uint16_t)-1)
+        if (offset > (uint16_t)-1)
             au_fatal("offset is more than (uint16_t)-1\n");
         parser_replace_bc_u16(p, c_replace_idx, (uint16_t)offset);
     }
@@ -417,7 +431,7 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
     // Block jump
     if (body_replace_idx != (size_t)-1) {
         const size_t offset = (end_len - body_len) / 4;
-        if(offset > (uint16_t)-1)
+        if (offset > (uint16_t)-1)
             au_fatal("offset is more than (uint16_t)-1\n");
         parser_replace_bc_u16(p, body_replace_idx, (uint16_t)offset);
     }
@@ -441,7 +455,8 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
 static int parser_exec_while_statement(struct parser *p, struct lexer *l) {
     // condition
     const size_t cond_part = p->bc.len;
-    if(!parser_exec_expr(p, l)) return 0;
+    if (!parser_exec_expr(p, l))
+        return 0;
     const size_t c_len = p->bc.len;
     parser_emit_bc_u8(p, OP_JNIF);
     parser_emit_bc_u8(p, parser_pop_reg(p));
@@ -449,10 +464,11 @@ static int parser_exec_while_statement(struct parser *p, struct lexer *l) {
     parser_emit_pad8(p);
     parser_emit_pad8(p);
     // body
-    if(!parser_exec_block(p, l)) return 0;
+    if (!parser_exec_block(p, l))
+        return 0;
     size_t body_len;
     size_t body_replace_idx = (size_t)-1;
-    if(!is_return_op(p->bc.data[p->bc.len - 4])) {
+    if (!is_return_op(p->bc.data[p->bc.len - 4])) {
         body_len = p->bc.len;
         parser_emit_bc_u8(p, OP_JRELB);
         parser_emit_pad8(p);
@@ -466,15 +482,15 @@ static int parser_exec_while_statement(struct parser *p, struct lexer *l) {
     // Condition jump
     {
         const size_t offset = (end_len - c_len) / 4;
-        if(offset > (uint16_t)-1)
+        if (offset > (uint16_t)-1)
             au_fatal("offset is more than (uint16_t)-1\n");
         parser_replace_bc_u16(p, c_replace_idx, (uint16_t)offset);
     }
 
     // Block jump
-    if(body_replace_idx != (size_t)-1){
+    if (body_replace_idx != (size_t)-1) {
         const size_t offset = (body_len - cond_part) / 4;
-        if(offset > (uint16_t)-1)
+        if (offset > (uint16_t)-1)
             au_fatal("offset is more than (uint16_t)-1\n");
         parser_replace_bc_u16(p, body_replace_idx, (uint16_t)offset);
     }
@@ -491,18 +507,22 @@ static int parser_exec_while_statement(struct parser *p, struct lexer *l) {
 }
 
 static int parser_exec_print_statement(struct parser *p, struct lexer *l) {
-    if(!parser_exec_expr(p, l)) return 0;
+    if (!parser_exec_expr(p, l))
+        return 0;
     parser_emit_bc_u8(p, OP_PRINT);
     parser_emit_bc_u8(p, parser_pop_reg(p));
     parser_emit_pad8(p);
     parser_emit_pad8(p);
     while (1) {
         const struct token t = lexer_peek(l, 0);
-        if(t.type == TOK_EOF || (t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ';')) {
+        if (t.type == TOK_EOF ||
+            (t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ';')) {
             return 1;
-        } else if(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ',') {
+        } else if (t.type == TOK_OPERATOR && t.len == 1 &&
+                   t.src[0] == ',') {
             lexer_next(l);
-            if(!parser_exec_expr(p, l)) return 0;
+            if (!parser_exec_expr(p, l))
+                return 0;
             parser_emit_bc_u8(p, OP_PRINT);
             parser_emit_bc_u8(p, parser_pop_reg(p));
             parser_emit_pad8(p);
@@ -514,11 +534,13 @@ static int parser_exec_print_statement(struct parser *p, struct lexer *l) {
     }
 }
 
-static int parser_exec_return_statement(struct parser *p, struct lexer *l) {
-    if(!parser_exec_expr(p, l)) return 0;
+static int parser_exec_return_statement(struct parser *p,
+                                        struct lexer *l) {
+    if (!parser_exec_expr(p, l))
+        return 0;
     const uint8_t reg = parser_pop_reg(p);
-    if( p->bc.data[p->bc.len - 4] == OP_MOV_LOCAL_REG &&
-        p->bc.data[p->bc.len - 2] == reg ) {
+    if (p->bc.data[p->bc.len - 4] == OP_MOV_LOCAL_REG &&
+        p->bc.data[p->bc.len - 2] == reg) {
         const uint8_t local = p->bc.data[p->bc.len - 3];
         p->bc.data[p->bc.len - 4] = OP_RET_LOCAL;
         p->bc.data[p->bc.len - 3] = local;
@@ -531,15 +553,17 @@ static int parser_exec_return_statement(struct parser *p, struct lexer *l) {
     return 1;
 }
 
-static int parser_exec_call_args(struct parser *p, struct lexer *l, int *n_args) {
+static int parser_exec_call_args(struct parser *p, struct lexer *l,
+                                 int *n_args) {
     {
         const struct token t = lexer_peek(l, 0);
-        if(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ')') {
+        if (t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ')') {
             *n_args = 0;
             lexer_next(l);
             return 1;
         }
-        if(!parser_exec_expr(p, l)) return 0;
+        if (!parser_exec_expr(p, l))
+            return 0;
         parser_emit_bc_u8(p, OP_PUSH_ARG);
         parser_emit_bc_u8(p, parser_pop_reg(p));
         parser_emit_pad8(p);
@@ -548,10 +572,13 @@ static int parser_exec_call_args(struct parser *p, struct lexer *l, int *n_args)
     }
     while (1) {
         const struct token t = lexer_next(l);
-        if(t.type == TOK_EOF || (t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ')')) {
+        if (t.type == TOK_EOF ||
+            (t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ')')) {
             return 1;
-        } else if(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ',') {
-            if(!parser_exec_expr(p, l)) return 0;
+        } else if (t.type == TOK_OPERATOR && t.len == 1 &&
+                   t.src[0] == ',') {
+            if (!parser_exec_expr(p, l))
+                return 0;
             parser_emit_bc_u8(p, OP_PUSH_ARG);
             parser_emit_bc_u8(p, parser_pop_reg(p));
             parser_emit_pad8(p);
@@ -571,33 +598,30 @@ static int parser_exec_expr(struct parser *p, struct lexer *l) {
 
 static int parser_exec_assign(struct parser *p, struct lexer *l) {
     const struct token t = lexer_peek(l, 0);
-    if(t.type == TOK_IDENTIFIER) {
+    if (t.type == TOK_IDENTIFIER) {
         const struct token op = lexer_peek(l, 1);
-        if(op.type == TOK_OPERATOR && 
+        if (op.type == TOK_OPERATOR &&
             ((op.len == 1 && op.src[0] == '=') ||
-            (op.len == 2 && (
-                op.src[0] == '+' ||
-                op.src[0] == '-' ||
-                op.src[0] == '*' ||
-                op.src[0] == '/' ||
-                op.src[0] == '%' ||
-                op.src[0] == '!'
-            ) && op.src[1] == '='))) {
+             (op.len == 2 &&
+              (op.src[0] == '+' || op.src[0] == '-' || op.src[0] == '*' ||
+               op.src[0] == '/' || op.src[0] == '%' || op.src[0] == '!') &&
+              op.src[1] == '='))) {
             lexer_next(l);
             lexer_next(l);
 
-            if(!parser_exec_expr(p, l)) return 0;
+            if (!parser_exec_expr(p, l))
+                return 0;
             struct au_bc_var_value var_value = (struct au_bc_var_value){
                 .idx = p->locals_len,
             };
 
-            if(op.len == 2) {
-                switch(op.src[0]) {
-                    #define BIN_OP_ASG(OP, OPCODE) \
-                    case OP: { \
-                        parser_emit_bc_u8(p, OPCODE); \
-                        break; \
-                    }
+            if (op.len == 2) {
+                switch (op.src[0]) {
+#define BIN_OP_ASG(OP, OPCODE)                                            \
+    case OP: {                                                            \
+        parser_emit_bc_u8(p, OPCODE);                                     \
+        break;                                                            \
+    }
                     BIN_OP_ASG('*', OP_MUL_ASG)
                     BIN_OP_ASG('/', OP_DIV_ASG)
                     BIN_OP_ASG('+', OP_ADD_ASG)
@@ -607,14 +631,11 @@ static int parser_exec_assign(struct parser *p, struct lexer *l) {
             } else {
                 parser_emit_bc_u8(p, OP_MOV_REG_LOCAL);
             }
-            
+
             parser_emit_bc_u8(p, parser_last_reg(p));
-            struct au_bc_var_value *old_value = au_bc_vars_add(
-                &p->vars,
-                t.src, t.len,
-                &var_value
-            );
-            if(old_value) {
+            struct au_bc_var_value *old_value =
+                au_bc_vars_add(&p->vars, t.src, t.len, &var_value);
+            if (old_value) {
                 parser_emit_bc_u8(p, old_value->idx);
             } else {
                 p->locals_len++;
@@ -628,12 +649,13 @@ static int parser_exec_assign(struct parser *p, struct lexer *l) {
 }
 
 static int parser_exec_logical(struct parser *p, struct lexer *l) {
-    if(!parser_exec_eq(p, l)) return 0;
+    if (!parser_exec_eq(p, l))
+        return 0;
 
     const size_t len = l->pos;
     const struct token t = lexer_next(l);
-    if(t.type == TOK_OPERATOR && t.len == 2) {
-        if(t.src[0] == '&' && t.src[1] == '&') {
+    if (t.type == TOK_OPERATOR && t.len == 2) {
+        if (t.src[0] == '&' && t.src[1] == '&') {
             const uint8_t reg = parser_new_reg(p);
             parser_swap_top_regs(p);
             parser_emit_bc_u8(p, OP_MOV_BOOL);
@@ -648,7 +670,8 @@ static int parser_exec_logical(struct parser *p, struct lexer *l) {
             parser_emit_pad8(p);
             parser_emit_pad8(p);
 
-            if(!parser_exec_expr(p, l)) return 0;
+            if (!parser_exec_expr(p, l))
+                return 0;
             const size_t right_len = p->bc.len;
             parser_emit_bc_u8(p, OP_JNIF);
             parser_emit_bc_u8(p, parser_pop_reg(p));
@@ -662,8 +685,10 @@ static int parser_exec_logical(struct parser *p, struct lexer *l) {
             parser_emit_pad8(p);
 
             const size_t end_label = p->bc.len;
-            parser_replace_bc_u16(p, left_replace_idx, (end_label - left_len) / 4);
-            parser_replace_bc_u16(p, right_replace_idx, (end_label - right_len) / 4);
+            parser_replace_bc_u16(p, left_replace_idx,
+                                  (end_label - left_len) / 4);
+            parser_replace_bc_u16(p, right_replace_idx,
+                                  (end_label - right_len) / 4);
 
             /*
             register = 0
@@ -676,7 +701,7 @@ static int parser_exec_logical(struct parser *p, struct lexer *l) {
             end:
                 ...
             */
-        } else if(t.src[0] == '|' && t.src[1] == '|') {
+        } else if (t.src[0] == '|' && t.src[1] == '|') {
             const uint8_t reg = parser_new_reg(p);
             parser_swap_top_regs(p);
 
@@ -687,7 +712,8 @@ static int parser_exec_logical(struct parser *p, struct lexer *l) {
             parser_emit_pad8(p);
             parser_emit_pad8(p);
 
-            if(!parser_exec_expr(p, l)) return 0;
+            if (!parser_exec_expr(p, l))
+                return 0;
             const size_t right_len = p->bc.len;
             parser_emit_bc_u8(p, OP_JIF);
             parser_emit_bc_u8(p, parser_pop_reg(p));
@@ -713,9 +739,12 @@ static int parser_exec_logical(struct parser *p, struct lexer *l) {
             parser_emit_pad8(p);
 
             const size_t end_label = p->bc.len;
-            parser_replace_bc_u16(p, false_replace_idx, (end_label - false_len) / 4);
-            parser_replace_bc_u16(p, left_replace_idx, (truth_len - left_len) / 4);
-            parser_replace_bc_u16(p, right_replace_idx, (truth_len - right_len) / 4);
+            parser_replace_bc_u16(p, false_replace_idx,
+                                  (end_label - false_len) / 4);
+            parser_replace_bc_u16(p, left_replace_idx,
+                                  (truth_len - left_len) / 4);
+            parser_replace_bc_u16(p, right_replace_idx,
+                                  (truth_len - right_len) / 4);
 
             /*
             eval left
@@ -737,26 +766,30 @@ static int parser_exec_logical(struct parser *p, struct lexer *l) {
     return 1;
 }
 
-#define BIN_EXPR(FN_NAME, BIN_COND, BIN_EXEC, FN_LOWER) \
-static int FN_NAME(struct parser *p, struct lexer *l) { \
-    if(!FN_LOWER(p, l)) return 0; \
-    while (1) { \
-        const size_t len = l->pos; \
-        const struct token t = lexer_next(l); \
-        if(t.type == TOK_EOF) { \
-            l->pos = len; \
-            return 1; \
-        } else if(t.type == TOK_OPERATOR && (BIN_COND)) { \
-            if(!FN_LOWER(p, l)) return 0; \
-            do { BIN_EXEC } while(0); \
-            continue; \
-        } else { \
-            l->pos = len; \
-            return 1; \
-        } \
-        l->pos = len; \
-    } \
-}
+#define BIN_EXPR(FN_NAME, BIN_COND, BIN_EXEC, FN_LOWER)                   \
+    static int FN_NAME(struct parser *p, struct lexer *l) {               \
+        if (!FN_LOWER(p, l))                                              \
+            return 0;                                                     \
+        while (1) {                                                       \
+            const size_t len = l->pos;                                    \
+            const struct token t = lexer_next(l);                         \
+            if (t.type == TOK_EOF) {                                      \
+                l->pos = len;                                             \
+                return 1;                                                 \
+            } else if (t.type == TOK_OPERATOR && (BIN_COND)) {            \
+                if (!FN_LOWER(p, l))                                      \
+                    return 0;                                             \
+                do {                                                      \
+                    BIN_EXEC                                              \
+                } while (0);                                              \
+                continue;                                                 \
+            } else {                                                      \
+                l->pos = len;                                             \
+                return 1;                                                 \
+            }                                                             \
+            l->pos = len;                                                 \
+        }                                                                 \
+    }
 
 static void parser_emit_bc_binary_expr(struct parser *p) {
     uint8_t rhs = parser_pop_reg(p);
@@ -768,188 +801,210 @@ static void parser_emit_bc_binary_expr(struct parser *p) {
     parser_emit_bc_u8(p, res);
 }
 
-BIN_EXPR(parser_exec_eq, t.len == 2 && t.src[1] == '=' && (t.src[0] == '=' || t.src[0] == '!'), {
-    if(t.src[0] == '=')
-        parser_emit_bc_u8(p, OP_EQ);
-    else if(t.src[0] == '!')
-        parser_emit_bc_u8(p, OP_NEQ);
-    parser_emit_bc_binary_expr(p);
-}, parser_exec_cmp)
+BIN_EXPR(
+    parser_exec_eq,
+    t.len == 2 && t.src[1] == '=' && (t.src[0] == '=' || t.src[0] == '!'),
+    {
+        if (t.src[0] == '=')
+            parser_emit_bc_u8(p, OP_EQ);
+        else if (t.src[0] == '!')
+            parser_emit_bc_u8(p, OP_NEQ);
+        parser_emit_bc_binary_expr(p);
+    },
+    parser_exec_cmp)
 
-BIN_EXPR(parser_exec_cmp, t.len >= 1 && (t.src[0] == '<' || t.src[0] == '>'), {
-    if(t.len == 1)
-        if(t.src[0] == '<') parser_emit_bc_u8(p, OP_LT);
-        else parser_emit_bc_u8(p, OP_GT);
-    else
-        if(t.src[0] == '<') parser_emit_bc_u8(p, OP_LEQ);
-        else parser_emit_bc_u8(p, OP_GEQ);
-    parser_emit_bc_binary_expr(p);
-}, parser_exec_addsub)
+BIN_EXPR(
+    parser_exec_cmp, t.len >= 1 && (t.src[0] == '<' || t.src[0] == '>'),
+    {
+        if (t.len == 1)
+            if (t.src[0] == '<')
+                parser_emit_bc_u8(p, OP_LT);
+            else
+                parser_emit_bc_u8(p, OP_GT);
+        else if (t.src[0] == '<')
+            parser_emit_bc_u8(p, OP_LEQ);
+        else
+            parser_emit_bc_u8(p, OP_GEQ);
+        parser_emit_bc_binary_expr(p);
+    },
+    parser_exec_addsub)
 
-BIN_EXPR(parser_exec_addsub, t.len == 1 && (t.src[0] == '+' || t.src[0] == '-'), {
-    if(t.src[0] == '+')
-        parser_emit_bc_u8(p, OP_ADD);
-    else if (t.src[0] == '-')
-        parser_emit_bc_u8(p, OP_SUB);
-    parser_emit_bc_binary_expr(p);
-}, parser_exec_muldiv)
+BIN_EXPR(
+    parser_exec_addsub, t.len == 1 && (t.src[0] == '+' || t.src[0] == '-'),
+    {
+        if (t.src[0] == '+')
+            parser_emit_bc_u8(p, OP_ADD);
+        else if (t.src[0] == '-')
+            parser_emit_bc_u8(p, OP_SUB);
+        parser_emit_bc_binary_expr(p);
+    },
+    parser_exec_muldiv)
 
-BIN_EXPR(parser_exec_muldiv, t.len == 1 && (t.src[0] == '*' || t.src[0] == '/' || t.src[0] == '%'), {
-    if(t.src[0] == '*')
-        parser_emit_bc_u8(p, OP_MUL);
-    else if (t.src[0] == '/')
-        parser_emit_bc_u8(p, OP_DIV);
-    else if (t.src[0] == '%')
-        parser_emit_bc_u8(p, OP_MOD);
-    parser_emit_bc_binary_expr(p);
-}, parser_exec_val)
+BIN_EXPR(
+    parser_exec_muldiv,
+    t.len == 1 && (t.src[0] == '*' || t.src[0] == '/' || t.src[0] == '%'),
+    {
+        if (t.src[0] == '*')
+            parser_emit_bc_u8(p, OP_MUL);
+        else if (t.src[0] == '/')
+            parser_emit_bc_u8(p, OP_DIV);
+        else if (t.src[0] == '%')
+            parser_emit_bc_u8(p, OP_MOD);
+        parser_emit_bc_binary_expr(p);
+    },
+    parser_exec_val)
 
 static int parser_exec_val(struct parser *p, struct lexer *l) {
     struct token t;
-    if((t = lexer_next(l)).type == TOK_EOF) {
+    if ((t = lexer_next(l)).type == TOK_EOF) {
         return 0;
     }
 
-    switch(t.type) {
-        case TOK_INT: {
-            int num = 0;
-            for(size_t i = 0; i < t.len; i++) {
-                num = num * 10 + (t.src[i] - '0');
+    switch (t.type) {
+    case TOK_INT: {
+        int num = 0;
+        for (size_t i = 0; i < t.len; i++) {
+            num = num * 10 + (t.src[i] - '0');
+        }
+        assert(num <= 0xffff);
+        parser_emit_bc_u8(p, OP_MOV_U16);
+        parser_emit_bc_u8(p, parser_new_reg(p));
+        parser_emit_bc_u16(p, num);
+        break;
+    }
+    case TOK_OPERATOR: {
+        if (t.len == 1 && t.src[0] == '(') {
+            parser_exec_expr(p, l);
+            t = lexer_next(l);
+            if (!(t.len == 1 && t.src[0] == ')'))
+                au_fatal("expected )\n");
+        } else {
+            au_fatal("unexpected operator %.*s\n", t.len, t.src);
+        }
+        break;
+    }
+    case TOK_IDENTIFIER: {
+        struct token peek = lexer_peek(l, 0);
+        if (peek.type == TOK_OPERATOR && peek.len == 1 &&
+            peek.src[0] == '(') {
+            lexer_next(l);
+            int n_args = 0;
+            if (!parser_exec_call_args(p, l, &n_args))
+                return 0;
+            assert(n_args <= AU_MAX_ARGS);
+
+            const struct au_bc_var_value *val = 0;
+            int execute_self = 0;
+            if (p->self_name && t.len == p->self_len &&
+                memcmp(p->self_name, t.src, p->self_len) == 0) {
+                execute_self = 1;
+            } else {
+                val = au_bc_vars_get(&p->p_data->fn_map, t.src, t.len);
             }
-            assert(num <= 0xffff);
-            parser_emit_bc_u8(p, OP_MOV_U16);
+
+            if (!execute_self && val == NULL) {
+                au_fatal("unknown function '%.*s'\n", t.len, t.src);
+            }
+
+            if (execute_self) {
+                if (p->self_num_args != n_args) {
+                    au_fatal(
+                        "unexpected number of arguments (got %d, expected "
+                        "%d)\n",
+                        n_args, p->self_num_args);
+                }
+            } else {
+                assert(val->idx < p->p_data->fns.len);
+                const struct au_fn *fn = &p->p_data->fns.data[val->idx];
+                if (fn->type == AU_FN_BC) {
+                    const struct au_bc_storage *bcs = &fn->as.bc_func;
+                    if (bcs->num_args != n_args) {
+                        au_fatal("unexpected number of arguments (got %d, "
+                                 "expected %d)\n",
+                                 n_args, bcs->num_args);
+                    }
+                } else if (fn->type == AU_FN_NATIVE) {
+                    const struct au_lib_func *lib_func =
+                        &fn->as.native_func;
+                    if (lib_func->num_args != n_args) {
+                        au_fatal("unexpected number of arguments (got %d, "
+                                 "expected %d)\n",
+                                 n_args, lib_func->num_args);
+                    }
+                }
+            }
+
+            parser_emit_bc_u8(p, OP_CALL0 + n_args);
             parser_emit_bc_u8(p, parser_new_reg(p));
-            parser_emit_bc_u16(p, num);
-            break;
-        }
-        case TOK_OPERATOR: {
-            if(t.len == 1 && t.src[0] == '(') {
-                parser_exec_expr(p, l);
-                t = lexer_next(l);
-                if(!(t.len == 1 && t.src[0] == ')'))
-                    au_fatal("expected )\n");
+            const size_t offset = p->bc.len;
+            parser_emit_pad8(p);
+            parser_emit_pad8(p);
+            if (execute_self) {
+                size_t_array_add(&p->self_fill_call, offset);
             } else {
-                au_fatal("unexpected operator %.*s\n", t.len, t.src);
+                parser_replace_bc_u16(p, offset, val->idx);
             }
-            break;
-        }
-        case TOK_IDENTIFIER: {
-            struct token peek = lexer_peek(l, 0);
-            if(peek.type == TOK_OPERATOR && peek.len == 1 && peek.src[0] == '(') {
-                lexer_next(l);
-                int n_args = 0;
-                if(!parser_exec_call_args(p, l, &n_args)) return 0;
-                assert(n_args <= AU_MAX_ARGS);
-
-                const struct au_bc_var_value *val = 0;
-                int execute_self = 0;
-                if(p->self_name && t.len == p->self_len && memcmp(p->self_name, t.src, p->self_len) == 0) {
-                    execute_self = 1;
-                } else {
-                    val = au_bc_vars_get(&p->p_data->fn_map, t.src, t.len);
-                }
-
-                if(!execute_self && val == NULL) {
-                    au_fatal("unknown function '%.*s'\n", t.len, t.src);
-                }
-
-                if (execute_self) {
-                    if(p->self_num_args != n_args) {
-                        au_fatal("unexpected number of arguments (got %d, expected %d)\n", n_args, p->self_num_args);
-                    }
-                } else {
-                    assert(val->idx < p->p_data->fns.len);
-                    const struct au_fn *fn = &p->p_data->fns.data[val->idx];
-                    if(fn->type == AU_FN_BC) {
-                        const struct au_bc_storage *bcs = &fn->as.bc_func;
-                        if(bcs->num_args != n_args) {
-                            au_fatal("unexpected number of arguments (got %d, expected %d)\n", n_args, bcs->num_args);
-                        }
-                    } else if (fn->type == AU_FN_NATIVE) {
-                        const struct au_lib_func *lib_func = &fn->as.native_func;
-                        if (lib_func->num_args != n_args) {
-                            au_fatal("unexpected number of arguments (got %d, expected %d)\n", n_args, lib_func->num_args);
-                        }
-                    }
-                }
-
-                parser_emit_bc_u8(p, OP_CALL0 + n_args);
-                parser_emit_bc_u8(p, parser_new_reg(p));
-                const size_t offset = p->bc.len;
-                parser_emit_pad8(p);
-                parser_emit_pad8(p);
-                if(execute_self) {
-                    size_t_array_add(&p->self_fill_call, offset);
-                } else {
-                    parser_replace_bc_u16(p, offset, val->idx);
-                }
-            } else {
-                const struct au_bc_var_value *val = au_bc_vars_get(&p->vars, t.src, t.len);
-                if(val == NULL) {
-                    au_fatal("unknown variable '%.*s'\n", t.len, t.src);
-                }
-                parser_emit_bc_u8(p, OP_MOV_LOCAL_REG);
-                parser_emit_bc_u8(p, val->idx);
-                parser_emit_bc_u8(p, parser_new_reg(p));
-                parser_emit_pad8(p);
+        } else {
+            const struct au_bc_var_value *val =
+                au_bc_vars_get(&p->vars, t.src, t.len);
+            if (val == NULL) {
+                au_fatal("unknown variable '%.*s'\n", t.len, t.src);
             }
-            break;
-        }
-        case TOK_STRING: {
-            // Perform string escaping
-            char *formatted_string = 0;
-            size_t formatted_string_len = 0;
-            int in_escape = 0;
-            for(size_t i = 0; i < t.len; i++) {
-                if(t.src[i] == '\\' && !in_escape) {
-                    in_escape = 1;
-                    continue;
-                }
-                if(in_escape) {
-                    if(formatted_string == 0) {
-                        formatted_string = malloc(t.len);
-                        formatted_string_len = i - 1;
-                        memcpy(formatted_string, t.src, i - 1);
-                    }
-                    switch(t.src[i]) {
-                        case 'n': {
-                            formatted_string[formatted_string_len++] = '\n';
-                            break;
-                        }
-                    }
-                    in_escape = 0;
-                } else if(formatted_string != 0) {
-                    formatted_string[formatted_string_len++] = t.src[i];
-                }
-            }
-
-            int idx = -1;
-            if(formatted_string) {
-                idx = au_program_data_add_data(
-                    p->p_data,
-                    au_value_string(0),
-                    (uint8_t*)formatted_string,
-                    formatted_string_len
-                );
-                free(formatted_string);
-            } else {
-                idx = au_program_data_add_data(
-                    p->p_data,
-                    au_value_string(0),
-                    (uint8_t*)t.src,
-                    t.len
-                );
-            }
-            parser_emit_bc_u8(p, OP_LOAD_CONST);
-            parser_emit_bc_u8(p, idx);
+            parser_emit_bc_u8(p, OP_MOV_LOCAL_REG);
+            parser_emit_bc_u8(p, val->idx);
             parser_emit_bc_u8(p, parser_new_reg(p));
             parser_emit_pad8(p);
-            break;
         }
-        default: {
-            au_fatal("unexpected token %.*s\n", t.len, t.src);
-            break;
+        break;
+    }
+    case TOK_STRING: {
+        // Perform string escaping
+        char *formatted_string = 0;
+        size_t formatted_string_len = 0;
+        int in_escape = 0;
+        for (size_t i = 0; i < t.len; i++) {
+            if (t.src[i] == '\\' && !in_escape) {
+                in_escape = 1;
+                continue;
+            }
+            if (in_escape) {
+                if (formatted_string == 0) {
+                    formatted_string = malloc(t.len);
+                    formatted_string_len = i - 1;
+                    memcpy(formatted_string, t.src, i - 1);
+                }
+                switch (t.src[i]) {
+                case 'n': {
+                    formatted_string[formatted_string_len++] = '\n';
+                    break;
+                }
+                }
+                in_escape = 0;
+            } else if (formatted_string != 0) {
+                formatted_string[formatted_string_len++] = t.src[i];
+            }
         }
+
+        int idx = -1;
+        if (formatted_string) {
+            idx = au_program_data_add_data(p->p_data, au_value_string(0),
+                                           (uint8_t *)formatted_string,
+                                           formatted_string_len);
+            free(formatted_string);
+        } else {
+            idx = au_program_data_add_data(p->p_data, au_value_string(0),
+                                           (uint8_t *)t.src, t.len);
+        }
+        parser_emit_bc_u8(p, OP_LOAD_CONST);
+        parser_emit_bc_u8(p, idx);
+        parser_emit_bc_u8(p, parser_new_reg(p));
+        parser_emit_pad8(p);
+        break;
+    }
+    default: {
+        au_fatal("unexpected token %.*s\n", t.len, t.src);
+        break;
+    }
     }
 
     return 1;
@@ -964,7 +1019,7 @@ int au_parse(char *src, size_t len, struct au_program *program) {
 
     struct parser p;
     parser_init(&p, &p_data);
-    if(!parser_exec(&p, &l)) {
+    if (!parser_exec(&p, &l)) {
         lexer_del(&l);
         parser_del(&p);
         au_program_data_del(&p_data);

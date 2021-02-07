@@ -6,10 +6,10 @@
 #include "mmap.h"
 
 #ifdef USE_MMAP
-#include <unistd.h>
-#include <sys/mman.h>
-#include <stdio.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <sys/mman.h>
+#include <unistd.h>
 #else
 #include <stdio.h>
 #endif
@@ -17,10 +17,13 @@
 int au_mmap_read(const char *path, struct au_mmap_info *info) {
 #ifdef USE_MMAP
     info->_fd = open(path, O_RDONLY);
-    if(info->_fd < 0) return 0;
+    if (info->_fd < 0)
+        return 0;
     info->size = lseek(info->_fd, 0, SEEK_END);
-    char *bytes = mmap(NULL, info->size, PROT_READ, MAP_PRIVATE, info->_fd, 0);
-    if(bytes==(char*)-1) return 0;
+    char *bytes =
+        mmap(NULL, info->size, PROT_READ, MAP_PRIVATE, info->_fd, 0);
+    if (bytes == (char *)-1)
+        return 0;
     info->bytes = bytes;
 #else
     FILE *file = fopen(path, "r");

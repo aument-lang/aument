@@ -4,8 +4,8 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #pragma once
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "hash.h"
 
@@ -43,9 +43,9 @@ void au_bc_vars_del(struct au_bc_vars *vars);
 /// @param len the bytesize length of the key
 /// @param value the value to be added
 /// @return the old value (if it exists), otherwise `NULL`
-struct au_bc_var_value *au_bc_vars_add(struct au_bc_vars *vars,
-    const char *key, size_t len,
-    const struct au_bc_var_value *value);
+struct au_bc_var_value *
+au_bc_vars_add(struct au_bc_vars *vars, const char *key, size_t len,
+               const struct au_bc_var_value *value);
 
 /// Retrieves a value from an au_bc_vars instance
 /// @param vars the au_bc_vars instance
@@ -53,5 +53,4 @@ struct au_bc_var_value *au_bc_vars_add(struct au_bc_vars *vars,
 /// @param len the bytesize length of the key
 /// @return the value (if it exists), otherwise `NULL`
 const struct au_bc_var_value *au_bc_vars_get(const struct au_bc_vars *vars,
-    const char *key,
-    size_t len);
+                                             const char *key, size_t len);

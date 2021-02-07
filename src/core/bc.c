@@ -3,8 +3,9 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "bc.h"
 
 void au_bc_storage_init(struct au_bc_storage *bc_storage) {
