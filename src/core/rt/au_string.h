@@ -20,13 +20,22 @@ struct au_string {
     char data[];
 };
 
+/// Creates an au_string from a constant array of chars
+/// @param s Pointer to the array of chars
+/// @param len Byte size of the string
+/// @returns An au_string instance
 struct au_string *au_string_from_const(
     const char *s,
     size_t len
 );
 
+/// Creates an au_string from concatenating 2 au_string(s)
+/// @param left First string
+/// @param right Second string
+/// @return Concatenation of `left` and `right`
 struct au_string *au_string_add(struct au_string *left, struct au_string *right);
 
+/// Increases the reference count of an au_string
 static inline void au_string_ref(struct au_string *header) {
     header->rc++;
 #ifdef DEBUG_RC
@@ -34,6 +43,7 @@ static inline void au_string_ref(struct au_string *header) {
 #endif
 }
 
+/// Decreases the reference count of an au_string
 static inline void au_string_deref(struct au_string *header) {
     header->rc--;
 #ifdef DEBUG_RC

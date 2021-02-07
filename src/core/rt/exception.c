@@ -7,6 +7,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+#include "exception.h"
+
 void au_fatal(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);

@@ -85,7 +85,13 @@ void au_bc_storage_init(struct au_bc_storage *bc_storage);
 void au_bc_storage_del(struct au_bc_storage *bc_storage);
 
 struct au_program_data;
-void au_bc_dbg(const struct au_bc_storage *bcs, const struct au_program_data *data);
+
+/// Debugs an bytecode storage container
+/// @param bcs the bytecode storage
+/// @param data program data
+void au_bc_dbg(
+    const struct au_bc_storage *bcs,
+    const struct au_program_data *data
+);
 
 struct au_program;
-int au_parse(char *src, size_t len, struct au_program *program);

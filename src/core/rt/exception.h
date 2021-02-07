@@ -8,5 +8,10 @@
 #include "platform/platform.h"
 #endif
 
+/// Print fatal exception and exit program
+/// @param fmt printf formatted string
 _NoReturn void au_fatal(const char *fmt, ...);
+
+/// Print fatal exception from perror and exit program
+/// @param msg from where the error occured?
 _NoReturn void au_perror(const char *msg);

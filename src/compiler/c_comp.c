@@ -14,6 +14,7 @@
 #include "core/program.h"
 #include "core/bit_array.h"
 #include "core/rt/exception.h"
+#include "core/parser.h"
 
 #include "c_comp.h"
 

@@ -36,7 +36,22 @@ struct au_bc_vars {
 
 void au_bc_vars_init(struct au_bc_vars *vars);
 void au_bc_vars_del(struct au_bc_vars *vars);
+
+/// Adds a key-value pair into a au_bc_vars instance
+/// @param vars the au_bc_vars instance
+/// @param key the key
+/// @param len the bytesize length of the key
+/// @param value the value to be added
+/// @return the old value (if it exists), otherwise `NULL`
 struct au_bc_var_value *au_bc_vars_add(struct au_bc_vars *vars,
     const char *key, size_t len,
     const struct au_bc_var_value *value);
-const struct au_bc_var_value *au_bc_vars_get(const struct au_bc_vars *vars, const char *key, size_t len);
+
+/// Retrieves a value from an au_bc_vars instance
+/// @param vars the au_bc_vars instance
+/// @param key the key
+/// @param len the bytesize length of the key
+/// @return the value (if it exists), otherwise `NULL`
+const struct au_bc_var_value *au_bc_vars_get(const struct au_bc_vars *vars,
+    const char *key,
+    size_t len);

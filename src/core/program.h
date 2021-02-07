@@ -50,6 +50,12 @@ struct au_program_data {
 void au_program_data_init(struct au_program_data *data);
 void au_program_data_del(struct au_program_data *data);
 
+/// Adds data into a au_program_data instance
+/// @param p_data
+/// @param value
+/// @param v_data
+/// @param len
+/// @return index of the data
 int au_program_data_add_data(
     struct au_program_data *p_data,
     au_value_t value,
@@ -62,5 +68,6 @@ struct au_program {
     struct au_program_data data;
 };
 
+/// Debugs an au_program
 void au_program_dbg(const struct au_program *p);
 void au_program_del(struct au_program *p);
