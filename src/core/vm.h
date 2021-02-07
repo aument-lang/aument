@@ -29,12 +29,26 @@ struct au_vm_thread_local {
 void au_vm_thread_local_init(struct au_vm_thread_local *tl, const struct au_program_data *p_data);
 void au_vm_thread_local_del(struct au_vm_thread_local *tl);
 
+/// Executes unverified bytecode in a au_bc_storage
+/// @param tl
+/// @param bcs
+/// @param p_data
+/// @param args
+/// @return return value
 au_value_t au_vm_exec_unverified(
     struct au_vm_thread_local *tl,
     const struct au_bc_storage *bcs,
     const struct au_program_data *p_data,
     const au_value_t *args
 );
-static inline au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl, struct au_program *program) {
+
+/// Executes unverified bytecode in a au_program
+/// @param tl
+/// @param program
+/// @return return value
+static inline au_value_t au_vm_exec_unverified_main(
+    struct au_vm_thread_local *tl,
+    struct au_program *program
+) {
     return au_vm_exec_unverified(tl, &program->main, &program->data, 0);
 }

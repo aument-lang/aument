@@ -10,9 +10,9 @@
 
 #include "platform/mmap.h"
 
-#include "bc.h"
 #include "program.h"
 #include "array.h"
+#include "parser.h"
 #include "lexer.h"
 #include "rt/exception.h"
 

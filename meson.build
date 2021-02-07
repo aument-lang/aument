@@ -12,6 +12,7 @@ sources = [
     'src/core/hash.c',
     'src/core/hash.h',
     'src/core/parser.c',
+    'src/core/parser.h',
     'src/core/program.c',
     'src/core/program.h',
     'src/core/rt/au_string.c',
