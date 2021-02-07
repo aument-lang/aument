@@ -175,7 +175,7 @@ _BIN_OP_GENERIC_NUMBER(au_value_mul, *)
 _BIN_OP_GENERIC_NUMBER(au_value_div, /)
 _BIN_OP_GENERIC_NUMBER(au_value_mod, %)
 
-#define _BIN_OP_BOOL_GENERIC_NUMBER(NAME, OP)                             \
+#define _BIN_OP_BOOL_GENERIC(NAME, OP)                                    \
     static _AlwaysInline au_value_t NAME(au_value_t lhs,                  \
                                          au_value_t rhs) {                \
         if (au_value_get_type(lhs) != au_value_get_type(rhs))             \
@@ -185,16 +185,21 @@ _BIN_OP_GENERIC_NUMBER(au_value_mod, %)
             return au_value_bool(au_value_get_int(lhs)                    \
                                      OP au_value_get_int(rhs));           \
         }                                                                 \
+        case VALUE_STR: {                                                 \
+            return au_value_bool(au_string_cmp(au_value_get_string(lhs),  \
+                                               au_value_get_string(rhs))  \
+                                     OP 0);                               \
+        }                                                                 \
         default:                                                          \
             break;                                                        \
         }                                                                 \
         return au_value_bool(0);                                          \
     }
-_BIN_OP_BOOL_GENERIC_NUMBER(au_value_lt, <)
-_BIN_OP_BOOL_GENERIC_NUMBER(au_value_gt, >)
-_BIN_OP_BOOL_GENERIC_NUMBER(au_value_leq, <=)
-_BIN_OP_BOOL_GENERIC_NUMBER(au_value_geq, >=)
-#undef _BIN_OP_GENERIC_NUMBER
+_BIN_OP_BOOL_GENERIC(au_value_lt, <)
+_BIN_OP_BOOL_GENERIC(au_value_gt, >)
+_BIN_OP_BOOL_GENERIC(au_value_leq, <=)
+_BIN_OP_BOOL_GENERIC(au_value_geq, >=)
+#undef _BIN_OP_BOOL_GENERIC
 
 static _AlwaysInline au_value_t au_value_eq(au_value_t lhs,
                                             au_value_t rhs) {
