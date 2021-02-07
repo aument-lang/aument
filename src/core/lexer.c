@@ -3,20 +3,12 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
-enum token_type {
-    TOK_EOF = 0,
-    TOK_INT,
-    TOK_FLOAT,
-    TOK_IDENTIFIER,
-    TOK_STRING,
-    TOK_OPERATOR,
-};
+#include <stdlib.h>
+#include <assert.h>
 
-struct token {
-    enum token_type type;
-    char *src;
-    size_t len;
-};
+#include "lexer.h"
+#include "rt/exception.h"
+#include "platform/platform.h"
 
 static inline int l_isspace(int ch) {
     return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
@@ -47,32 +39,7 @@ static const char *token_type_dbg[] = {
 static void token_dbg(const struct token *t);
 #endif
 
-/// Returns 1 if token is identifier with value str, else, returns 0
-static inline int token_keyword_cmp(const struct token *t, const char *str) {
-    if(t->type != TOK_IDENTIFIER) return 0;
-    if(t->len != strlen(str)) return 0;
-    return memcmp(t->src, str, t->len) == 0;
-}
-
-struct token_lookahead {
-    struct token token;
-    size_t start_pos;
-    size_t end_pos;
-};
-
-#define LOOKAHEAD_MAX 2
-
-struct lexer {
-    /// This object does not own the src pointer
-    char *src;
-    size_t len;
-    size_t pos;
-
-    struct token_lookahead lh[LOOKAHEAD_MAX];
-    int lh_read, lh_write;
-};
-
-static void lexer_init(struct lexer *l, char *src, size_t len) {
+void lexer_init(struct lexer *l, char *src, size_t len) {
     l->src = src;
     l->pos = 0;
     l->len = len;
@@ -81,7 +48,7 @@ static void lexer_init(struct lexer *l, char *src, size_t len) {
     l->lh_write = 0;
 }
 
-static void lexer_del(struct lexer *l) {
+void lexer_del(struct lexer *l) {
     memset(l, 0, sizeof(struct lexer));
 }
 
@@ -223,7 +190,7 @@ static struct token lexer_next_(struct lexer *l) {
 #undef L_EOF
 }
 
-static struct token lexer_peek(struct lexer *l, int lh_pos) {
+struct token lexer_peek(struct lexer *l, int lh_pos) {
     const size_t old_pos = l->pos;
     if (lh_pos == 0 && l->lh_write == 0) {
         struct token t = lexer_next_(l);
@@ -280,11 +247,13 @@ void token_dbg(const struct token *t) {
     );
 }
 
-static struct token lexer_next(struct lexer *l) {
+struct token lexer_next(struct lexer *l) {
     struct token t = lexer_next_(l);
     token_dbg(&t);
     return t;
 }
 #else
-#define lexer_next lexer_next_
+struct token lexer_next(struct lexer *l) {
+    return lexer_next_(l);
+}
 #endif

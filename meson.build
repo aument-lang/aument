@@ -22,6 +22,8 @@ sources = [
     'src/core/rt/value.c',
     'src/core/rt/value.h',
     'src/core/str_array.h',
+    'src/core/lexer.c',
+    'src/core/lexer.h',
     'src/core/vm.c',
     'src/core/vm.h',
     'src/main.c',
