@@ -4,17 +4,17 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #pragma once
-#include <stdint.h>
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 
+#include "array.h"
 #include "bc.h"
 #include "bc_vars.h"
-#include "array.h"
 #include "str_array.h"
 
-#include "rt/value.h"
 #include "rt/extern_fn.h"
+#include "rt/value.h"
 
 struct au_program_data_val {
     au_value_t real_value;
@@ -56,12 +56,9 @@ void au_program_data_del(struct au_program_data *data);
 /// @param v_data
 /// @param len
 /// @return index of the data
-int au_program_data_add_data(
-    struct au_program_data *p_data,
-    au_value_t value,
-    uint8_t *v_data,
-    size_t len
-);
+int au_program_data_add_data(struct au_program_data *p_data,
+                             au_value_t value, uint8_t *v_data,
+                             size_t len);
 
 struct au_program {
     struct au_bc_storage main;

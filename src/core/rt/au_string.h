@@ -7,8 +7,8 @@
 #pragma once
 #endif
 
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #ifdef DEBUG_RC
 #include <stdio.h>
@@ -24,22 +24,27 @@ struct au_string {
 /// @param s Pointer to the array of chars
 /// @param len Byte size of the string
 /// @returns An au_string instance
-struct au_string *au_string_from_const(
-    const char *s,
-    size_t len
-);
+struct au_string *au_string_from_const(const char *s, size_t len);
 
 /// Creates an au_string from concatenating 2 au_string(s)
 /// @param left First string
 /// @param right Second string
 /// @return Concatenation of `left` and `right`
-struct au_string *au_string_add(struct au_string *left, struct au_string *right);
+struct au_string *au_string_add(struct au_string *left,
+                                struct au_string *right);
+
+/// Compares 2 au_string instances
+/// @param left First string
+/// @param right Second string
+/// @return Comparison of `left` and `right`
+int au_string_cmp(struct au_string *left, struct au_string *right);
 
 /// Increases the reference count of an au_string
 static inline void au_string_ref(struct au_string *header) {
     header->rc++;
 #ifdef DEBUG_RC
-    printf("[%.*s]: [ref] rc now %d\n", header->len, header->data, header->rc);
+    printf("[%.*s]: [ref] rc now %d\n", header->len, header->data,
+           header->rc);
 #endif
 }
 
@@ -47,9 +52,10 @@ static inline void au_string_ref(struct au_string *header) {
 static inline void au_string_deref(struct au_string *header) {
     header->rc--;
 #ifdef DEBUG_RC
-    printf("[%.*s]: [deref] rc now %d\n", header->len, header->data, header->rc);
+    printf("[%.*s]: [deref] rc now %d\n", header->len, header->data,
+           header->rc);
 #endif
-    if(header->rc == 0) {
+    if (header->rc == 0) {
         free(header);
     }
 }

@@ -6,8 +6,8 @@
 #pragma once
 #include <stdint.h>
 
-#include "bc_vars.h"
 #include "array.h"
+#include "bc_vars.h"
 
 #define AU_REGS 256
 #define AU_MAX_ARGS 15
@@ -89,9 +89,7 @@ struct au_program_data;
 /// Debugs an bytecode storage container
 /// @param bcs the bytecode storage
 /// @param data program data
-void au_bc_dbg(
-    const struct au_bc_storage *bcs,
-    const struct au_program_data *data
-);
+void au_bc_dbg(const struct au_bc_storage *bcs,
+               const struct au_program_data *data);
 
 struct au_program;

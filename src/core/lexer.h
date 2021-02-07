@@ -21,9 +21,12 @@ struct token {
 /// @param t Token to check
 /// @param str Keyword to compare
 /// @return 1 if token is identifier with value str, else, 0
-static inline int token_keyword_cmp(const struct token *t, const char *str) {
-    if(t->type != TOK_IDENTIFIER) return 0;
-    if(t->len != strlen(str)) return 0;
+static inline int token_keyword_cmp(const struct token *t,
+                                    const char *str) {
+    if (t->type != TOK_IDENTIFIER)
+        return 0;
+    if (t->len != strlen(str))
+        return 0;
     return memcmp(t->src, str, t->len) == 0;
 }
 

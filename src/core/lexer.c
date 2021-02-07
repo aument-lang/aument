@@ -3,20 +3,18 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
-#include <stdlib.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include "lexer.h"
-#include "rt/exception.h"
 #include "platform/platform.h"
+#include "rt/exception.h"
 
 static inline int l_isspace(int ch) {
     return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
 }
 
-static inline int l_isdigit(int ch) {
-    return ch >= '0' && ch <= '9';
-}
+static inline int l_isdigit(int ch) { return ch >= '0' && ch <= '9'; }
 
 static inline int l_isalpha(int ch) {
     return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
@@ -28,12 +26,8 @@ static inline int l_isalnum(int ch) {
 
 #ifdef DEBUG_LEXER
 static const char *token_type_dbg[] = {
-    "TOK_EOF",
-    "TOK_INT",
-    "TOK_FLOAT",
-    "TOK_IDENTIFIER",
-    "TOK_STRING",
-    "TOK_OPERATOR",
+    "TOK_EOF",        "TOK_INT",    "TOK_FLOAT",
+    "TOK_IDENTIFIER", "TOK_STRING", "TOK_OPERATOR",
 };
 
 static void token_dbg(const struct token *t);
@@ -48,20 +42,18 @@ void lexer_init(struct lexer *l, char *src, size_t len) {
     l->lh_write = 0;
 }
 
-void lexer_del(struct lexer *l) {
-    memset(l, 0, sizeof(struct lexer));
-}
+void lexer_del(struct lexer *l) { memset(l, 0, sizeof(struct lexer)); }
 
 static struct token lexer_next_(struct lexer *l) {
-    if(l->lh_read < l->lh_write) {
+    if (l->lh_read < l->lh_write) {
         struct token_lookahead lh = l->lh[l->lh_read];
         l->lh_read++;
-        if(l->lh_read == l->lh_write) {
+        if (l->lh_read == l->lh_write) {
             l->lh_read = 0;
             l->lh_write = 0;
         }
 
-        if(l->pos == lh.start_pos) {
+        if (l->pos == lh.start_pos) {
 #ifdef DEBUG_LEXER
             printf("(returns) ");
             token_dbg(&lh.token);
@@ -74,10 +66,10 @@ static struct token lexer_next_(struct lexer *l) {
     }
 
 #define L_EOF (l->pos >= l->len)
-    while(l_isspace(l->src[l->pos]) && !L_EOF) {
+    while (l_isspace(l->src[l->pos]) && !L_EOF) {
         l->pos++;
     }
-    if(L_EOF) {
+    if (L_EOF) {
         return (struct token){
             .type = TOK_EOF,
         };
@@ -85,10 +77,10 @@ static struct token lexer_next_(struct lexer *l) {
 
     const size_t start = l->pos;
     const char start_ch = l->src[l->pos];
-    if(start_ch == '"' || start_ch == '\'') {
+    if (start_ch == '"' || start_ch == '\'') {
         l->pos++;
-        while(!L_EOF) {
-            if(l->src[l->pos] == start_ch) {
+        while (!L_EOF) {
+            if (l->src[l->pos] == start_ch) {
                 l->pos++;
                 break;
             }
@@ -103,8 +95,8 @@ static struct token lexer_next_(struct lexer *l) {
         };
     } else if (l_isdigit(start_ch)) {
         l->pos++;
-        while(!L_EOF) {
-            if(!l_isdigit(l->src[l->pos])) {
+        while (!L_EOF) {
+            if (!l_isdigit(l->src[l->pos])) {
                 break;
             }
             l->pos++;
@@ -117,8 +109,8 @@ static struct token lexer_next_(struct lexer *l) {
         };
     } else if (l_isalpha(start_ch)) {
         l->pos++;
-        while(!L_EOF) {
-            if(!l_isalnum(l->src[l->pos])) {
+        while (!L_EOF) {
+            if (!l_isalnum(l->src[l->pos])) {
                 break;
             }
             l->pos++;
@@ -129,19 +121,11 @@ static struct token lexer_next_(struct lexer *l) {
             .src = l->src + start,
             .len = len,
         };
-    } else if (
-        start_ch == '+' ||
-        start_ch == '-' ||
-        start_ch == '*' ||
-        start_ch == '/' ||
-        start_ch == '%' ||
-        start_ch == '!' ||
-        start_ch == '<' ||
-        start_ch == '>' ||
-        start_ch == '='
-    ) {
+    } else if (start_ch == '+' || start_ch == '-' || start_ch == '*' ||
+               start_ch == '/' || start_ch == '%' || start_ch == '!' ||
+               start_ch == '<' || start_ch == '>' || start_ch == '=') {
         l->pos++;
-        if(!L_EOF && l->src[l->pos] == '=') {
+        if (!L_EOF && l->src[l->pos] == '=') {
             l->pos++;
             return (struct token){
                 .type = TOK_OPERATOR,
@@ -156,7 +140,8 @@ static struct token lexer_next_(struct lexer *l) {
         };
     } else if (start_ch == '&' || start_ch == '|') {
         l->pos++;
-        if(!L_EOF && (l->src[l->pos] == start_ch || l->src[l->pos] == '=')) {
+        if (!L_EOF &&
+            (l->src[l->pos] == start_ch || l->src[l->pos] == '=')) {
             l->pos++;
             return (struct token){
                 .type = TOK_OPERATOR,
@@ -169,15 +154,9 @@ static struct token lexer_next_(struct lexer *l) {
             .src = l->src + start,
             .len = 1,
         };
-    } else if (
-        start_ch == '(' ||
-        start_ch == ')' ||
-        start_ch == ';' ||
-        start_ch == ',' ||
-        start_ch == ':' ||
-        start_ch == '{' ||
-        start_ch == '}'
-    ) {
+    } else if (start_ch == '(' || start_ch == ')' || start_ch == ';' ||
+               start_ch == ',' || start_ch == ':' || start_ch == '{' ||
+               start_ch == '}') {
         l->pos++;
         return (struct token){
             .type = TOK_OPERATOR,
@@ -185,7 +164,7 @@ static struct token lexer_next_(struct lexer *l) {
             .len = 1,
         };
     }
-    
+
     au_fatal("unexpected character %c", start_ch);
 #undef L_EOF
 }
@@ -205,7 +184,7 @@ struct token lexer_peek(struct lexer *l, int lh_pos) {
         token_dbg(&t);
 #endif
         return t;
-    } else if(lh_pos == l->lh_write) {
+    } else if (lh_pos == l->lh_write) {
         struct token_lookahead *lh_last = &l->lh[l->lh_write - 1];
 #ifdef DEBUG_LEXER
         printf("! from:");
@@ -239,12 +218,7 @@ struct token lexer_peek(struct lexer *l, int lh_pos) {
 #ifdef DEBUG_LEXER
 void token_dbg(const struct token *t) {
     printf("(token) { .type = %s, src = %p, len = %ld, text: [%.*s] }\n",
-        token_type_dbg[t->type],
-        t->src,
-        t->len,
-        (int)t->len,
-        t->src
-    );
+           token_type_dbg[t->type], t->src, t->len, (int)t->len, t->src);
 }
 
 struct token lexer_next(struct lexer *l) {

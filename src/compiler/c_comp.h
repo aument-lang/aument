@@ -16,4 +16,5 @@ struct au_c_comp_state {
 void au_c_comp_state_del(struct au_c_comp_state *state);
 
 struct au_program;
-void au_c_comp(struct au_c_comp_state *state, const struct au_program *program);
+void au_c_comp(struct au_c_comp_state *state,
+               const struct au_program *program);

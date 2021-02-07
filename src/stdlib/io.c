@@ -15,9 +15,10 @@ AU_EXTERN_FUNC_DECL(au_std_input) {
     header->rc = 1;
     header->len = 1;
     uint32_t pos = 0, cap = 1;
-    while((ch = fgetc(stdin)) != EOF) {
-        if(ch == '\n') break;
-        if(pos == cap) {
+    while ((ch = fgetc(stdin)) != EOF) {
+        if (ch == '\n')
+            break;
+        if (pos == cap) {
             cap *= 2;
             header = realloc(header, sizeof(struct au_string) + cap);
         }
