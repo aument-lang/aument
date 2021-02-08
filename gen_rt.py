@@ -1,15 +1,29 @@
 import re
 import sys
+import subprocess
 
-output = sys.argv[1]
-ident = sys.argv[2]
-files = sys.argv[3:]
+global_file = sys.argv[1]
+output = sys.argv[2]
+ident = sys.argv[3]
+files = sys.argv[4:]
 total = ""
 for fn in files:
     with open(fn, "r") as f:
-        src = re.sub(r'//.*', '', f.read())
-        total += src.strip()
+        total += f.read()
         total += '\n'
+
+cpp_output = subprocess.run([
+    'cpp',
+    '-P'
+], input=total.encode('utf-8'), capture_output=True)
+
+total = cpp_output.stdout.decode('utf-8')
+total = re.sub(r'^\s+', '', total)
+total = re.sub(r'\s+', ' ', total)
+if global_file != '-':
+    with open(global_file, "r") as f:
+        total = f.read() + '\n' + total
+
 total_bytes = total.encode('ascii')
 values = ','.join(map(str, total_bytes))
 with open(output, "w") as f:

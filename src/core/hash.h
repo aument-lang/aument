@@ -6,4 +6,6 @@
 #pragma once
 
 typedef uint32_t hash_t;
-hash_t au_hash(const char *str, const int len);
+
+/// [func] Hashes a chunk of memory `str` with length `len`
+hash_t au_hash(const uint8_t *str, const size_t len);

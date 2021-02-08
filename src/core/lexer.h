@@ -5,7 +5,7 @@
 enum token_type {
     TOK_EOF = 0,
     TOK_INT,
-    TOK_FLOAT,
+    TOK_DOUBLE,
     TOK_IDENTIFIER,
     TOK_STRING,
     TOK_OPERATOR,
@@ -48,7 +48,19 @@ struct lexer {
     int lh_read, lh_write;
 };
 
+/// Initializes a lexer instance
+/// @param l instance to be initialized
+/// @param src pointer to source code to be lexed
+/// @param len byte-size length of the source code
 void lexer_init(struct lexer *l, char *src, size_t len);
+
+/// Deinitializes a lexer instance
+/// @param l instance to be deinitialized
 void lexer_del(struct lexer *l);
+
+/// Gets the next token in the lexer stream
 struct token lexer_next(struct lexer *l);
+
+/// Look ahead the next token in the lexer stream without
+///     consuming it
 struct token lexer_peek(struct lexer *l, int lh_pos);

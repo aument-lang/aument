@@ -5,9 +5,9 @@
 // See LICENSE.txt for license information
 #pragma once
 
-#include "bc.h"
+struct au_program;
 
-/// Parses source code into an au_program instance
+/// [func] Parses source code into an au_program instance
 /// @param src source code string
 /// @param len the bytesize len of the source code
 /// @param program output into a program

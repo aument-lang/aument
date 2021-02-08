@@ -38,21 +38,21 @@ void au_program_data_del(struct au_program_data *data) {
 
 int au_program_data_add_data(struct au_program_data *p_data,
                              au_value_t value, uint8_t *v_data,
-                             size_t len) {
+                             size_t v_len) {
     size_t buf_idx = 0;
-    if (len != 0) {
+    if (v_len != 0) {
         buf_idx = p_data->data_buf_len;
         p_data->data_buf =
-            realloc(p_data->data_buf, p_data->data_buf_len + len);
-        memcpy(&p_data->data_buf[buf_idx], v_data, len);
-        p_data->data_buf_len += len;
+            realloc(p_data->data_buf, p_data->data_buf_len + v_len);
+        memcpy(&p_data->data_buf[buf_idx], v_data, v_len);
+        p_data->data_buf_len += v_len;
     }
 
     const size_t idx = p_data->data_val.len;
     struct au_program_data_val new_val = (struct au_program_data_val){
         .real_value = value,
         .buf_idx = buf_idx,
-        .buf_len = len,
+        .buf_len = v_len,
     };
     au_program_data_vals_add(&p_data->data_val, new_val);
     return idx;

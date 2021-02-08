@@ -77,9 +77,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     }
 
 #define bc(x) au_bc_buf_at(&bcs->bc, x)
-#define DEF_BC16(VAR, n)                                                  \
-    assert(pos + n + 2 <= bcs->bc.len);                                   \
-    uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + n]));
+#define DEF_BC16(VAR, OFFSET)                                             \
+    assert(pos + OFFSET + 2 <= bcs->bc.len);                              \
+    uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));
 
     bit_array labelled_lines = calloc(1, BA_LEN(bcs->bc.len / 4));
     int has_dyn_arg_stack = 0;
@@ -260,8 +260,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         }
         case OP_LOAD_CONST: {
-            uint8_t c = bc(pos);
-            uint8_t reg = bc(pos + 1);
+            uint8_t reg = bc(pos);
+            DEF_BC16(c, 1)
             fprintf(state->f, "r%d = _M%ld_c%d();\n", reg, module_idx, c);
             break;
         }
@@ -395,7 +395,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 
             struct au_program program;
             assert(au_parse(mmap.bytes, mmap.size, &program) == 1);
-            au_mmap_close(&mmap);
+            au_mmap_del(&mmap);
             program.data.cwd = dirname(abspath);
             // abspath is transferred to program.data
 
@@ -505,7 +505,7 @@ extern const size_t AU_RT_CODE_LEN;
 void au_c_comp(struct au_c_comp_state *state,
                const struct au_program *program) {
     fwrite(AU_RT_HDR, 1, AU_RT_HDR_LEN, state->f);
-    fprintf(state->f, "ARRAY_TYPE(au_value_t, au_value_stack, 1)\n");
+    fprintf(state->f, "\n" AU_C_COMP_EXTERN_FUNC_DECL "\n");
 
     struct au_c_comp_global_state g_state =
         (struct au_c_comp_global_state){0};

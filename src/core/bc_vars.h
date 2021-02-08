@@ -34,7 +34,12 @@ struct au_bc_vars {
     size_t var_name_len;
 };
 
+/// Initializes an au_bc_vars instance
+/// @param vars instance to be initialized
 void au_bc_vars_init(struct au_bc_vars *vars);
+
+/// Deinitializes an au_bc_vars instance
+/// @param vars instance to be destroyed
 void au_bc_vars_del(struct au_bc_vars *vars);
 
 /// Adds a key-value pair into a au_bc_vars instance
