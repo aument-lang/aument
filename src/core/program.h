@@ -33,6 +33,9 @@ struct au_fn {
         struct au_bc_storage bc_func;
     } as;
 };
+
+/// [func] Deinitializes an au_fn instance
+/// @param fn instance to be initialized
 void au_fn_del(struct au_fn *fn);
 
 ARRAY_TYPE(struct au_fn, au_fn_array, 1)
@@ -47,24 +50,32 @@ struct au_program_data {
     char *cwd;
 };
 
+/// [func] Initializes an au_program_data instance
+/// @param data instance to be initialized
 void au_program_data_init(struct au_program_data *data);
+
+/// [func] Deinitializes an au_program_data instance
+/// @param data instance to be deinitialized
 void au_program_data_del(struct au_program_data *data);
 
-/// Adds data into a au_program_data instance
-/// @param p_data
-/// @param value
-/// @param v_data
-/// @param len
+/// [func] Adds constant value data into a au_program_data instance
+/// @param p_data au_program_data instance
+/// @param value au_value_t representation of constant
+/// @param v_data byte array of internal constant data
+/// @param v_len size of `v_data`
 /// @return index of the data
 int au_program_data_add_data(struct au_program_data *p_data,
                              au_value_t value, uint8_t *v_data,
-                             size_t len);
+                             size_t v_len);
 
 struct au_program {
     struct au_bc_storage main;
     struct au_program_data data;
 };
 
-/// Debugs an au_program
+/// [func] Debugs an au_program instance
 void au_program_dbg(const struct au_program *p);
+
+/// [func] Initializes an au_program instance
+/// @param p instance to be deinitialized
 void au_program_del(struct au_program *p);

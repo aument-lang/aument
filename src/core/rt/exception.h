@@ -13,5 +13,5 @@
 _NoReturn void au_fatal(const char *fmt, ...);
 
 /// Print fatal exception from perror and exit program
-/// @param msg from where the error occured?
+/// @param msg what the program was trying to do when the error occured
 _NoReturn void au_perror(const char *msg);

@@ -26,7 +26,7 @@ static inline int l_isalnum(int ch) {
 
 #ifdef DEBUG_LEXER
 static const char *token_type_dbg[] = {
-    "TOK_EOF",        "TOK_INT",    "TOK_FLOAT",
+    "TOK_EOF",        "TOK_INT",    "TOK_DOUBLE",
     "TOK_IDENTIFIER", "TOK_STRING", "TOK_OPERATOR",
 };
 
@@ -65,11 +65,11 @@ static struct token lexer_next_(struct lexer *l) {
         l->lh_write = 0;
     }
 
-#define L_EOF (l->pos >= l->len)
-    while (l_isspace(l->src[l->pos]) && !L_EOF) {
+#define L_EOF() (l->pos >= l->len)
+    while (l_isspace(l->src[l->pos]) && !L_EOF()) {
         l->pos++;
     }
-    if (L_EOF) {
+    if (L_EOF()) {
         return (struct token){
             .type = TOK_EOF,
         };
@@ -79,7 +79,7 @@ static struct token lexer_next_(struct lexer *l) {
     const char start_ch = l->src[l->pos];
     if (start_ch == '"' || start_ch == '\'') {
         l->pos++;
-        while (!L_EOF) {
+        while (!L_EOF()) {
             if (l->src[l->pos] == start_ch) {
                 l->pos++;
                 break;
@@ -95,11 +95,26 @@ static struct token lexer_next_(struct lexer *l) {
         };
     } else if (l_isdigit(start_ch)) {
         l->pos++;
-        while (!L_EOF) {
+        while (!L_EOF()) {
             if (!l_isdigit(l->src[l->pos])) {
                 break;
             }
             l->pos++;
+        }
+        if (!L_EOF() && l->src[l->pos] == '.') {
+            l->pos++;
+            while (!L_EOF()) {
+                if (!l_isdigit(l->src[l->pos])) {
+                    break;
+                }
+                l->pos++;
+            }
+            const size_t len = l->pos - start;
+            return (struct token){
+                .type = TOK_DOUBLE,
+                .src = l->src + start,
+                .len = len,
+            };
         }
         const size_t len = l->pos - start;
         return (struct token){
@@ -109,7 +124,7 @@ static struct token lexer_next_(struct lexer *l) {
         };
     } else if (l_isalpha(start_ch)) {
         l->pos++;
-        while (!L_EOF) {
+        while (!L_EOF()) {
             if (!l_isalnum(l->src[l->pos])) {
                 break;
             }
@@ -125,7 +140,7 @@ static struct token lexer_next_(struct lexer *l) {
                start_ch == '/' || start_ch == '%' || start_ch == '!' ||
                start_ch == '<' || start_ch == '>' || start_ch == '=') {
         l->pos++;
-        if (!L_EOF && l->src[l->pos] == '=') {
+        if (!L_EOF() && l->src[l->pos] == '=') {
             l->pos++;
             return (struct token){
                 .type = TOK_OPERATOR,
@@ -140,7 +155,7 @@ static struct token lexer_next_(struct lexer *l) {
         };
     } else if (start_ch == '&' || start_ch == '|') {
         l->pos++;
-        if (!L_EOF &&
+        if (!L_EOF() &&
             (l->src[l->pos] == start_ch || l->src[l->pos] == '=')) {
             l->pos++;
             return (struct token){

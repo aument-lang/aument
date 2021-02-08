@@ -3,8 +3,8 @@
 What if we had a scripting language that...
 
   * **has minimal dependencies:** you only need a C compiler to build the aulang's interpreter.
-  * **is fast in development time:** simply write code and run it directly, much like Python or Javascript.
-  * **is fast in deployment:** once finished, you can compile your code into a lightweight executable. You don't even need any external runtime to execute!
+  * **is fast in development time:** like Python and Javascript, you can simply write code and run it directly.
+  * **is fast in deployment:** once finished, you can compile your code into a lightweight executable. You don't even need any external runtime to run it!
 
 Welcome to **aulang** (currently in pre-alpha).
 
@@ -25,7 +25,7 @@ print fib(28);
 
 ## Usage
 
-Once aulang is compiled, you can run a program in interpreter with `aulang run [file]`
+Once aulang is compiled, you can run a program in interpreter mode with `aulang run [file]`
 
 ```
 $ cat hello.au
@@ -43,7 +43,9 @@ Hello World
 
 Note that the build command requires a C compiler in the environment's `PATH` (default is `gcc`).
 
-## Requirements
+## Building
+
+### Requirements
 
 aulang currently only supports Linux.
 
@@ -51,7 +53,7 @@ aulang currently only supports Linux.
   * Meson (tested with 0.53.2)
   * Python
 
-## Build
+### Linux
 
 In the source directory, run the `build.sh` script. For debug builds, do:
 
@@ -67,6 +69,12 @@ For release builds, do:
 
 An executable `aulang` will appear in the `build` directory.
 
+## Documentation
+
+  * [command line reference](./docs/cmdline.md)
+  * [aulang standard library reference](./docs/au-stdlib.md)
+  * [aulang C API reference](./docs/c-api.md)
+
 ## Changelog
 
 This project uses the [semver](https://semver.org/spec/v2.0.0.html) versioning scheme.
@@ -76,3 +84,7 @@ See `CHANGELOG.md`.
 ## License
 
 This implementation of aulang is licensed under Apache License v2.0 with Runtime Library Exception. See `LICENSE.txt` for more details.
+
+## Authors
+
+See `ACKNOWLEDGEMENTS.txt`.

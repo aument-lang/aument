@@ -26,27 +26,42 @@ struct au_vm_thread_local {
     au_value_t *const_cache;
     size_t const_len;
 };
+
+/// [func] Initializes an au_vm_thread_local instance
+/// @param tl instance to be initialized
+/// @param p_data global au_program_data instance
 void au_vm_thread_local_init(struct au_vm_thread_local *tl,
                              const struct au_program_data *p_data);
+
+/// [func] Deinitializes an au_vm_thread_local instance
+/// @param tl instance to be deinitialized
 void au_vm_thread_local_del(struct au_vm_thread_local *tl);
 
-/// Executes unverified bytecode in a au_bc_storage
-/// @param tl
-/// @param bcs
-/// @param p_data
-/// @param args
-/// @return return value
+/// [func] Executes unverified bytecode in a au_bc_storage
+/// @param tl thread local storage
+/// @param bcs the au_bc_storage to be executed. Bytecode
+///     stored here is unverified and should be checked
+///     beforehand if it's safe to run.
+/// @param p_data global program data
+/// @param args argument array
+/// @return return value specified by interpreted aulang's
+///      return statement
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
                                  const struct au_program_data *p_data,
                                  const au_value_t *args);
 
-/// Executes unverified bytecode in a au_program
-/// @param tl
-/// @param program
+/// [func] Executes unverified bytecode in a au_program
+/// @param tl thread local storage
+/// @param program the au_program to be executed. Bytecode
+///     stored here is unverified and should be checked
+///     beforehand if it's safe to run.
 /// @return return value
 static inline au_value_t
 au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
-                           struct au_program *program) {
+                           struct au_program *program);
+
+au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
+                                      struct au_program *program) {
     return au_vm_exec_unverified(tl, &program->main, &program->data, 0);
 }

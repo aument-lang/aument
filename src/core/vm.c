@@ -197,9 +197,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(OP_NOP) : { DISPATCH; }
             CASE(OP_MOV_U16) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
-                const uint16_t *ptr =
-                    (uint16_t *)(&frame.bc[frame.pc + 2]);
-                const uint16_t n = *ptr;
+                const uint16_t n = *(uint16_t *)(&frame.bc[frame.pc + 2]);
                 au_value_deref(frame.regs[reg]);
                 frame.regs[reg] = au_value_int(n);
                 DISPATCH;
@@ -254,9 +252,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             CASE(OP_JIF) : {
                 const au_value_t cmp = frame.regs[frame.bc[frame.pc + 1]];
-                const uint16_t *ptr =
-                    (uint16_t *)(&frame.bc[frame.pc + 2]);
-                const size_t offset = ((size_t)ptr[0]) * 4;
+                const uint16_t n = *(uint16_t *)(&frame.bc[frame.pc + 2]);
+                const size_t offset = ((size_t)n) * 4;
                 if (au_value_is_truthy(cmp)) {
                     frame.pc += offset;
                     DISPATCH_JMP;
@@ -266,9 +263,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             CASE(OP_JNIF) : {
                 const au_value_t cmp = frame.regs[frame.bc[frame.pc + 1]];
-                const uint16_t *ptr =
-                    (uint16_t *)(&frame.bc[frame.pc + 2]);
-                const size_t offset = ((size_t)ptr[0]) * 4;
+                const uint16_t n = *(uint16_t *)(&frame.bc[frame.pc + 2]);
+                const size_t offset = ((size_t)n) * 4;
                 if (!au_value_is_truthy(cmp)) {
                     frame.pc += offset;
                     DISPATCH_JMP;
@@ -284,15 +280,14 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 DISPATCH_JMP;
             }
             CASE(OP_JRELB) : {
-                const uint16_t *ptr =
-                    (uint16_t *)(&frame.bc[frame.pc + 2]);
-                const size_t offset = ((size_t)ptr[0]) * 4;
+                const uint16_t n = *(uint16_t *)(&frame.bc[frame.pc + 2]);
+                const size_t offset = ((size_t)n) * 4;
                 frame.pc -= offset;
                 DISPATCH_JMP;
             }
             CASE(OP_LOAD_CONST) : {
-                const uint8_t c = frame.bc[frame.pc + 1];
-                const uint8_t reg = frame.bc[frame.pc + 2];
+                const uint8_t reg = frame.bc[frame.pc + 1];
+                const uint16_t c = *(uint16_t *)(&frame.bc[frame.pc + 2]);
                 au_value_t v;
                 if (au_value_get_type(tl->const_cache[c]) != VALUE_NONE) {
                     v = tl->const_cache[c];
@@ -427,7 +422,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 
                 struct au_program program;
                 assert(au_parse(mmap.bytes, mmap.size, &program) == 1);
-                au_mmap_close(&mmap);
+                au_mmap_del(&mmap);
 #ifdef _WIN32
                 {
                     char program_path[_MAX_DIR];

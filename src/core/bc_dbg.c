@@ -41,9 +41,9 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         }
         pos++;
 
-#define DEF_BC16(VAR, n)                                                  \
-    assert(pos + n + 2 <= bcs->bc.len);                                   \
-    uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + n]));
+#define DEF_BC16(VAR, OFFSET)                                             \
+    assert(pos + OFFSET + 2 <= bcs->bc.len);                              \
+    uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));
 
         switch (opcode) {
         case OP_MOV_U16: {
@@ -124,8 +124,8 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             break;
         }
         case OP_LOAD_CONST: {
-            uint8_t c = bc(pos);
-            uint8_t reg = bc(pos + 1);
+            uint8_t reg = bc(pos);
+            DEF_BC16(c, 1)
             printf(" c%d -> r%d\n", c, reg);
             pos += 3;
             break;

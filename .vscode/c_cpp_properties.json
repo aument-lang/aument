@@ -7,7 +7,8 @@
             ],
             "defines": [
                 "AU_IS_INTERPRETER",
-                "FEAT_COMPILER"
+                "FEAT_COMPILER",
+                "USE_NAN_TAGGING"
             ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",

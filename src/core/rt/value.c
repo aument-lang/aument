@@ -3,16 +3,19 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
-#include <stdio.h>
-
 #ifdef AU_IS_INTERPRETER
 #include "value.h"
+#include <stdio.h>
 #endif
 
 void au_value_print(au_value_t value) {
     switch (au_value_get_type(value)) {
     case VALUE_INT: {
         printf("%d", au_value_get_int(value));
+        break;
+    }
+    case VALUE_DOUBLE: {
+        printf("%g", au_value_get_double(value));
         break;
     }
     case VALUE_BOOL: {

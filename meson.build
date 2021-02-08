@@ -27,6 +27,7 @@ sources = [
     'src/core/lexer.h',
     'src/core/vm.c',
     'src/core/vm.h',
+    'src/help.h',
     'src/main.c',
     'src/platform/mmap.c',
     'src/platform/mmap.h',
@@ -48,13 +49,15 @@ if get_option('compiler').enabled() and host_machine.system() != 'windows'
         'src/core/rt/au_string.h',
         'src/core/rt/value.h',
         'src/core/rt/extern_fn.h',
+        'src/core/rt/includes/stdlib_end.h',
     )
+    stdlib_begin_hdr = files('src/core/rt/includes/stdlib_begin.h')
     rt_hdr_src = custom_target(
         'comp_hdr.c',
         output : 'comp_hdr.c',
         input : 'gen_rt.py',
-        depend_files : rt_hdr_depends,
-        command : [prog_python, '@INPUT@', '@OUTPUT@', 'AU_RT_HDR'] + rt_hdr_depends,
+        depend_files : rt_hdr_depends + stdlib_begin_hdr,
+        command : [prog_python, '@INPUT@', stdlib_begin_hdr, '@OUTPUT@', 'AU_RT_HDR'] + rt_hdr_depends,
     )
 
     rt_code_depends = files(
@@ -66,7 +69,7 @@ if get_option('compiler').enabled() and host_machine.system() != 'windows'
         output : 'comp_code.c',
         input : 'gen_rt.py',
         depend_files : rt_code_depends,
-        command : [prog_python, '@INPUT@', '@OUTPUT@', 'AU_RT_CODE'] + rt_code_depends,
+        command : [prog_python, '@INPUT@', '-', '@OUTPUT@', 'AU_RT_CODE'] + rt_code_depends,
     )
 
     sources += [
@@ -98,6 +101,24 @@ int main(int argc, char **argv) {
 result = compiler.run(code, name : 'dispatch jump')
 if result.stdout().strip() == '1'
     add_project_arguments('-DUSE_DISPATCH_JMP', language : ['c'])
+endif
+
+code = '''#include<float.h>
+#include<stdint.h>
+int main(int argc, char **argv) {
+  printf("%d",
+#ifdef __STDC_IEC_559__
+    1
+#else
+    0
+#endif
+    && sizeof(uintptr_t) == sizeof(uint64_t)
+  );
+}
+'''
+result = compiler.run(code, name : 'nan tagging support')
+if result.stdout().strip() == '1'
+    add_project_arguments('-DUSE_NAN_TAGGING', language : ['c'])
 endif
 
 if compiler.has_argument('-Werror')

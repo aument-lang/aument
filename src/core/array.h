@@ -5,12 +5,10 @@
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
 #pragma once
-#endif
 
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifdef AU_IS_INTERPRETER
 #include "platform/platform.h"
 #include "rt/exception.h"
 #endif

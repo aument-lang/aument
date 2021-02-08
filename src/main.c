@@ -40,6 +40,8 @@
 #define FLAG_DUMP_BYTECODE (1 << 1)
 #define has_flag(FLAG, MASK) (((FLAG) & (MASK)) != 0)
 
+#include "help.h"
+
 enum au_action { ACTION_BUILD, ACTION_RUN };
 
 int main(int argc, char **argv) {
@@ -75,23 +77,37 @@ int main(int argc, char **argv) {
     }
 
     if (!action) {
-        au_fatal("no action\n");
-    }
-    if (!input_file) {
-        au_fatal("no input file\n");
+        fputs(AU_HELP_MAIN, stdout);
+        return 0;
     }
 
-    enum au_action action_id;
-    if (strcmp(action, "run") == 0)
+    enum au_action action_id = ACTION_RUN;
+
+    if (strcmp(action, "run") == 0) {
         action_id = ACTION_RUN;
-    else if (strcmp(action, "build") == 0)
+        if (!input_file) {
+            au_fatal("no input file\n");
+        }
+    } else if (strcmp(action, "build") == 0) {
 #ifdef FEAT_COMPILER
         action_id = ACTION_BUILD;
 #else
         au_fatal("the compiler feature isn't enabled");
 #endif
-    else
-        au_fatal("unknown action %s\n", action);
+        if (!input_file) {
+            au_fatal("no input file\n");
+        }
+    } else if (strcmp(action, "help") == 0) {
+        if (!input_file) {
+            fputs(AU_HELP_MAIN, stdout);
+        } else {
+            fputs(help_text(input_file), stdout);
+        }
+        return 0;
+    } else {
+        fputs(AU_HELP_MAIN, stdout);
+        return 0;
+    }
 
     struct au_mmap_info mmap;
     if (!au_mmap_read(input_file, &mmap))
@@ -99,7 +115,7 @@ int main(int argc, char **argv) {
 
     struct au_program program;
     assert(au_parse(mmap.bytes, mmap.size, &program) == 1);
-    au_mmap_close(&mmap);
+    au_mmap_del(&mmap);
 
 #ifdef _WIN32
     {
@@ -113,6 +129,7 @@ int main(int argc, char **argv) {
         program.data.cwd = dirname(program_path);
     }
 #endif
+
     if (has_flag(flags, FLAG_DUMP_BYTECODE))
         au_program_dbg(&program);
 

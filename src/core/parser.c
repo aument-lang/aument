@@ -866,10 +866,41 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
         for (size_t i = 0; i < t.len; i++) {
             num = num * 10 + (t.src[i] - '0');
         }
-        assert(num <= 0xffff);
-        parser_emit_bc_u8(p, OP_MOV_U16);
+
+        if (-0x7fff <= num && num <= 0x8000) {
+            parser_emit_bc_u8(p, OP_MOV_U16);
+            parser_emit_bc_u8(p, parser_new_reg(p));
+            parser_emit_bc_u16(p, num);
+        } else {
+            int idx = au_program_data_add_data(p->p_data,
+                                               au_value_int(num), 0, 0);
+            parser_emit_bc_u8(p, OP_LOAD_CONST);
+            parser_emit_bc_u8(p, parser_new_reg(p));
+            parser_emit_bc_u16(p, idx);
+        }
+        break;
+    }
+    case TOK_DOUBLE: {
+        double value = 0.0;
+        for (size_t i = 0; i < t.len; i++) {
+            if (t.src[i] == '.') {
+                i++;
+                unsigned int fractional = 0, power = 1;
+                for (; i < t.len; i++) {
+                    fractional = (fractional * 10) + (t.src[i] - '0');
+                    power *= 10;
+                }
+                value += ((double)fractional / (double)power);
+                break;
+            }
+            value = (value * 10.0) + (t.src[i] - '0');
+        }
+
+        int idx = au_program_data_add_data(p->p_data,
+                                           au_value_double(value), 0, 0);
+        parser_emit_bc_u8(p, OP_LOAD_CONST);
         parser_emit_bc_u8(p, parser_new_reg(p));
-        parser_emit_bc_u16(p, num);
+        parser_emit_bc_u16(p, idx);
         break;
     }
     case TOK_OPERATOR: {
@@ -996,9 +1027,8 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                                            (uint8_t *)t.src, t.len);
         }
         parser_emit_bc_u8(p, OP_LOAD_CONST);
-        parser_emit_bc_u8(p, idx);
         parser_emit_bc_u8(p, parser_new_reg(p));
-        parser_emit_pad8(p);
+        parser_emit_bc_u16(p, idx);
         break;
     }
     default: {

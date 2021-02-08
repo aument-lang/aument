@@ -26,3 +26,8 @@ struct au_lib_func {
     au_value_t NAME(struct au_vm_thread_local *tl,                        \
                     const struct au_program_data *p_data,                 \
                     const au_value_t *args)
+
+#define AU_C_COMP_EXTERN_FUNC_DECL                                        \
+    "#define AU_EXTERN_FUNC_DECL(NAME) au_value_t NAME("                  \
+    "struct au_vm_thread_local*,const struct au_program_data*,"           \
+    "const au_value_t *)"

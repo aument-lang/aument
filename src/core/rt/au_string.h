@@ -5,13 +5,12 @@
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
 #pragma once
-#endif
-
 #include <stdint.h>
 #include <stdlib.h>
 
 #ifdef DEBUG_RC
 #include <stdio.h>
+#endif
 #endif
 
 struct au_string {
@@ -40,6 +39,7 @@ struct au_string *au_string_add(struct au_string *left,
 int au_string_cmp(struct au_string *left, struct au_string *right);
 
 /// Increases the reference count of an au_string
+/// @param header the au_string instance
 static inline void au_string_ref(struct au_string *header) {
     header->rc++;
 #ifdef DEBUG_RC
@@ -48,7 +48,10 @@ static inline void au_string_ref(struct au_string *header) {
 #endif
 }
 
-/// Decreases the reference count of an au_string
+/// Decreases the reference count of an au_string.
+///     Automatically frees the au_string if the
+///     reference count reaches 0.
+/// @param header the au_string instance
 static inline void au_string_deref(struct au_string *header) {
     header->rc--;
 #ifdef DEBUG_RC

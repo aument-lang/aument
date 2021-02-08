@@ -13,11 +13,17 @@ oks, errs = 0, 0
 files = glob.glob('tests/*.out')
 print("Executing %d tests" % len(files))
 for fn in files:
-    output = subprocess.check_output([
-        './build/aulang',
-        'run',
-        fn[:-4] + '.au'
-    ])
+    try:
+        output = subprocess.check_output([
+            './build/aulang',
+            'run',
+            fn[:-4] + '.au'
+        ])
+    except subprocess.CalledProcessError as e:
+        print(ERR % fn)
+        print("    Error: %s", e)
+        errs += 1
+        continue
     with open(fn, "r") as f:
         output_chk = f.read().encode('utf-8')
         if output == output_chk:

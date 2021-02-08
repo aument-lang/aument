@@ -38,7 +38,7 @@ int au_mmap_read(const char *path, struct au_mmap_info *info) {
     return 1;
 }
 
-void au_mmap_close(struct au_mmap_info *info) {
+void au_mmap_del(struct au_mmap_info *info) {
 #ifdef USE_MMAP
     munmap(info->bytes, info->size);
     close(info->_fd);
