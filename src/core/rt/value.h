@@ -90,7 +90,7 @@ static _AlwaysInline struct _au_value au_value_bool(int32_t n) {
     struct _au_value v = {0};
     v._as.bits.sign = 1;
     v._as.bits.exponent = AU_SPECIAL_DOUBLE;
-    v._as.bits.fraction = AU_REPR_FRACTION(VALUE_BOOL, n > 0);
+    v._as.bits.fraction = AU_REPR_FRACTION(VALUE_BOOL, n);
     return v;
 }
 static _AlwaysInline int32_t au_value_get_bool(const struct _au_value v) {

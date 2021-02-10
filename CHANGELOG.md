@@ -1,8 +1,11 @@
 # Version 0.1 [pre-α]
 
   * Floating point support
+  * One-line comment support
+  * Add `true`, `false` values.
   * Added standard library functions `bool`, `input`, `int`, `str`
-  * Implemented FNV hash
+  * *under the hood:* Replace hash function with FNV hash
+  * *under the hood:* use NaN tagging for value representation (if possible)
 
 # Version 0.0 [pre-α]
 

@@ -66,8 +66,16 @@ static struct token lexer_next_(struct lexer *l) {
     }
 
 #define L_EOF() (l->pos >= l->len)
-    while (l_isspace(l->src[l->pos]) && !L_EOF()) {
-        l->pos++;
+    while (!L_EOF()) {
+        if(l_isspace(l->src[l->pos]))
+            l->pos++;
+        else if(l->src[l->pos] == '/' && l->pos + 1 < l->len && l->src[l->pos + 1] == '/') {
+            l->pos += 2;
+            while(!L_EOF() && l->src[l->pos] != '\n')
+                l->pos++;
+        } else {
+            break;
+        }
     }
     if (L_EOF()) {
         return (struct token){
