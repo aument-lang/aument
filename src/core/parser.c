@@ -975,6 +975,18 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             } else {
                 parser_replace_bc_u16(p, offset, val->idx);
             }
+        } else if (token_keyword_cmp(&t, "true")) {
+            const uint8_t reg = parser_new_reg(p);
+            parser_emit_bc_u8(p, OP_MOV_BOOL);
+            parser_emit_bc_u8(p, 1);
+            parser_emit_bc_u8(p, reg);
+            parser_emit_pad8(p);
+        } else if (token_keyword_cmp(&t, "false")) {
+            const uint8_t reg = parser_new_reg(p);
+            parser_emit_bc_u8(p, OP_MOV_BOOL);
+            parser_emit_bc_u8(p, 0);
+            parser_emit_bc_u8(p, reg);
+            parser_emit_pad8(p);
         } else {
             const struct au_bc_var_value *val =
                 au_bc_vars_get(&p->vars, t.src, t.len);

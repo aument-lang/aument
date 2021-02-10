@@ -23,6 +23,8 @@ def fib(n) {
 print fib(28);
 ```
 
+See [a brief tour](./docs/tour.md) for more.
+
 ## Usage
 
 Once aulang is compiled, you can run a program in interpreter mode with `aulang run [file]`
@@ -71,6 +73,7 @@ An executable `aulang` will appear in the `build` directory.
 
 ## Documentation
 
+  * [brief tour](./docs/tour.md)
   * [command line reference](./docs/cmdline.md)
   * [aulang standard library reference](./docs/au-stdlib.md)
   * [aulang C API reference](./docs/c-api.md)
