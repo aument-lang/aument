@@ -1,0 +1,3 @@
+the aulang programming language
+Copyright (c) 2021 the aulang contributors
+Project link: https://github.com/chm8d/aulang
