@@ -41,7 +41,7 @@ struct parser {
     int block_level;
 
     // Not owned by this parser
-    char *self_name;
+    const char *self_name;
     size_t self_len;
     struct size_t_array self_fill_call;
     int self_num_args;
@@ -1162,7 +1162,7 @@ static int parser_exec_array(struct parser *p, struct lexer *l) {
     return 1;
 }
 
-int au_parse(char *src, size_t len, struct au_program *program) {
+int au_parse(const char *src, size_t len, struct au_program *program) {
     struct au_program_data p_data;
     au_program_data_init(&p_data);
 

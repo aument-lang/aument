@@ -33,7 +33,7 @@ static const char *token_type_dbg[] = {
 static void token_dbg(const struct token *t);
 #endif
 
-void lexer_init(struct lexer *l, char *src, size_t len) {
+void lexer_init(struct lexer *l, const char *src, size_t len) {
     l->src = src;
     l->pos = 0;
     l->len = len;

@@ -287,6 +287,10 @@ static _AlwaysInline void au_value_deref(const struct _au_value v) {
         au_string_deref(au_value_get_string(v));
         break;
     }
+    case VALUE_STRUCT: {
+        au_struct_deref(au_value_get_struct(v));
+        break;
+    }
     default:
         return;
     }

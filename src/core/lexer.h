@@ -13,7 +13,7 @@ enum token_type {
 
 struct token {
     enum token_type type;
-    char *src;
+    const char *src;
     size_t len;
 };
 
@@ -40,7 +40,7 @@ struct token_lookahead {
 
 struct lexer {
     /// This object does not own the src pointer
-    char *src;
+    const char *src;
     size_t len;
     size_t pos;
 
@@ -52,7 +52,7 @@ struct lexer {
 /// @param l instance to be initialized
 /// @param src pointer to source code to be lexed
 /// @param len byte-size length of the source code
-void lexer_init(struct lexer *l, char *src, size_t len);
+void lexer_init(struct lexer *l, const char *src, size_t len);
 
 /// Deinitializes a lexer instance
 /// @param l instance to be deinitialized

@@ -45,6 +45,7 @@ void au_vm_thread_local_init(struct au_vm_thread_local *tl,
     memset(tl, 0, sizeof(struct au_vm_thread_local));
     tl->const_cache = au_value_calloc(p_data->data_val.len);
     tl->const_len = p_data->data_val.len;
+    tl->print_fn = au_value_print;
 }
 
 void au_vm_thread_local_del(struct au_vm_thread_local *tl) {
@@ -232,11 +233,22 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             BIN_OP(OP_GEQ, geq)
 #undef BIN_OP
 
+/// Copies an au_value from src to dest.
+/// NOTE: for memory safety, please use this function instead of 
+///     copying directly
 #define COPY_VALUE(dest, src)                                             \
     do {                                                                  \
-        au_value_deref(dest);                                             \
+        const au_value_t old = dest;                                             \
         dest = src;                                                       \
         au_value_ref(dest);                                               \
+        au_value_deref(old);                                               \
+    } while (0)
+
+#define MOVE_VALUE(dest, src)                                             \
+    do {                                                                  \
+        const au_value_t old = dest;                                             \
+        dest = src;                                                       \
+        au_value_deref(old);                                               \
     } while (0)
 
             CASE(OP_MOV_REG_LOCAL) : {
@@ -251,10 +263,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 COPY_VALUE(frame.regs[reg], frame.locals[local]);
                 DISPATCH;
             }
-
             CASE(OP_PRINT) : {
                 const au_value_t lhs = frame.regs[frame.bc[frame.pc + 1]];
-                au_value_print(lhs);
+                tl->print_fn(lhs);
                 DISPATCH;
             }
             CASE(OP_JIF) : {
@@ -322,8 +333,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(OP_MOV_BOOL) : {
                 const uint8_t n = frame.bc[frame.pc + 1];
                 const uint8_t reg = frame.bc[frame.pc + 2];
-                au_value_deref(frame.regs[reg]);
-                frame.regs[reg] = au_value_bool(n);
+                COPY_VALUE(frame.regs[reg], au_value_bool(n));
                 DISPATCH;
             }
             CASE(OP_CALL0)
@@ -339,7 +349,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 : CASE(OP_CALL10)
                 : CASE(OP_CALL11)
                 : CASE(OP_CALL12)
-                : CASE(OP_CALL13) : CASE(OP_CALL14) : CASE(OP_CALL15) : {
+                : CASE(OP_CALL13)
+                : CASE(OP_CALL14)
+                : CASE(OP_CALL15) : {
                 const int n_regs = frame.bc[frame.pc] - OP_CALL0;
                 const uint8_t ret_reg = frame.bc[frame.pc + 1];
                 const uint16_t func_id =
@@ -352,13 +364,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                         &call_fn->as.bc_func;
                     const au_value_t callee_retval =
                         au_vm_exec_unverified(tl, call_bcs, p_data, args);
-                    frame.regs[ret_reg] = callee_retval;
+                    MOVE_VALUE(frame.regs[ret_reg], callee_retval);
                 } else if (call_fn->type == AU_FN_NATIVE) {
                     const struct au_lib_func *lib_func =
                         &call_fn->as.native_func;
                     const au_value_t callee_retval =
                         lib_func->func(tl, p_data, args);
-                    frame.regs[ret_reg] = callee_retval;
+                    MOVE_VALUE(frame.regs[ret_reg], callee_retval);
                 }
                 for (int i = frame.arg_stack.len - n_regs;
                      i < frame.arg_stack.len; i++)
@@ -366,8 +378,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 frame.arg_stack.len -= n_regs;
                 DISPATCH;
             }
-#define BIN_OP_ASG(FUN)                                                   \
-    {                                                                     \
+#define BIN_OP_ASG(NAME, FUN)                                                   \
+    CASE(NAME): {                                                                     \
         const uint8_t reg = frame.bc[frame.pc + 1];                       \
         const uint8_t local = frame.bc[frame.pc + 2];                     \
         au_value_deref(frame.locals[local]);                              \
@@ -375,15 +387,14 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             au_value_##FUN(frame.locals[local], frame.regs[reg]);         \
         DISPATCH;                                                         \
     }
-            CASE(OP_MUL_ASG)
-                : BIN_OP_ASG(mul) CASE(OP_DIV_ASG)
-                : BIN_OP_ASG(div) CASE(OP_ADD_ASG)
-                : BIN_OP_ASG(add) CASE(OP_SUB_ASG)
-                : BIN_OP_ASG(sub) CASE(OP_MOD_ASG)
-                : BIN_OP_ASG(mod)
+            BIN_OP_ASG(OP_MUL_ASG, mul)
+            BIN_OP_ASG(OP_DIV_ASG, div)
+            BIN_OP_ASG(OP_ADD_ASG, add)
+            BIN_OP_ASG(OP_SUB_ASG, sub)
+            BIN_OP_ASG(OP_MOD_ASG, mod)
 #undef BIN_OP_ASG
-                      CASE(OP_PUSH_ARG)
-                : {
+
+            CASE(OP_PUSH_ARG) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
                 au_value_array_add(&frame.arg_stack, frame.regs[reg]);
                 au_value_ref(frame.regs[reg]);
@@ -451,9 +462,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const uint8_t reg = frame.bc[frame.pc + 1];
                 const uint16_t capacity =
                     *((uint16_t *)(&frame.bc[frame.pc + 2]));
-                au_value_deref(frame.regs[reg]);
-                frame.regs[reg] = au_value_struct(
-                    (struct au_struct *)au_obj_array_new(capacity));
+                MOVE_VALUE(frame.regs[reg], au_value_struct(
+                    (struct au_struct *)au_obj_array_new(capacity)));
                 DISPATCH;
             }
             CASE(OP_ARRAY_PUSH) : {
@@ -482,8 +492,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     au_fatal("expected array");
                 struct au_obj_array *obj_array =
                     (struct au_obj_array *)au_value_get_struct(array_val);
-                au_value_deref(frame.regs[ret_reg]);
-                frame.regs[ret_reg] = au_obj_array_get(obj_array, idx_val);
+                COPY_VALUE(frame.regs[ret_reg], au_obj_array_get(obj_array, idx_val));
                 DISPATCH;
             }
             CASE(OP_IDX_SET) : {

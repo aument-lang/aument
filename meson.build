@@ -34,7 +34,6 @@ sources = [
     'src/core/vm.c',
     'src/core/vm.h',
     'src/help.h',
-    'src/main.c',
     'src/platform/mmap.c',
     'src/platform/mmap.h',
     'src/platform/platform.h',
@@ -143,4 +142,8 @@ endif
 
 add_project_arguments('-DAU_IS_INTERPRETER', language : ['c'])
 
-executable('aulang', sources, include_directories: include_directories('src'))
+if get_option('tests').enabled()
+    executable('aulang-tests', sources + ['build/tests.c'], include_directories: include_directories('src'))
+else
+    executable('aulang', sources + ['src/main.c'], include_directories: include_directories('src'))
+endif

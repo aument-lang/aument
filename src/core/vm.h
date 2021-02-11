@@ -22,9 +22,12 @@ struct au_vm_frame {
     struct au_value_array arg_stack;
 };
 
+typedef void (*au_vm_print_fn_t)(au_value_t);
+
 struct au_vm_thread_local {
     au_value_t *const_cache;
     size_t const_len;
+    au_vm_print_fn_t print_fn;
 };
 
 /// [func] Initializes an au_vm_thread_local instance
