@@ -36,7 +36,10 @@ struct au_obj_array *au_obj_array_new(size_t capacity) {
     return obj_array;
 }
 
-void au_obj_array_del(struct au_obj_array *obj_array) {
+void au_obj_array_del(struct au_obj_array *obj_array) {\
+    for(size_t i = 0; i < obj_array->array.len; i++) {
+        au_value_deref(obj_array->array.data[i]);
+    }
     free(obj_array->array.data);
     free(obj_array);
 }

@@ -1,1 +1,2 @@
 option('compiler', type : 'feature', value : 'enabled')
+option('tests', type : 'feature', value : 'disabled')
