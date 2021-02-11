@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "au_string.h"
+#include "au_struct.h"
 #include "platform/platform.h"
 #endif
 
@@ -21,6 +22,7 @@ enum au_vtype {
     VALUE_FN = 4,
     VALUE_STR = 5,
     VALUE_DOUBLE = 6,
+    VALUE_STRUCT = 7,
 };
 
 #ifdef USE_NAN_TAGGING
@@ -49,8 +51,7 @@ static _AlwaysInline enum au_vtype
 au_value_get_type(const struct _au_value v) {
     if (v._as.bits.exponent == AU_SPECIAL_DOUBLE &&
         v._as.bits.fraction != AU_INF_FRACTION &&
-        v._as.bits.fraction != AU_NAN_FRACTION &&
-        v._as.bits.sign) {
+        v._as.bits.fraction != AU_NAN_FRACTION && v._as.bits.sign) {
         return (enum au_vtype)(AU_REPR_GET_TAG(v._as.bits.fraction));
     } else {
         return VALUE_DOUBLE;
@@ -121,6 +122,20 @@ static _AlwaysInline struct _au_value au_value_fn(uint32_t n) {
 }
 static _AlwaysInline uint32_t au_value_get_fn(const struct _au_value v) {
     return (uint32_t)(AU_REPR_GET_PTR(v._as.bits.fraction));
+}
+
+struct au_string;
+static _AlwaysInline struct _au_value
+au_value_struct(struct au_struct *data) {
+    struct _au_value v = {0};
+    v._as.bits.sign = 1;
+    v._as.bits.exponent = AU_SPECIAL_DOUBLE;
+    v._as.bits.fraction = AU_REPR_FRACTION(VALUE_STRUCT, (uintptr_t)data);
+    return v;
+}
+static _AlwaysInline struct au_struct *
+au_value_get_struct(const struct _au_value v) {
+    return (void *)((uintptr_t)AU_REPR_GET_PTR(v._as.bits.fraction));
 }
 
 static _AlwaysInline void au_value_clear(au_value_t *a, int size) {
@@ -211,6 +226,17 @@ static _AlwaysInline uint32_t au_value_get_fn(const struct _au_value v) {
     return v._data.d_fn_idx;
 }
 
+struct au_string;
+static _AlwaysInline struct _au_value au_value_struct(void *data) {
+    struct _au_value v = {0};
+    v._type = VALUE_STR;
+    v._data.d_ptr = data;
+    return v;
+}
+static _AlwaysInline void *au_value_get_struct(const struct _au_value v) {
+    return v._data.d_ptr;
+}
+
 static _AlwaysInline void au_value_clear(au_value_t *a, int size) {
     for (int i = 0; i < size; i++)
         a[i] = (au_value_t){0};
@@ -244,6 +270,10 @@ static _AlwaysInline void au_value_ref(const struct _au_value v) {
     switch (au_value_get_type(v)) {
     case VALUE_STR: {
         au_string_ref(au_value_get_string(v));
+        break;
+    }
+    case VALUE_STRUCT: {
+        au_struct_ref((struct au_struct *)au_value_get_struct(v));
         break;
     }
     default:
@@ -325,7 +355,7 @@ static _AlwaysInline au_value_t au_value_mod(au_value_t lhs,
     static _AlwaysInline au_value_t NAME(au_value_t lhs,                  \
                                          au_value_t rhs) {                \
         if (au_value_get_type(lhs) != au_value_get_type(rhs))             \
-            return au_value_bool(0);                                       \
+            return au_value_bool(0);                                      \
         switch (au_value_get_type(lhs)) {                                 \
         case VALUE_INT: {                                                 \
             return au_value_bool(au_value_get_int(lhs)                    \

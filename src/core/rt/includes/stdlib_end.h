@@ -1,1 +1,1 @@
-ARRAY_TYPE(au_value_t, au_value_stack, 1)
+ARRAY_TYPE(au_value_t, au_value_array, 1)

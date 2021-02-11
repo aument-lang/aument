@@ -142,7 +142,10 @@ static int parser_exec_eq(struct parser *p, struct lexer *l);
 static int parser_exec_cmp(struct parser *p, struct lexer *l);
 static int parser_exec_addsub(struct parser *p, struct lexer *l);
 static int parser_exec_muldiv(struct parser *p, struct lexer *l);
+
+static int parser_exec_index_expr(struct parser *p, struct lexer *l);
 static int parser_exec_val(struct parser *p, struct lexer *l);
+static int parser_exec_array(struct parser *p, struct lexer *l);
 
 static int parser_exec(struct parser *p, struct lexer *l) {
     while (1) {
@@ -852,7 +855,55 @@ BIN_EXPR(
             parser_emit_bc_u8(p, OP_MOD);
         parser_emit_bc_binary_expr(p);
     },
-    parser_exec_val)
+    parser_exec_index_expr)
+
+static int parser_exec_index_expr(struct parser *p, struct lexer *l) {
+    if (!parser_exec_val(p, l))
+        return 0;
+    const uint8_t left_reg = parser_last_reg(p);
+
+    struct token tok = lexer_peek(l, 0);
+    if (tok.type == TOK_OPERATOR && tok.len == 1 && tok.src[0] == '[') {
+        lexer_next(l);
+        if (!parser_exec_val(p, l))
+            return 0;
+        const uint8_t idx_reg = parser_last_reg(p);
+        tok = lexer_next(l);
+        if (!(tok.type == TOK_OPERATOR && tok.len == 1 &&
+              tok.src[0] == ']'))
+            assert(0);
+        tok = lexer_peek(l, 0);
+        if (tok.type == TOK_OPERATOR && tok.len == 1 &&
+            tok.src[0] == '=') {
+            lexer_next(l);
+            if (!parser_exec_expr(p, l))
+                return 0;
+            const uint8_t right_reg = parser_last_reg(p);
+            parser_emit_bc_u8(p, OP_IDX_SET);
+            parser_emit_bc_u8(p, left_reg);
+            parser_emit_bc_u8(p, idx_reg);
+            parser_emit_bc_u8(p, right_reg);
+            // Right now, the free register stack is:
+            // ... [array reg (-3)] [idx reg (-2)] [right reg (-1)]
+            // We want to remove array and idx regs because
+            // they aren't used
+            p->rstack[p->rstack_len - 3] = p->rstack[p->rstack_len - 1];
+            p->rstack_len -= 2;
+        } else {
+            const uint8_t result_reg = parser_new_reg(p);
+            parser_emit_bc_u8(p, OP_IDX_GET);
+            parser_emit_bc_u8(p, left_reg);
+            parser_emit_bc_u8(p, idx_reg);
+            parser_emit_bc_u8(p, result_reg);
+            // ... [array reg (-3)] [idx reg (-2)] [array value reg (-1)]
+            // We also want to remove array/idx regs here, too
+            p->rstack[p->rstack_len - 3] = p->rstack[p->rstack_len - 1];
+            p->rstack_len -= 2;
+        }
+    }
+
+    return 1;
+}
 
 static int parser_exec_val(struct parser *p, struct lexer *l) {
     struct token t;
@@ -905,10 +956,13 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
     }
     case TOK_OPERATOR: {
         if (t.len == 1 && t.src[0] == '(') {
-            parser_exec_expr(p, l);
+            if (!parser_exec_expr(p, l))
+                return 0;
             t = lexer_next(l);
             if (!(t.len == 1 && t.src[0] == ')'))
                 au_fatal("expected )\n");
+        } else if (t.len == 1 && t.src[0] == '[') {
+            return parser_exec_array(p, l);
         } else {
             au_fatal("unexpected operator %.*s\n", t.len, t.src);
         }
@@ -1049,6 +1103,62 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
     }
     }
 
+    return 1;
+}
+
+static int parser_exec_array(struct parser *p, struct lexer *l) {
+    const uint8_t array_reg = parser_new_reg(p);
+    parser_emit_bc_u8(p, OP_ARRAY_NEW);
+    parser_emit_bc_u8(p, array_reg);
+    const size_t cap_offset = p->bc.len;
+    parser_emit_bc_u16(p, 0);
+
+    struct token tok = lexer_peek(l, 0);
+    if (tok.type == TOK_OPERATOR && tok.len == 1 && tok.src[0] == ']') {
+        lexer_next(l);
+        return 1;
+    }
+
+    uint16_t capacity = 1;
+    if (!parser_exec_expr(p, l))
+        return 0;
+    const uint8_t value_reg = parser_pop_reg(p);
+    parser_emit_bc_u8(p, OP_ARRAY_PUSH);
+    parser_emit_bc_u8(p, array_reg);
+    parser_emit_bc_u8(p, value_reg);
+    parser_emit_pad8(p);
+
+    while (1) {
+        tok = lexer_peek(l, 0);
+        if (tok.type == TOK_OPERATOR && tok.len == 1 &&
+            tok.src[0] == ']') {
+            lexer_next(l);
+            break;
+        } else if (tok.type == TOK_OPERATOR && tok.len == 1 &&
+                   tok.src[0] == ',') {
+            lexer_next(l);
+
+            tok = lexer_peek(l, 0);
+            if (tok.type == TOK_OPERATOR && tok.len == 1 &&
+                tok.src[0] == ']')
+                break;
+
+            if (!parser_exec_expr(p, l))
+                return 0;
+            const uint8_t value_reg = parser_pop_reg(p);
+            parser_emit_bc_u8(p, OP_ARRAY_PUSH);
+            parser_emit_bc_u8(p, array_reg);
+            parser_emit_bc_u8(p, value_reg);
+            parser_emit_pad8(p);
+
+            assert(capacity < UINT16_MAX);
+            capacity++;
+        } else {
+            assert(0);
+        }
+    }
+
+    parser_replace_bc_u16(p, cap_offset, capacity);
     return 1;
 }
 

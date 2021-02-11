@@ -8,9 +8,9 @@
 #include "array.h"
 #include "bc.h"
 #include "program.h"
-#include "rt/value.h"
+#include "value_array.h"
 
-ARRAY_TYPE(au_value_t, au_value_stack, 1)
+#include "rt/value.h"
 
 struct au_vm_frame {
     au_value_t regs[AU_REGS];
@@ -19,7 +19,7 @@ struct au_vm_frame {
     /// This object does not own the bytecode pointer
     uint8_t *bc;
     size_t pc;
-    struct au_value_stack arg_stack;
+    struct au_value_array arg_stack;
 };
 
 struct au_vm_thread_local {

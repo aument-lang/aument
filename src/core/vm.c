@@ -13,12 +13,16 @@
 #include <libgen.h>
 #endif
 
-#include "parser.h"
 #include "platform/mmap.h"
+
+#include "parser.h"
+#include "vm.h"
+
+#include "rt/au_array.h"
 #include "rt/au_string.h"
 #include "rt/exception.h"
+
 #include "stdlib/au_stdlib.h"
-#include "vm.h"
 
 static void au_vm_frame_del(struct au_vm_frame *frame,
                             const struct au_bc_storage *bcs) {
@@ -105,7 +109,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     }
     frame.bc = bcs->bc.data;
     frame.pc = 0;
-    frame.arg_stack = (struct au_value_stack){0};
+    frame.arg_stack = (struct au_value_array){0};
     au_value_t retval;
 
     while (1) {
@@ -190,6 +194,10 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(OP_RET),
             &&CASE(OP_RET_NULL),
             &&CASE(OP_IMPORT),
+            &&CASE(OP_ARRAY_NEW),
+            &&CASE(OP_ARRAY_PUSH),
+            &&CASE(OP_IDX_GET),
+            &&CASE(OP_IDX_SET),
         };
         goto *cb[frame.bc[0]];
 #endif
@@ -202,8 +210,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 frame.regs[reg] = au_value_int(n);
                 DISPATCH;
             }
-#define BIN_OP(FUN)                                                       \
-    {                                                                     \
+#define BIN_OP(NAME, FUN)                                                 \
+    CASE(NAME) : {                                                        \
         const au_value_t old = frame.regs[frame.bc[frame.pc + 3]];        \
         const au_value_t lhs = frame.regs[frame.bc[frame.pc + 1]];        \
         const au_value_t rhs = frame.regs[frame.bc[frame.pc + 2]];        \
@@ -211,18 +219,17 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         au_value_deref(old);                                              \
         DISPATCH;                                                         \
     }
-            CASE(OP_MUL)
-                : BIN_OP(mul) CASE(OP_DIV)
-                : BIN_OP(div) CASE(OP_ADD)
-                : BIN_OP(add) CASE(OP_SUB)
-                : BIN_OP(sub) CASE(OP_MOD)
-                : BIN_OP(mod) CASE(OP_EQ)
-                : BIN_OP(eq) CASE(OP_NEQ)
-                : BIN_OP(neq) CASE(OP_LT)
-                : BIN_OP(lt) CASE(OP_GT)
-                : BIN_OP(gt) CASE(OP_LEQ)
-                : BIN_OP(leq) CASE(OP_GEQ)
-                : BIN_OP(geq)
+            BIN_OP(OP_MUL, mul)
+            BIN_OP(OP_DIV, div)
+            BIN_OP(OP_ADD, add)
+            BIN_OP(OP_SUB, sub)
+            BIN_OP(OP_MOD, mod)
+            BIN_OP(OP_EQ, eq)
+            BIN_OP(OP_NEQ, neq)
+            BIN_OP(OP_LT, lt)
+            BIN_OP(OP_GT, gt)
+            BIN_OP(OP_LEQ, leq)
+            BIN_OP(OP_GEQ, geq)
 #undef BIN_OP
 
 #define COPY_VALUE(dest, src)                                             \
@@ -231,8 +238,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         dest = src;                                                       \
         au_value_ref(dest);                                               \
     } while (0)
-                      CASE(OP_MOV_REG_LOCAL)
-                : {
+
+            CASE(OP_MOV_REG_LOCAL) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
                 const uint8_t local = frame.bc[frame.pc + 2];
                 COPY_VALUE(frame.locals[local], frame.regs[reg]);
@@ -378,7 +385,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                       CASE(OP_PUSH_ARG)
                 : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
-                au_value_stack_add(&frame.arg_stack, frame.regs[reg]);
+                au_value_array_add(&frame.arg_stack, frame.regs[reg]);
                 au_value_ref(frame.regs[reg]);
                 DISPATCH;
             }
@@ -438,6 +445,61 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 
                 au_vm_exec_unverified_main(tl, &program);
                 au_program_del(&program);
+                DISPATCH;
+            }
+            CASE(OP_ARRAY_NEW) : {
+                const uint8_t reg = frame.bc[frame.pc + 1];
+                const uint16_t capacity =
+                    *((uint16_t *)(&frame.bc[frame.pc + 2]));
+                au_value_deref(frame.regs[reg]);
+                frame.regs[reg] = au_value_struct(
+                    (struct au_struct *)au_obj_array_new(capacity));
+                DISPATCH;
+            }
+            CASE(OP_ARRAY_PUSH) : {
+                const au_value_t array_val =
+                    frame.regs[frame.bc[frame.pc + 1]];
+                const au_value_t value_val =
+                    frame.regs[frame.bc[frame.pc + 2]];
+                if (au_value_get_type(array_val) != VALUE_STRUCT ||
+                    au_value_get_struct(array_val)->vdata !=
+                        &au_obj_array_vdata)
+                    au_fatal("expected array");
+                struct au_obj_array *obj_array =
+                    (struct au_obj_array *)au_value_get_struct(array_val);
+                au_obj_array_push(obj_array, value_val);
+                DISPATCH;
+            }
+            CASE(OP_IDX_GET) : {
+                const au_value_t array_val =
+                    frame.regs[frame.bc[frame.pc + 1]];
+                const au_value_t idx_val =
+                    frame.regs[frame.bc[frame.pc + 2]];
+                const uint8_t ret_reg = frame.bc[frame.pc + 3];
+                if (au_value_get_type(array_val) != VALUE_STRUCT ||
+                    au_value_get_struct(array_val)->vdata !=
+                        &au_obj_array_vdata)
+                    au_fatal("expected array");
+                struct au_obj_array *obj_array =
+                    (struct au_obj_array *)au_value_get_struct(array_val);
+                au_value_deref(frame.regs[ret_reg]);
+                frame.regs[ret_reg] = au_obj_array_get(obj_array, idx_val);
+                DISPATCH;
+            }
+            CASE(OP_IDX_SET) : {
+                const au_value_t array_val =
+                    frame.regs[frame.bc[frame.pc + 1]];
+                const au_value_t idx_val =
+                    frame.regs[frame.bc[frame.pc + 2]];
+                const au_value_t value_val =
+                    frame.regs[frame.bc[frame.pc + 3]];
+                if (au_value_get_type(array_val) != VALUE_STRUCT ||
+                    au_value_get_struct(array_val)->vdata !=
+                        &au_obj_array_vdata)
+                    au_fatal("expected array");
+                struct au_obj_array *obj_array =
+                    (struct au_obj_array *)au_value_get_struct(array_val);
+                au_obj_array_set(obj_array, idx_val, value_val);
                 DISPATCH;
             }
 #undef COPY_VALUE
