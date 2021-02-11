@@ -140,12 +140,12 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     }
 
     if (has_dyn_arg_stack) {
-        fprintf(state->f, INDENT "struct au_value_stack s={0};\n");
+        fprintf(state->f, INDENT "struct au_value_array s={0};\n");
     } else if (arg_stack_max > 0) {
         fprintf(state->f,
                 INDENT
-                "au_value_t s_data[%d];struct au_value_stack s=(struct "
-                "au_value_stack){.data=s_data,.len=0,.cap=%d};\n",
+                "au_value_t s_data[%d];struct au_value_array s=(struct "
+                "au_value_array){.data=s_data,.len=0,.cap=%d};\n",
                 arg_stack_max, arg_stack_max);
     }
 
@@ -366,7 +366,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case OP_PUSH_ARG: {
             uint8_t reg = bc(pos);
             fprintf(state->f,
-                    "au_value_stack_add(&s, r%d); au_value_ref(r%d);\n",
+                    "au_value_array_add(&s, r%d); au_value_ref(r%d);\n",
                     reg, reg);
             break;
         }

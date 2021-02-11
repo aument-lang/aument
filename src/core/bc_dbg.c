@@ -11,16 +11,15 @@
 #include "rt/exception.h"
 
 const char *au_opcode_dbg[256] = {
-    "(exit)",  "mov",     "mul",     "div",     "add",      "sub",
-    "mod",     "mov",     "mov",     "print",   "eq",       "neq",
-    "lt",      "gt",      "leq",     "geq",     "jif",      "jnif",
-    "jrel",    "jrelb",   "loadc",   "mov",     "nop",      "mul",
-    "div",     "add",     "sub",     "mod",     "push_arg", "call.0",
-    "call.1",  "call.2",  "call.3",  "call.4",  "call.5",   "call.6",
-    "call.7",  "call.8",  "call.9",  "call.10", "call.11",  "call.12",
-    "call.13", "call.14", "call.15", "ret",     "ret",      "ret",
-    "import",
-};
+    "(exit)",  "mov",       "mul",        "div",     "add",      "sub",
+    "mod",     "mov",       "mov",        "print",   "eq",       "neq",
+    "lt",      "gt",        "leq",        "geq",     "jif",      "jnif",
+    "jrel",    "jrelb",     "loadc",      "mov",     "nop",      "mul",
+    "div",     "add",       "sub",        "mod",     "push_arg", "call.0",
+    "call.1",  "call.2",    "call.3",     "call.4",  "call.5",   "call.6",
+    "call.7",  "call.8",    "call.9",     "call.10", "call.11",  "call.12",
+    "call.13", "call.14",   "call.15",    "ret",     "ret",      "ret",
+    "import",  "array_new", "array_push", "idx_get", "idx_set"};
 
 void au_bc_dbg(const struct au_bc_storage *bcs,
                const struct au_program_data *data) {
@@ -184,6 +183,36 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         case OP_IMPORT: {
             DEF_BC16(idx, 1)
             printf(" \"%s\"\n", au_str_array_at(&data->imports, idx));
+            pos += 3;
+            break;
+        }
+        case OP_ARRAY_NEW: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(capacity, 1)
+            printf(" %d [capacity %d]\n", reg, capacity);
+            pos += 3;
+            break;
+        }
+        case OP_ARRAY_PUSH: {
+            uint8_t reg = bc(pos);
+            uint8_t value = bc(pos + 1);
+            printf(" r%d, r%d\n", reg, value);
+            pos += 3;
+            break;
+        }
+        case OP_IDX_GET: {
+            uint8_t reg = bc(pos);
+            uint8_t idx = bc(pos + 1);
+            uint8_t ret = bc(pos + 2);
+            printf(" r%d [r%d] -> r%d\n", reg, idx, ret);
+            pos += 3;
+            break;
+        }
+        case OP_IDX_SET: {
+            uint8_t reg = bc(pos);
+            uint8_t idx = bc(pos + 1);
+            uint8_t ret = bc(pos + 2);
+            printf(" r%d [r%d] <- r%d\n", reg, idx, ret);
             pos += 3;
             break;
         }

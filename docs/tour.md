@@ -1,6 +1,6 @@
 # A brief tour of aulang
 
-## Values
+## Primitive values
 
 Like many scripting languages, aulang supports the usual core data types: integers (`3`), floats (`3.14`), strings (`"Hello World"`) and booleans (`true` and `false`).
 
@@ -22,6 +22,22 @@ You can also use boolean operators:
 
 ```
 true && false; // false
+```
+
+## Arrays
+
+You can define arrays by using the literal syntax:
+
+```
+a = [1,2,3];
+```
+
+You can index and set an item in the array. Like C and Python, aulang's arrays begins with index 0.
+
+```
+a[0]; // 1
+a[0] = 100;
+a[0]; // 100
 ```
 
 ## Variables
@@ -50,7 +66,7 @@ This includes the top-level scope as well. In the example above, the function `l
 
 ## Control Flow
 
-You can use `if` statements like how it works in C. Notice that there's no brackets surrounding the condition.
+You can use `if` statements like how it works in C. Notice that there are no brackets surrounding the condition.
 
 ```
 if 1 + 1 == 2 {
@@ -68,7 +84,7 @@ if "string" {
 }
 ```
 
-We also have while loops:
+aulang also has while loops:
 
 ```
 while true {
@@ -105,7 +121,7 @@ aulang's standard library provides some useful built-in functions. See the [stdl
 
 ## Modules
 
-You can import files using the `import` statement. Note that all files are executed separately, you cannot use an imported file's variables/functions (unless exported).
+You can import files using the `import` statement. Note that all files are executed separately and you cannot use an imported file's variables/functions (unless exported).
 
 ```
 // importee.au

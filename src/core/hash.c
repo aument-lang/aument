@@ -9,8 +9,8 @@
 #include "hash.h"
 
 hash_t au_hash(const uint8_t *str, const size_t len) {
-	uint32_t hash = 2166136261;
-	for(size_t i = 0; i < len; ++i)
-		hash = 16777619 * (hash ^ str[i]);
-	return hash ^ (hash >> 16);
+    uint32_t hash = 2166136261;
+    for (size_t i = 0; i < len; ++i)
+        hash = 16777619 * (hash ^ str[i]);
+    return hash ^ (hash >> 16);
 }

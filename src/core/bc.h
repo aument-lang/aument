@@ -67,6 +67,10 @@ enum au_opcode {
     OP_RET = 46,
     OP_RET_NULL = 47,
     OP_IMPORT = 48,
+    OP_ARRAY_NEW = 49,
+    OP_ARRAY_PUSH = 50,
+    OP_IDX_GET = 51,
+    OP_IDX_SET = 52,
     PRINTABLE_OP_LEN,
 };
 
