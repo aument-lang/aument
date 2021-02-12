@@ -52,7 +52,7 @@ static _AlwaysInline enum au_vtype
 au_value_get_type(const struct _au_value v) {
     if (v._as.bits.exponent == AU_SPECIAL_DOUBLE &&
         v._as.bits.fraction != AU_INF_FRACTION &&
-        v._as.bits.fraction != AU_NAN_FRACTION && v._as.bits.sign) {
+        v._as.bits.fraction != AU_NAN_FRACTION) {
         return (enum au_vtype)(AU_REPR_GET_TAG(v._as.bits.fraction));
     } else {
         return VALUE_DOUBLE;
@@ -61,7 +61,6 @@ au_value_get_type(const struct _au_value v) {
 
 static _AlwaysInline struct _au_value au_value_none() {
     struct _au_value v = {0};
-    v._as.bits.sign = 1;
     v._as.bits.exponent = AU_SPECIAL_DOUBLE;
     v._as.bits.fraction = AU_REPR_FRACTION(VALUE_NONE, 0);
     return v;
@@ -69,7 +68,6 @@ static _AlwaysInline struct _au_value au_value_none() {
 
 static _AlwaysInline struct _au_value au_value_int(int32_t n) {
     struct _au_value v = {0};
-    v._as.bits.sign = 1;
     v._as.bits.exponent = AU_SPECIAL_DOUBLE;
     v._as.bits.fraction = AU_REPR_FRACTION(VALUE_INT, ((uint64_t)n));
     return v;
@@ -90,7 +88,6 @@ static _AlwaysInline double au_value_get_double(const struct _au_value v) {
 
 static _AlwaysInline struct _au_value au_value_bool(int32_t n) {
     struct _au_value v = {0};
-    v._as.bits.sign = 1;
     v._as.bits.exponent = AU_SPECIAL_DOUBLE;
     v._as.bits.fraction = AU_REPR_FRACTION(VALUE_BOOL, n);
     return v;
@@ -103,7 +100,6 @@ struct au_string;
 static _AlwaysInline struct _au_value
 au_value_string(struct au_string *data) {
     struct _au_value v = {0};
-    v._as.bits.sign = 1;
     v._as.bits.exponent = AU_SPECIAL_DOUBLE;
     v._as.bits.fraction = AU_REPR_FRACTION(VALUE_STR, (uintptr_t)data);
     return v;
@@ -116,7 +112,6 @@ au_value_get_string(const struct _au_value v) {
 
 static _AlwaysInline struct _au_value au_value_fn(uint32_t n) {
     struct _au_value v = {0};
-    v._as.bits.sign = 1;
     v._as.bits.exponent = AU_SPECIAL_DOUBLE;
     v._as.bits.fraction = AU_REPR_FRACTION(VALUE_FN, (uint64_t)n);
     return v;
@@ -129,7 +124,6 @@ struct au_string;
 static _AlwaysInline struct _au_value
 au_value_struct(struct au_struct *data) {
     struct _au_value v = {0};
-    v._as.bits.sign = 1;
     v._as.bits.exponent = AU_SPECIAL_DOUBLE;
     v._as.bits.fraction = AU_REPR_FRACTION(VALUE_STRUCT, (uintptr_t)data);
     return v;
