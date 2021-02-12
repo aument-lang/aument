@@ -6,26 +6,40 @@
 import re
 import sys
 import subprocess
+import argparse
 
-global_file = sys.argv[1]
-output = sys.argv[2]
-ident = sys.argv[3]
-files = sys.argv[4:]
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--global-file', type=str)
+parser.add_argument('--output', type=str)
+parser.add_argument('--ident', type=str)
+parser.add_argument('--files', type=str, nargs='*')
+parser.add_argument('--cpp', type=str, nargs='*')
+args = parser.parse_args()
+
+global_file = args.global_file
+output = args.output
+ident = args.ident
+files = args.files
 total = ""
 for fn in files:
     with open(fn, "r") as f:
         total += f.read()
         total += '\n'
 
-cpp_output = subprocess.run([
+cpp_args = [
     'cpp',
     '-P'
-], input=total.encode('utf-8'), capture_output=True)
+]
+if args.cpp:
+    for i in args.cpp:
+        cpp_args.append('-' + i)
+cpp_output = subprocess.run(cpp_args, input=total.encode('utf-8'), capture_output=True)
 
 total = cpp_output.stdout.decode('utf-8')
 total = re.sub(r'^\s+', '', total)
 total = re.sub(r'\s+', ' ', total)
-if global_file != '-':
+if global_file:
     with open(global_file, "r") as f:
         total = f.read() + '\n' + total
 
