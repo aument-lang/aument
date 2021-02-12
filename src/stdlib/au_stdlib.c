@@ -14,12 +14,14 @@
     }
 
 struct au_lib_func au_stdlib_funcs[] = {
-    // IO
+    // *io.c*
     STDLIB_FUNC(input, 0),
-    // Types
+    // *types.c*
     STDLIB_FUNC(int, 1),
     STDLIB_FUNC(str, 1),
     STDLIB_FUNC(bool, 1),
+    // *array.c*
+    STDLIB_FUNC(len, 1),
 };
 
 void au_install_stdlib(struct au_program_data *data) {
