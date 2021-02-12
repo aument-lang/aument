@@ -1,0 +1,6 @@
+def y() {
+    x = 10;
+    return x;
+}
+
+print y();
