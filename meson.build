@@ -137,10 +137,6 @@ if has_compile_feature
     if not is_testing
         rt_code_depends += files('src/core/rt/value_print.c')
     endif
-    rt_code_depends += files(
-        'src/stdlib/io.c',
-        'src/stdlib/types.c',
-    )
     rt_code_src = custom_target(
         'comp_code.c',
         output : 'comp_code.c',
@@ -164,11 +160,13 @@ if has_compile_feature
 endif
 
 au_runtime_sources = [
+    'src/core/rt/exception.c',
     'src/stdlib/io.c',
     'src/stdlib/types.c',
 ]
 
 # Build types
+add_project_arguments('-DAU_IS_INTERPRETER', language : ['c'])
 
 if get_option('buildtype') == 'debugoptimized'
     add_project_arguments('-pg', language : ['c'])
@@ -178,8 +176,7 @@ if get_option('buildtype') == 'release' or get_option('buildtype') == 'debugopti
 endif
 
 incs = include_directories('src')
-
-static_library('au_runtime', au_runtime_sources, include_directories: incs, c_args: ['-DAU_IS_INTERPRETER'])
+static_library('au_runtime', au_runtime_sources, include_directories: incs)
 
 if is_testing
     e = executable('aulang-tests-feature', sources + ['build/tests.c'], include_directories: incs)
@@ -189,5 +186,5 @@ if is_testing
         test('c compiler test', e)
     endif
 else
-    executable('aulang', sources + ['src/main.c'], include_directories: incs, c_args: ['-DAU_IS_INTERPRETER'])
+    executable('aulang', sources + ['src/main.c'], include_directories: incs)
 endif
