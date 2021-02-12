@@ -15,7 +15,7 @@
 #include "platform/platform.h"
 #endif
 
-static _AlwaysInline void au_value_ref(const struct _au_value v) {
+static _AlwaysInline void au_value_ref(const au_value_t v) {
     switch (au_value_get_type(v)) {
     case VALUE_STR: {
         au_string_ref(au_value_get_string(v));
@@ -30,7 +30,7 @@ static _AlwaysInline void au_value_ref(const struct _au_value v) {
     }
 }
 
-static _AlwaysInline void au_value_deref(const struct _au_value v) {
+static _AlwaysInline void au_value_deref(const au_value_t v) {
     switch (au_value_get_type(v)) {
     case VALUE_STR: {
         au_string_deref(au_value_get_string(v));
