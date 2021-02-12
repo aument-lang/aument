@@ -171,9 +171,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case OP_MOV_U16: {
             uint8_t reg = bc(pos);
             DEF_BC16(n, 1)
-            fprintf(state->f,
-                    "au_value_deref(r%d); r%d = au_value_int(%d);\n", reg,
-                    reg, n);
+            fprintf(state->f, "MOVE_VALUE(r%d, au_value_int(%d));\n", reg,
+                    n);
             break;
         }
 #define BIN_OP(NAME)                                                      \
@@ -182,9 +181,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         uint8_t rhs = bc(pos + 1);                                        \
         uint8_t res = bc(pos + 2);                                        \
         fprintf(state->f,                                                 \
-                "t=r%d;r%d = au_value_" NAME                              \
-                "(r%d, r%d);au_value_deref(t);\n",                        \
-                res, res, lhs, rhs);                                      \
+                "MOVE_VALUE(r%d,au_value_" NAME "(r%d,r%d));\n", res,     \
+                lhs, rhs);                                                \
         break;                                                            \
     }
         case OP_MUL:
@@ -247,29 +245,25 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
         case OP_MOV_REG_LOCAL: {
             uint8_t reg = bc(pos), local = bc(pos + 1);
-            fprintf(state->f,
-                    "au_value_deref(l%d); l%d = r%d; au_value_ref(l%d);\n",
-                    local, local, reg, local);
+            fprintf(state->f, "COPY_VALUE(l%d,r%d);\n", local, reg);
             break;
         }
         case OP_MOV_LOCAL_REG: {
             uint8_t local = bc(pos), reg = bc(pos + 1);
-            fprintf(state->f,
-                    "au_value_deref(r%d); r%d = l%d; au_value_ref(r%d);\n",
-                    reg, reg, local, reg);
+            fprintf(state->f, "COPY_VALUE(r%d,l%d);\n", reg, local);
             break;
         }
         case OP_LOAD_CONST: {
             uint8_t reg = bc(pos);
             DEF_BC16(c, 1)
-            fprintf(state->f, "r%d = _M%ld_c%d();\n", reg, module_idx, c);
+            fprintf(state->f, "MOVE_VALUE(r%d,_M%ld_c%d());\n", reg,
+                    module_idx, c);
             break;
         }
         case OP_MOV_BOOL: {
             uint8_t n = bc(pos), reg = bc(pos + 1);
-            fprintf(state->f,
-                    "au_value_deref(r%d); r%d = au_value_bool(%d);\n", reg,
-                    reg, n);
+            fprintf(state->f, "MOVE_VALUE(r%d,au_value_bool(%d));\n", reg,
+                    n);
             break;
         }
         case OP_CALL0:
@@ -297,23 +291,25 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             if (fn->type == AU_FN_BC) {
                 const struct au_bc_storage *bcs = &fn->as.bc_func;
                 assert(n_args == bcs->num_args);
-                fprintf(state->f, "au_value_deref(r%d); r%d=", reg, reg);
+                fprintf(state->f, "MOVE_VALUE(r%d,", reg);
                 if (n_args > 0) {
-                    fprintf(state->f, "_M%ld_f%d(&s.data[s.len-%d]);",
+                    fprintf(state->f, "_M%ld_f%d(&s.data[s.len-%d])",
                             module_idx, func_id, n_args);
                 } else {
-                    fprintf(state->f, "_M%ld_f%d();", module_idx, func_id);
+                    fprintf(state->f, "_M%ld_f%d()", module_idx, func_id);
                 }
+                fprintf(state->f, ");");
             } else if (fn->type == AU_FN_NATIVE) {
                 const struct au_lib_func *lib_func = &fn->as.native_func;
                 assert(n_args == lib_func->num_args);
-                fprintf(state->f, "au_value_deref(r%d); r%d=", reg, reg);
+                fprintf(state->f, "MOVE_VALUE(r%d,", reg);
                 if (n_args > 0) {
-                    fprintf(state->f, "%s(0,0,&s.data[s.len-%d]);",
+                    fprintf(state->f, "%s(0,0,&s.data[s.len-%d])",
                             lib_func->symbol, n_args);
                 } else {
-                    fprintf(state->f, "%s(0,0,0);", lib_func->symbol);
+                    fprintf(state->f, "%s(0,0,0)", lib_func->symbol);
                 }
+                fprintf(state->f, ");");
             }
             if (n_args > 0) {
                 for (int i = 0; i < n_args; i++) {
@@ -330,9 +326,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         uint8_t reg = bc(pos);                                            \
         uint8_t local = bc(pos + 1);                                      \
         fprintf(state->f,                                                 \
-                "t=l%d;l%d = au_value_" NAME                              \
-                "(l%d,r%d);au_value_deref(t);\n",                         \
-                local, local, local, reg);                                \
+                "MOVE_VALUE(l%d,au_value_" NAME "(l%d,r%d));\n", local,   \
+                local, reg);                                              \
         break;                                                            \
     }
         case OP_MUL_ASG:
@@ -366,8 +361,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case OP_PUSH_ARG: {
             uint8_t reg = bc(pos);
             fprintf(state->f,
-                    "au_value_array_add(&s, r%d); au_value_ref(r%d);\n",
-                    reg, reg);
+                    "au_value_ref(r%d);au_value_array_add(&s,r%d);\n", reg,
+                    reg);
             break;
         }
         case OP_IMPORT: {
@@ -414,8 +409,47 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             au_c_comp_state_del(&mod_state);
 
             fprintf(state->f,
-                    "extern au_value_t _M%ld_main(); _M%ld_main();\n",
+                    "extern au_value_t _M%ld_main();_M%ld_main();\n",
                     module_idx, module_idx);
+            break;
+        }
+        case OP_ARRAY_NEW: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(capacity, 1)
+            fprintf(state->f,
+                    "MOVE_VALUE(r%d,"
+                    "au_value_struct("
+                    "(struct au_struct*)au_obj_array_new(%d)));\n",
+                    reg, capacity);
+            break;
+        }
+        case OP_ARRAY_PUSH: {
+            uint8_t reg = bc(pos);
+            uint8_t value = bc(pos + 1);
+            fprintf(state->f,
+                    "au_value_ref(r%d);"
+                    "au_obj_array_push(au_obj_array_coerce(r%d),r%d);\n",
+                    value, reg, value);
+            break;
+        }
+        case OP_IDX_GET: {
+            uint8_t reg = bc(pos);
+            uint8_t idx = bc(pos + 1);
+            uint8_t ret = bc(pos + 2);
+            fprintf(state->f,
+                    "COPY_VALUE(r%d,"
+                    "au_obj_array_get(au_obj_array_coerce(r%d),r%d));\n",
+                    ret, reg, idx);
+            break;
+        }
+        case OP_IDX_SET: {
+            uint8_t reg = bc(pos);
+            uint8_t idx = bc(pos + 1);
+            uint8_t ret = bc(pos + 2);
+            fprintf(state->f,
+                    "au_value_ref(r%d);"
+                    "au_obj_array_set(au_obj_array_coerce(r%d),r%d,r%d);\n",
+                    ret, reg, idx, ret);
             break;
         }
         default: {
@@ -436,10 +470,10 @@ void au_c_comp_module(struct au_c_comp_state *state,
     for (size_t i = 0; i < program->data.data_val.len; i++) {
         const struct au_program_data_val *val =
             &program->data.data_val.data[i];
+        fprintf(state->f, "static inline au_value_t _M%ld_c%ld() {\n",
+                module_idx, i);
         switch (au_value_get_type(val->real_value)) {
         case VALUE_STR: {
-            fprintf(state->f, "static inline au_value_t _M%ld_c%ld() {\n",
-                    module_idx, i);
             fprintf(state->f, INDENT
                     "return au_value_string(au_string_from_const((const "
                     "char[]){");
@@ -448,12 +482,22 @@ void au_c_comp_module(struct au_c_comp_state *state,
                         program->data.data_buf[val->buf_idx + i]);
             }
             fprintf(state->f, "}, %d));\n", val->buf_len);
-            fprintf(state->f, "}\n");
+            break;
+        }
+        case VALUE_INT: {
+            fprintf(state->f, "return au_value_int(%d);\n",
+                    au_value_get_int(val->real_value));
+            break;
+        }
+        case VALUE_DOUBLE: {
+            fprintf(state->f, "return au_value_double(%f);\n",
+                    au_value_get_double(val->real_value));
             break;
         }
         default:
             break;
         }
+        fprintf(state->f, "}\n");
     }
     for (size_t i = 0; i < program->data.fns.len; i++) {
         const struct au_fn *fn = &program->data.fns.data[i];
@@ -502,6 +546,11 @@ extern const size_t AU_RT_HDR_LEN;
 extern const char AU_RT_CODE[];
 extern const size_t AU_RT_CODE_LEN;
 
+#ifdef TEST
+char *TEST_RT_CODE;
+size_t TEST_RT_CODE_LEN;
+#endif
+
 void au_c_comp(struct au_c_comp_state *state,
                const struct au_program *program) {
     fwrite(AU_RT_HDR, 1, AU_RT_HDR_LEN, state->f);
@@ -516,6 +565,10 @@ void au_c_comp(struct au_c_comp_state *state,
         fprintf(state->f, "#include \"%s\"\n", g_state.includes.data[i]);
     }
     fwrite(AU_RT_CODE, 1, AU_RT_CODE_LEN, state->f);
+#ifdef TEST
+    fprintf(state->f, "\n");
+    fwrite(TEST_RT_CODE, 1, TEST_RT_CODE_LEN, state->f);
+#endif
 
     // Cleanup
     for (size_t i = 0; i < g_state.includes.len; i++) {

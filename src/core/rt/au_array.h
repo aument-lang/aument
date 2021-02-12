@@ -18,5 +18,12 @@ void au_obj_array_del(struct au_obj_array *obj_array);
 void au_obj_array_push(struct au_obj_array *obj_array, au_value_t el);
 au_value_t au_obj_array_get(struct au_obj_array *obj_array,
                             au_value_t idx);
-void au_obj_array_set(struct au_obj_array *obj_array, au_value_t idx,
+int au_obj_array_set(struct au_obj_array *obj_array, au_value_t idx,
                       au_value_t value);
+
+static inline struct au_obj_array *au_obj_array_coerce(au_value_t value) {
+    if (au_value_get_type(value) != VALUE_STRUCT ||
+        au_value_get_struct(value)->vdata != &au_obj_array_vdata)
+        return 0;
+    return (struct au_obj_array *)au_value_get_struct(value);
+}
