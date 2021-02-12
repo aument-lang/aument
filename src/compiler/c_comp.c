@@ -446,10 +446,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             uint8_t reg = bc(pos);
             uint8_t idx = bc(pos + 1);
             uint8_t ret = bc(pos + 2);
-            fprintf(state->f,
-                    "au_value_ref(r%d);"
-                    "au_obj_array_set(au_obj_array_coerce(r%d),r%d,r%d);\n",
-                    ret, reg, idx, ret);
+            fprintf(
+                state->f,
+                "au_value_ref(r%d);"
+                "au_obj_array_set(au_obj_array_coerce(r%d),r%d,r%d);\n",
+                ret, reg, idx, ret);
             break;
         }
         default: {

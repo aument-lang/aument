@@ -68,7 +68,7 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
             pos++;
             abs_num /= 10;
         }
-        if(is_neg) {
+        if (is_neg) {
             header->data[pos] = '-';
             pos++;
         }

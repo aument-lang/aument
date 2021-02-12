@@ -18,6 +18,9 @@ struct au_obj_array {
 
 struct au_struct_vdata au_obj_array_vdata = (struct au_struct_vdata){
     .del_fn = (au_struct_del_fn_t)au_obj_array_del,
+    .idx_get_fn = (au_struct_idx_get_fn_t)au_obj_array_get,
+    .idx_set_fn = (au_struct_idx_set_fn_t)au_obj_array_set,
+    .len_fn = (au_struct_len_fn_t)au_obj_array_len,
 };
 
 static struct au_struct array_header = (struct au_struct){
@@ -52,11 +55,15 @@ au_value_t au_obj_array_get(struct au_obj_array *obj_array,
 }
 
 int au_obj_array_set(struct au_obj_array *obj_array, au_value_t idx_val,
-                      au_value_t value) {
+                     au_value_t value) {
     const size_t idx = au_value_get_int(idx_val);
-    if(idx >= obj_array->array.len)
+    if (idx >= obj_array->array.len)
         return 0;
     au_value_ref(value);
     obj_array->array.data[idx] = value;
     return 1;
+}
+
+int32_t au_obj_array_len(struct au_obj_array *obj_array) {
+    return (int32_t)obj_array->array.len;
 }
