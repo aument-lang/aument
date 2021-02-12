@@ -54,9 +54,9 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
         header->rc = 1;
         header->len = 1;
         uint32_t pos = 0, cap = 1;
+        int is_neg = 0;
         if (abs_num < 0) {
-            header->data[0] = '-';
-            pos++;
+            is_neg = 1;
             abs_num = -abs_num;
         }
         while (abs_num != 0) {
@@ -67,6 +67,10 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
             header->data[pos] = ((abs_num % 10) + '0');
             pos++;
             abs_num /= 10;
+        }
+        if(is_neg) {
+            header->data[pos] = '-';
+            pos++;
         }
         for (int i = 0, j = pos - 1; i < j; i++, j--) {
             char c = header->data[i];
