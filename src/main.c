@@ -41,6 +41,7 @@
 #define has_flag(FLAG, MASK) (((FLAG) & (MASK)) != 0)
 
 #include "help.h"
+#include "version.h"
 
 enum au_action { ACTION_BUILD, ACTION_RUN };
 
@@ -103,6 +104,9 @@ int main(int argc, char **argv) {
         } else {
             fputs(help_text(input_file), stdout);
         }
+        return 0;
+    } else if (strcmp(action, "version") == 0) {
+        fputs("aulang " AU_VERSION "\n", stdout);
         return 0;
     } else {
         fputs(AU_HELP_MAIN, stdout);

@@ -96,6 +96,7 @@ sources = [
     'src/core/vm.c',
     'src/core/vm.h',
     'src/help.h',
+    'src/version.h',
     'src/platform/mmap.c',
     'src/platform/mmap.h',
     'src/platform/platform.h',

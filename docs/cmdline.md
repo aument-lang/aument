@@ -8,7 +8,8 @@ aulang [command] [options] file...
 
 This section documents aulang's commands.
 
-The section below was generated automatically (devs: *gen_help.py*). Please don't modify it by hand!
+The section below was generated automatically (devs: *gen_help.py*).
+Please don't modify it by hand!
 
 ## `build`: builds source code into a single binary
 
