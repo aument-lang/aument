@@ -5,9 +5,6 @@
 # Licensed under Apache License v2.0 with Runtime Library Exception
 # See LICENSE.txt for license information
 
-rm -rf build
-mkdir -p build
-python3 gen_tests.py
-meson setup build $MESONARG -Dtests=enabled -Dc_args="$CCFLAGS"
+MESONARG="$MESONARG -Db_coverage=true" ./test.sh
 cd build
-meson test
+ninja coverage-html && firefox $PWD/meson-logs/coveragereport/index.html
