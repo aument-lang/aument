@@ -5,5 +5,12 @@
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
 #pragma once
+#include "../value/main.h"
+#include "main.h"
 #endif
-#include "value/ref.h"
+
+static inline struct au_struct *au_struct_coerce(au_value_t value) {
+    if (au_value_get_type(value) != VALUE_STRUCT)
+        return 0;
+    return (struct au_struct *)au_value_get_struct(value);
+}

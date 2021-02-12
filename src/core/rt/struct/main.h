@@ -5,5 +5,15 @@
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
 #pragma once
+#include <stdint.h>
+#include <stdlib.h>
+
+#ifdef DEBUG_RC
+#include <stdio.h>
 #endif
-#include "value/ref.h"
+#endif
+
+struct au_struct {
+    uint32_t rc;
+    struct au_struct_vdata *vdata;
+};

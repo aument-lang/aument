@@ -20,6 +20,7 @@
 
 #include "rt/au_array.h"
 #include "rt/au_string.h"
+#include "rt/au_struct.h"
 #include "rt/exception.h"
 
 #include "stdlib/au_stdlib.h"
@@ -471,30 +472,33 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     frame.regs[frame.bc[frame.pc + 1]];
                 const au_value_t value_val =
                     frame.regs[frame.bc[frame.pc + 2]];
-                struct au_obj_array *obj_array = au_obj_array_coerce(array_val);
+                struct au_obj_array *obj_array =
+                    au_obj_array_coerce(array_val);
                 au_obj_array_push(obj_array, value_val);
                 DISPATCH;
             }
             CASE(OP_IDX_GET) : {
-                const au_value_t array_val =
+                const au_value_t col_val =
                     frame.regs[frame.bc[frame.pc + 1]];
                 const au_value_t idx_val =
                     frame.regs[frame.bc[frame.pc + 2]];
                 const uint8_t ret_reg = frame.bc[frame.pc + 3];
-                struct au_obj_array *obj_array = au_obj_array_coerce(array_val);
-                COPY_VALUE(frame.regs[ret_reg],
-                           au_obj_array_get(obj_array, idx_val));
+                struct au_struct *collection = au_struct_coerce(col_val);
+                COPY_VALUE(
+                    frame.regs[ret_reg],
+                    collection->vdata->idx_get_fn(collection, idx_val));
                 DISPATCH;
             }
             CASE(OP_IDX_SET) : {
-                const au_value_t array_val =
+                const au_value_t col_val =
                     frame.regs[frame.bc[frame.pc + 1]];
                 const au_value_t idx_val =
                     frame.regs[frame.bc[frame.pc + 2]];
                 const au_value_t value_val =
                     frame.regs[frame.bc[frame.pc + 3]];
-                struct au_obj_array *obj_array = au_obj_array_coerce(array_val);
-                au_obj_array_set(obj_array, idx_val, value_val);
+                struct au_struct *collection = au_struct_coerce(col_val);
+                collection->vdata->idx_set_fn(collection, idx_val,
+                                              value_val);
                 DISPATCH;
             }
 #undef COPY_VALUE
