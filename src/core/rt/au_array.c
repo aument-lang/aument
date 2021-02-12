@@ -9,8 +9,6 @@
 #include "value.h"
 
 #include "../value_array.h"
-
-#include <assert.h>
 #endif
 
 struct au_obj_array {
@@ -36,8 +34,8 @@ struct au_obj_array *au_obj_array_new(size_t capacity) {
     return obj_array;
 }
 
-void au_obj_array_del(struct au_obj_array *obj_array) {\
-    for(size_t i = 0; i < obj_array->array.len; i++) {
+void au_obj_array_del(struct au_obj_array *obj_array) {
+    for (size_t i = 0; i < obj_array->array.len; i++) {
         au_value_deref(obj_array->array.data[i]);
     }
     free(obj_array->array.data);
@@ -53,10 +51,12 @@ au_value_t au_obj_array_get(struct au_obj_array *obj_array,
     return au_value_array_at(&obj_array->array, au_value_get_int(idx));
 }
 
-void au_obj_array_set(struct au_obj_array *obj_array, au_value_t idx_val,
+int au_obj_array_set(struct au_obj_array *obj_array, au_value_t idx_val,
                       au_value_t value) {
     const size_t idx = au_value_get_int(idx_val);
-    assert(idx < obj_array->array.len);
+    if(idx >= obj_array->array.len)
+        return 0;
     au_value_ref(value);
     obj_array->array.data[idx] = value;
+    return 1;
 }

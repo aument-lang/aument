@@ -227,13 +227,13 @@ static _AlwaysInline uint32_t au_value_get_fn(const struct _au_value v) {
 }
 
 struct au_string;
-static _AlwaysInline struct _au_value au_value_struct(void *data) {
+static _AlwaysInline struct _au_value au_value_struct(struct au_struct *data) {
     struct _au_value v = {0};
     v._type = VALUE_STR;
     v._data.d_ptr = data;
     return v;
 }
-static _AlwaysInline void *au_value_get_struct(const struct _au_value v) {
+static _AlwaysInline struct au_struct *au_value_get_struct(const struct _au_value v) {
     return v._data.d_ptr;
 }
 
