@@ -10,7 +10,7 @@ static const char *AU_HELP_MAIN =
     "information.\n\nCopyright (c) 2021 the aulang contributors.\nProject "
     "link: https://github.com/chm8d/aulang\n";
 static const char *AU_HELP_BUILD =
-    "Usage:\n    aulang input-file output-file input-file "
+    "Usage:\n    aulang build input-file output-file input-file "
     "output-file\n\nSummary:\n    Builds *input-file* into an executable "
     "binary named *output-file*.\n\naulang compiles code by invoking a C "
     "compiler. By default, this is *gcc*,\nhowever you can have aulang "
@@ -21,18 +21,18 @@ static const char *AU_HELP_BUILD =
     "make aulang write C code into *output-file* instead\nof outputting a "
     "compiled binary. Note that since modules are compiled\ndown to "
     "external header files, the resulting C code will not "
-    "actually\ncompile if files are imported.\n\nbuild\n";
+    "actually\ncompile if files are imported.\n";
 static const char *AU_HELP_HELP =
-    "Usage:\n    aulang [command] [command]\n\nSummary:\n    Shows the "
-    "documentation for a specified command if given.\nElse, a general "
-    "help screen is shown.\n\nhelp\n";
+    "Usage:\n    aulang help [command] [command]\n\nSummary:\n    Shows "
+    "the documentation for a specified command if given.\nElse, a general "
+    "help screen is shown.\n";
 static const char *AU_HELP_RUN =
-    "Usage:\n    aulang input-file input-file\n\nSummary:\n    Runs "
+    "Usage:\n    aulang run input-file input-file\n\nSummary:\n    Runs "
     "*input-file* through an interpreter.\n\nPassing `-b` will make "
-    "aulang output bytecode before it is interpreted.\n\nrun\n";
+    "aulang output bytecode before it is interpreted.\n";
 static const char *AU_HELP_VERSION =
-    "Usage:\n    aulang  \n\nSummary:\n    Prints aulang's current "
-    "version number.\n\nversion\n";
+    "Usage:\n    aulang version  \n\nSummary:\n    Prints aulang's "
+    "current version number.\n";
 static const char *help_text(const char *action) {
     if (strcmp(action, "main") == 0)
         return AU_HELP_MAIN;
