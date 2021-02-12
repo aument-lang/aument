@@ -49,3 +49,9 @@ AU_EXTERN_FUNC_DECL(au_std_bool);
 /// @param input Object to be converted into string
 /// @return The string equivalent of the `input` object.
 AU_EXTERN_FUNC_DECL(au_std_str);
+
+/// [func-au] Gets the length of a collection
+/// @name len
+/// @param collection The collection (an array, string,...)
+/// @return The length of the collection.
+AU_EXTERN_FUNC_DECL(au_std_len);
