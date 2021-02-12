@@ -1,1 +1,1 @@
-print str(10) + "a";
+print str(10);
