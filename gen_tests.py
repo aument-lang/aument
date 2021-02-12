@@ -169,7 +169,7 @@ void run_gcc(const char *source, const size_t source_len) {{
         cc = "gcc";
 
     char *args[] = {{
-        cc, "-flto", "-O2", "-o", c_file_out, c_file, NULL,
+        cc, "-fprofile-arcs", "-ftest-coverage", "-o", c_file_out, c_file, "{os.path.join(source_path, "./build/libau_runtime.a")}", NULL,
     }};
     pid_t pid = fork();
     if (pid == -1) {{
@@ -180,6 +180,7 @@ void run_gcc(const char *source, const size_t source_len) {{
         assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
     }} else {{
         execvp(args[0], args);
+        exit(0);
     }}
 
     pid = fork();
@@ -192,6 +193,7 @@ void run_gcc(const char *source, const size_t source_len) {{
     }} else {{
         char *args[] = {{ c_file_out, NULL }};
         execvp(c_file_out, args);
+        exit(0);
     }}
     unlink(c_file);
     unlink(c_file_out);
