@@ -1,10 +1,10 @@
 # aulang
 
-What if we had a scripting language that...
+What if we had a scripting language with...
 
-  * **has minimal dependencies:** you only need a C compiler to build the aulang's interpreter.
-  * **has fast development time:** like Python and Javascript, you can simply write code and run it directly.
-  * **has fast run time:** once finished, you can compile your code into a lightweight executable. You don't even need any external runtime to run it!
+  * **minimal dependencies:** you only need a C compiler to build the aulang's interpreter.
+  * **fast development time:** like Python and Javascript, you can simply write code and run it directly.
+  * **fast run time:** once finished, you can compile your code into a lightweight executable. You don't even need any external runtime to run it!
 
 Welcome to **aulang** (currently in pre-alpha).
 
@@ -43,7 +43,7 @@ $ ./aulang build hello.au /tmp/hello && /tmp/hello
 Hello World
 ```
 
-Note that the build command requires a C compiler in the environment's `PATH` (default is `gcc`).
+The build command requires a C compiler in the environment's `PATH` (default is `gcc`). If the environment variable `CC` is specified, it will use that instead.
 
 ## Building
 
@@ -73,7 +73,7 @@ An executable `aulang` will appear in the `build` directory.
 
 **For Cygwin users,** install gcc on Cygwin, open a Cygwin shell in the current directory and follow the Linux instruction.
 
-**For MSVC users,** run `build.bat` (for release mode). Note that you cannot compile aulang's compiler this way because MSVC doesn't support some Unix functions.
+**For MSVC users,** run `build.bat` (for release mode). Note that aulang's compiler feature is disabled because MSVC doesn't support some Unix functions.
 
 ## Documentation
 
@@ -81,6 +81,10 @@ An executable `aulang` will appear in the `build` directory.
   * [command line reference](./docs/cmdline.md)
   * [aulang standard library reference](./docs/au-stdlib.md)
   * [aulang C API reference](./docs/c-api.md)
+
+## Contributing
+
+aulang is in alpha development, so feel free to ask any questions or suggest features in the repository's [issues page](https://github.com/chm8d/aulang/issues/).
 
 ## Changelog
 

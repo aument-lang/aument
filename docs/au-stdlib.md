@@ -57,6 +57,20 @@ Converts an object into an integer.
 
 The integer equivalent of the `input` object.
 
+### len
+
+Defined in *src/stdlib/au_stdlib.h*.
+
+Gets the length of a collection
+
+#### Arguments
+
+ * **collection:** The collection (an array, string,...)
+
+#### Return value
+
+The length of the collection.
+
 ### str
 
 Defined in *src/stdlib/au_stdlib.h*.

@@ -64,6 +64,8 @@ print y; // 0
 
 This includes the top-level scope as well. In the example above, the function `local` cannot access the variable `x`.
 
+**Note:** for thread-safety reasons, global variables don't exist. When it is implemented, you'll be able to pass values through channels or share thread-safe values.
+
 ## Control Flow
 
 You can use `if` statements like how it works in C. Notice that there are no brackets surrounding the condition.
@@ -83,6 +85,8 @@ if "string" {
     print "string is true";
 }
 ```
+
+See the [`bool` function documentation](./au-stdlib.md#bool) for boolean conversion.
 
 aulang also has while loops:
 
