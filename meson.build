@@ -161,6 +161,8 @@ if has_compile_feature
     )
 
     sources += [
+        'src/platform/cc.c',
+        'src/platform/cc.h',
         'src/compiler/c_comp.c',
         'src/compiler/c_comp.h',
         rt_hdr_src,

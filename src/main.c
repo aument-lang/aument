@@ -27,6 +27,7 @@
 #include <sys/wait.h>
 
 #include "compiler/c_comp.h"
+#include "platform/cc.h"
 #endif
 
 #ifdef _WIN32
@@ -168,25 +169,15 @@ int main(int argc, char **argv) {
             au_c_comp_state_del(&c_state);
             au_program_del(&program);
 
-            char *cc = getenv("CC");
-            if (cc == 0)
-                cc = "gcc";
+            struct au_cc_options cc;
+            au_cc_options_default(&cc);
 
-            char *args[] = {
-                cc, "-flto", "-O2", "-o", output_file, c_file, NULL,
-            };
-            pid_t pid = fork();
-            if (pid == -1) {
-                au_perror("fork");
-            } else if (pid > 0) {
-                int status;
-                waitpid(pid, &status, 0);
-                unlink(c_file);
-                return status;
-            } else {
-                execvp(args[0], args);
-                return 1;
-            }
+            au_str_array_add(&cc.cflags, "-flto");
+            au_str_array_add(&cc.cflags, "-O2");
+
+            int retval = au_spawn_cc(&cc, output_file, c_file);
+            au_cc_options_del(&cc);
+            return retval;
         }
     }
 #endif
