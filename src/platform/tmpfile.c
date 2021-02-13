@@ -13,7 +13,7 @@
 #define TMPFILE_TEMPLATE_EXEC "/tmp/file-XXXXXX"
 
 void au_tmpfile_del(struct au_tmpfile *tmp) {
-    if(tmp->f != 0)
+    if (tmp->f != 0)
         fclose(tmp->f);
     free(tmp->path);
 }

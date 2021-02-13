@@ -19,7 +19,7 @@ int au_spawn(struct au_str_array *array) {
         int status;
         waitpid(pid, &status, 0);
         array->len--;
-        if(WIFEXITED(status))
+        if (WIFEXITED(status))
             return WEXITSTATUS(status);
         return -1;
     } else {

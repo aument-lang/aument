@@ -15,5 +15,5 @@
 
 struct au_struct {
     uint32_t rc;
-    struct au_struct_vdata *vdata;
+    const struct au_struct_vdata *vdata;
 };

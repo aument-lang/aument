@@ -11,8 +11,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "spawn.h"
 #include "cc.h"
+#include "spawn.h"
 
 void au_cc_options_default(struct au_cc_options *cc) {
     *cc = (struct au_cc_options){0};
