@@ -36,9 +36,7 @@ aulang invokes the C compiler with the following arguments:
 Passing `-b` will make aulang output bytecode before it is compiled to C.
 
 Passing `-c` will make aulang write C code into *output-file* instead
-of outputting a compiled binary. Note that since modules are compiled
-down to external header files, the resulting C code will not actually
-compile if files are imported.
+of outputting a compiled binary.
 
 ## `help`: shows this help screen
 

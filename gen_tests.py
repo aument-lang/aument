@@ -156,7 +156,8 @@ void run_gcc(const char *source, const size_t source_len) {{
         au_perror("cannot generate tmpnam");
 
     struct au_c_comp_state c_state = {{
-        .f = fdopen(fd, "w"),
+        .as.f = fdopen(fd, "w"),
+        .type = AU_C_COMP_FILE,
     }};
     struct au_program program;
     assert(au_parse(source, source_len, &program) != 0);

@@ -8,10 +8,18 @@
 #include <stdio.h>
 
 #include "core/bc.h"
+#include "core/char_array.h"
 #include "core/str_array.h"
 
 struct au_c_comp_state {
-    FILE *f;
+    union {
+        FILE *f;
+        struct au_char_array str;
+    } as;
+    enum {
+        AU_C_COMP_FILE,
+        AU_C_COMP_STR,
+    } type;
 };
 
 /// [func] Deinitializes an au_c_comp_state instance
