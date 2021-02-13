@@ -8,8 +8,6 @@
 
 #include "core/rt/extern_fn.h"
 
-extern struct au_lib_func au_stdlib_funcs[];
-
 struct au_program_data;
 void au_install_stdlib(struct au_program_data *data);
 

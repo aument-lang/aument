@@ -48,8 +48,8 @@ int main(int argc, char **argv) {
 '''
 result = compiler.run(code, name : 'nan tagging support')
 if result.stdout().strip() == '1'
-    add_project_arguments('-DUSE_NAN_TAGGING', language : ['c'])
-    au_hdr_cflags += ['DUSE_NAN_TAGGING']
+    # add_project_arguments('-DUSE_NAN_TAGGING', language : ['c'])
+    # au_hdr_cflags += ['DUSE_NAN_TAGGING']
 endif
 
 if compiler.has_argument('-Werror')
@@ -100,10 +100,6 @@ sources = [
     'src/platform/mmap.c',
     'src/platform/mmap.h',
     'src/platform/platform.h',
-    'src/platform/tmpfile.c',
-    'src/platform/tmpfile.h',
-    'src/platform/spawn.c',
-    'src/platform/spawn.h',
     'src/stdlib/array.c',
     'src/stdlib/au_stdlib.c',
     'src/stdlib/au_stdlib.h',
@@ -166,6 +162,10 @@ if has_compile_feature
     sources += [
         'src/platform/cc.c',
         'src/platform/cc.h',
+        'src/platform/tmpfile.c',
+        'src/platform/tmpfile.h',
+        'src/platform/spawn.c',
+        'src/platform/spawn.h',
         'src/compiler/c_comp.c',
         'src/compiler/c_comp.h',
         rt_hdr_src,
@@ -188,7 +188,9 @@ if get_option('buildtype') == 'debugoptimized'
     add_project_arguments('-pg', language : ['c'])
 endif
 if get_option('buildtype') == 'release' or get_option('buildtype') == 'debugoptimized'
-    add_project_arguments('-flto', language : ['c'])
+    if compiler.has_argument('-flto')
+        add_project_arguments('-flto', language : ['c'])
+    endif
 endif
 
 incs = include_directories('src')

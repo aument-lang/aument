@@ -27,7 +27,6 @@ enum au_vtype {
 };
 
 #ifdef USE_NAN_TAGGING
-
 typedef union {
     double d;
     uint64_t raw;
@@ -116,17 +115,6 @@ static _AlwaysInline struct au_struct *
 au_value_get_struct(const au_value_t v) {
     return (struct au_struct *)(AU_REPR_GET_POINTER(v.raw));
 }
-
-static _AlwaysInline void au_value_clear(au_value_t *a, int size) {
-    for (int i = 0; i < size; i++)
-        a[i] = au_value_none();
-}
-
-static _AlwaysInline au_value_t *au_value_calloc(size_t len) {
-    au_value_t *array = malloc(sizeof(au_value_t) * len);
-    au_value_clear(array, len);
-    return array;
-}
 #else
 union au_value_data {
     int32_t d_int;
@@ -149,6 +137,7 @@ au_value_get_type(const struct _au_value v) {
 
 static _AlwaysInline struct _au_value au_value_none() {
     struct _au_value v = {0};
+    v._type = VALUE_NONE;
     return v;
 }
 
@@ -217,16 +206,18 @@ static _AlwaysInline struct au_struct *
 au_value_get_struct(const struct _au_value v) {
     return v._data.d_ptr;
 }
+#endif
 
 static _AlwaysInline void au_value_clear(au_value_t *a, int size) {
     for (int i = 0; i < size; i++)
-        a[i] = (au_value_t){0};
+        a[i] = au_value_none();
 }
 
 static _AlwaysInline au_value_t *au_value_calloc(size_t len) {
-    return calloc(len, sizeof(au_value_t));
+    au_value_t *array = malloc(sizeof(au_value_t) * len);
+    au_value_clear(array, len);
+    return array;
 }
-#endif
 
 static _AlwaysInline int au_value_is_truthy(const au_value_t v) {
     switch (au_value_get_type(v)) {

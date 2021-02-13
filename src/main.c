@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
             au_program_del(&program);
         } else {
             struct au_tmpfile tmp;
-            if(!au_tmpfile_new(&tmp))
+            if (!au_tmpfile_new(&tmp))
                 au_perror("unable to create tmpfile\n");
             struct au_c_comp_state c_state = {
                 .as.f = tmp.f,

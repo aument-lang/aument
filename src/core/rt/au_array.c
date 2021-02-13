@@ -16,21 +16,27 @@ struct au_obj_array {
     struct au_value_array array;
 };
 
-struct au_struct_vdata au_obj_array_vdata = (struct au_struct_vdata){
-    .del_fn = (au_struct_del_fn_t)au_obj_array_del,
-    .idx_get_fn = (au_struct_idx_get_fn_t)au_obj_array_get,
-    .idx_set_fn = (au_struct_idx_set_fn_t)au_obj_array_set,
-    .len_fn = (au_struct_len_fn_t)au_obj_array_len,
-};
-
-static struct au_struct array_header = (struct au_struct){
-    .rc = 1,
-    .vdata = &au_obj_array_vdata,
-};
+struct au_struct_vdata au_obj_array_vdata;
+static int au_obj_array_vdata_inited = 0;
+static void au_obj_array_vdata_init() {
+    if (!au_obj_array_vdata_inited) {
+        au_obj_array_vdata = (struct au_struct_vdata){
+            .del_fn = (au_struct_del_fn_t)au_obj_array_del,
+            .idx_get_fn = (au_struct_idx_get_fn_t)au_obj_array_get,
+            .idx_set_fn = (au_struct_idx_set_fn_t)au_obj_array_set,
+            .len_fn = (au_struct_len_fn_t)au_obj_array_len,
+        };
+        au_obj_array_vdata_inited = 1;
+    }
+}
 
 struct au_obj_array *au_obj_array_new(size_t capacity) {
     struct au_obj_array *obj_array = malloc(sizeof(struct au_obj_array));
-    obj_array->header = array_header;
+    au_obj_array_vdata_init();
+    obj_array->header = (struct au_struct){
+        .rc = 1,
+        .vdata = &au_obj_array_vdata,
+    };
     obj_array->array.data = au_value_calloc(capacity);
     obj_array->array.len = 0;
     obj_array->array.cap = capacity;

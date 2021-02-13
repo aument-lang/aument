@@ -13,18 +13,17 @@
         .func = au_std_##NAME                                             \
     }
 
-struct au_lib_func au_stdlib_funcs[] = {
-    // *io.c*
-    STDLIB_FUNC(input, 0),
-    // *types.c*
-    STDLIB_FUNC(int, 1),
-    STDLIB_FUNC(str, 1),
-    STDLIB_FUNC(bool, 1),
-    // *array.c*
-    STDLIB_FUNC(len, 1),
-};
-
 void au_install_stdlib(struct au_program_data *data) {
+    struct au_lib_func au_stdlib_funcs[] = {
+        // *io.c*
+        STDLIB_FUNC(input, 0),
+        // *types.c*
+        STDLIB_FUNC(int, 1),
+        STDLIB_FUNC(str, 1),
+        STDLIB_FUNC(bool, 1),
+        // *array.c*
+        STDLIB_FUNC(len, 1),
+    };
     const int stdlib_len =
         sizeof(au_stdlib_funcs) / sizeof(au_stdlib_funcs[0]);
     for (int i = 0; i < stdlib_len; i++) {

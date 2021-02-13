@@ -15,7 +15,7 @@ AU_EXTERN_FUNC_DECL(au_std_len) {
     switch (au_value_get_type(value)) {
     case VALUE_STRUCT: {
         struct au_struct *s = au_value_get_struct(value);
-        struct au_struct_vdata *vdata = s->vdata;
+        const struct au_struct_vdata *vdata = s->vdata;
         if (vdata->len_fn != 0)
             return au_value_int(vdata->len_fn(s));
     }
