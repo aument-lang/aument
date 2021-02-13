@@ -1,7 +1,7 @@
 project('aulang', 'c')
 
 is_testing = get_option('tests').enabled()
-has_compile_feature = get_option('compiler').enabled() and host_machine.system() != 'windows'
+has_compile_feature = get_option('compiler').enabled()
 
 compiler = meson.get_compiler('c')
 

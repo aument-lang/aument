@@ -49,8 +49,6 @@ Note that the build command requires a C compiler in the environment's `PATH` (d
 
 ### Requirements
 
-aulang currently only supports Linux.
-
   * A C compiler (tested with GCC v9.3.0)
   * Meson (tested with 0.53.2)
   * Python
@@ -70,6 +68,12 @@ For release builds, do:
 ```
 
 An executable `aulang` will appear in the `build` directory.
+
+### Windows
+
+**For Cygwin users,** install gcc on Cygwin, open a Cygwin shell in the current directory and follow the Linux instruction.
+
+**For MSVC users,** run `build.bat` (for release mode). Note that you cannot compile aulang's compiler this way because MSVC doesn't support some Unix functions.
 
 ## Documentation
 
