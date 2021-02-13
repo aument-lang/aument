@@ -48,8 +48,8 @@ int main(int argc, char **argv) {
 '''
 result = compiler.run(code, name : 'nan tagging support')
 if result.stdout().strip() == '1'
-    # add_project_arguments('-DUSE_NAN_TAGGING', language : ['c'])
-    # au_hdr_cflags += ['DUSE_NAN_TAGGING']
+    add_project_arguments('-DUSE_NAN_TAGGING', language : ['c'])
+    au_hdr_cflags += ['DUSE_NAN_TAGGING']
 endif
 
 if compiler.has_argument('-Werror')
