@@ -198,7 +198,7 @@ struct au_string;
 static _AlwaysInline struct _au_value
 au_value_struct(struct au_struct *data) {
     struct _au_value v = {0};
-    v._type = VALUE_STR;
+    v._type = VALUE_STRUCT;
     v._data.d_ptr = data;
     return v;
 }
