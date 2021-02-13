@@ -119,7 +119,7 @@ Deinitializes an au_fn instance
 ### au_hash
 
 ```c
-hash_t au_hash(const char *str, const int len);
+hash_t au_hash(const uint8_t *str, const size_t len);
 ```
 
 Defined in *src/core/hash.h*.
@@ -174,7 +174,7 @@ Loads a file into memory and stores a reference into a au_mmap_info instance
 ### au_parse
 
 ```c
-int au_parse(char *src, size_t len, struct au_program *program);
+int au_parse(const char *src, size_t len, struct au_program *program);
 ```
 
 Defined in *src/core/parser.h*.
