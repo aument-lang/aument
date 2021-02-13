@@ -194,7 +194,10 @@ if get_option('buildtype') == 'release' or get_option('buildtype') == 'debugopti
 endif
 
 incs = include_directories('src')
-static_library('au_runtime', au_runtime_sources, include_directories: incs)
+
+if has_compile_feature
+    static_library('au_runtime', au_runtime_sources, include_directories: incs)
+endif
 
 if is_testing
     e = executable('aulang-tests-feature', sources + ['build/tests.c'], include_directories: incs)
