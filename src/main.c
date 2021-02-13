@@ -99,6 +99,9 @@ int main(int argc, char **argv) {
         if (!input_file) {
             au_fatal("no input file\n");
         }
+        if (!output_file) {
+            au_fatal("no output file\n");
+        }
     } else if (strcmp(action, "help") == 0) {
         if (!input_file) {
             fputs(AU_HELP_MAIN, stdout);
@@ -157,14 +160,14 @@ int main(int argc, char **argv) {
             au_c_comp_state_del(&c_state);
             au_program_del(&program);
         } else {
-            char c_file[] = TMPFILE_TEMPLATE;
-            int fd;
-            if ((fd = mkstemps(c_file, 2)) == -1)
-                au_perror("cannot generate tmpnam");
+            struct au_tmpfile tmp;
+            if(!au_tmpfile_new(&tmp))
+                au_perror("unable to create tmpfile\n");
             struct au_c_comp_state c_state = {
-                .as.f = fdopen(fd, "w"),
+                .as.f = tmp.f,
                 .type = AU_C_COMP_FILE,
             };
+            tmp.f = 0;
             au_c_comp(&c_state, &program);
             au_c_comp_state_del(&c_state);
             au_program_del(&program);
@@ -175,7 +178,8 @@ int main(int argc, char **argv) {
             au_str_array_add(&cc.cflags, "-flto");
             au_str_array_add(&cc.cflags, "-O2");
 
-            int retval = au_spawn_cc(&cc, output_file, c_file);
+            int retval = au_spawn_cc(&cc, output_file, tmp.path);
+            au_tmpfile_del(&tmp);
             au_cc_options_del(&cc);
             return retval;
         }
