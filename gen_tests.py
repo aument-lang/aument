@@ -37,6 +37,8 @@ c_src_comp_test = c_src + """
 #include <sys/wait.h>
 
 #include "platform/tmpfile.h"
+#include "platform/spawn.h"
+#include "platform/cc.h"
 
 #include "compiler/c_comp.h"
 
@@ -142,62 +144,50 @@ with open("build/tests.c", "w") as f:
     f.write(c_src)
 
 # Compiler test
-# TODO: put this code in an actual source file
 c_src_comp_test += f"""
-void run_gcc(const char *source, const size_t source_len) {{
-    char c_file[] = TMPFILE_TEMPLATE;
-    int fd;
-    if ((fd = mkstemps(c_file, 2)) == -1)
-        au_perror("cannot generate tmpnam");
+struct au_cc_options cc;
 
-    char c_file_out[] = TMPFILE_TEMPLATE;
-    int fd_out;
-    if ((fd_out = mkstemps(c_file_out, 2)) == -1)
-        au_perror("cannot generate tmpnam");
+void setup() {{
+    au_cc_options_default(&cc);
+    cc._stdlib_cache = strdup("{os.path.join(source_path, "./build/libau_runtime.a")}");
+}}
+
+void cleanup() {{
+    au_cc_options_del(&cc);
+}}
+
+void run_gcc(const char *source, const size_t source_len) {{
+    struct au_tmpfile c_file;
+    assert(au_tmpfile_new(&c_file));
+
+    struct au_tmpfile c_file_out;
+    assert(au_tmpfile_exec(&c_file_out));
 
     struct au_c_comp_state c_state = {{
-        .as.f = fdopen(fd, "w"),
+        .as.f = c_file.f,
         .type = AU_C_COMP_FILE,
     }};
+    c_file.f = 0;
     struct au_program program;
     assert(au_parse(source, source_len, &program) != 0);
     au_c_comp(&c_state, &program);
     au_c_comp_state_del(&c_state);
     au_program_del(&program);
+    
+    au_str_array_add(&cc.cflags, "-fprofile-arcs");
+    au_str_array_add(&cc.cflags, "-ftest-coverage");
 
-    char *cc = getenv("CC");
-    if (cc == 0)
-        cc = "gcc";
+    int status = au_spawn_cc(&cc, c_file_out.path, c_file.path);
+    assert(status == 0);
 
-    char *args[] = {{
-        cc, "-fprofile-arcs", "-ftest-coverage", "-o", c_file_out, c_file, "{os.path.join(source_path, "./build/libau_runtime.a")}", NULL,
-    }};
-    pid_t pid = fork();
-    if (pid == -1) {{
-        au_perror("fork");
-    }} else if (pid > 0) {{
-        int status;
-        waitpid(pid, &status, 0);
-        assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
-    }} else {{
-        execvp(args[0], args);
-        exit(0);
-    }}
+    struct au_str_array args = {{0}};
+    au_str_array_add(&args, c_file_out.path);
+    status = au_spawn(&args);
+    assert(status == 0);
+    free(args.data);
 
-    pid = fork();
-    if (pid == -1) {{
-        au_perror("fork");
-    }} else if (pid > 0) {{
-        int status;
-        waitpid(pid, &status, 0);
-        assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
-    }} else {{
-        char *args[] = {{ c_file_out, NULL }};
-        execvp(c_file_out, args);
-        exit(0);
-    }}
-    unlink(c_file);
-    unlink(c_file_out);
+    au_tmpfile_del(&c_file);
+    au_tmpfile_del(&c_file_out);
 }}"""
 for (i, ((input_src_array, input_src_len), test_src)) in enumerate(zip(input_srcs, test_srcs)):
     test_src_array, test_src_len = bytes_to_c_array(test_src.encode('utf-8'))
@@ -212,12 +202,14 @@ static void test_{i}() {{
 
 c_src_comp_test += """
 int main(int argc, char **argv) {
+    setup();
 """
 
 for (i, fn) in enumerate(files):
     c_src_comp_test += f"  printf(\"[{i+1}/{len(files)}] {fn}\\n\"); test_{i}();\n"
 
 c_src_comp_test += """
+    cleanup();
     return 0;
 }
 """

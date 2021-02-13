@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "spawn.h"
 #include "cc.h"
 
 void au_cc_options_default(struct au_cc_options *cc) {
@@ -28,24 +29,6 @@ char *au_get_cc() {
     if (cc == 0)
         cc = "gcc";
     return cc;
-}
-
-static int spawn(struct au_str_array *array) {
-    au_str_array_add(array, 0);
-
-    pid_t pid = fork();
-    if (pid == -1) {
-        au_perror("fork");
-    } else if (pid > 0) {
-        int status;
-        waitpid(pid, &status, 0);
-        array->len--;
-        return status;
-    } else {
-        execvp(array->data[0], array->data);
-        array->len--;
-        return 1;
-    }
 }
 
 static const char au_lib_file[] = "/libau_runtime.a";
@@ -82,7 +65,7 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
         au_str_array_add(&args, cc->_stdlib_cache);
     }
 
-    int retval = spawn(&args);
+    int retval = au_spawn(&args);
     free(args.data);
     return retval;
 }

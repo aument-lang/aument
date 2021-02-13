@@ -5,13 +5,6 @@
 // See LICENSE.txt for license information
 #pragma once
 
-#include <stdio.h>
+#include "../core/str_array.h"
 
-struct au_tmpfile {
-    FILE *f;
-    char *path;
-};
-
-void au_tmpfile_del(struct au_tmpfile *);
-int au_tmpfile_new(struct au_tmpfile *tmp);
-int au_tmpfile_exec(struct au_tmpfile *tmp);
+int au_spawn(struct au_str_array *array);
