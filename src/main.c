@@ -149,7 +149,8 @@ int main(int argc, char **argv) {
     else if (action_id == ACTION_BUILD) {
         if (has_flag(flags, FLAG_GENERATE_C)) {
             struct au_c_comp_state c_state = {
-                .f = fopen(output_file, "w"),
+                .as.f = fopen(output_file, "w"),
+                .type = AU_C_COMP_FILE,
             };
             au_c_comp(&c_state, &program);
             au_c_comp_state_del(&c_state);
@@ -160,7 +161,8 @@ int main(int argc, char **argv) {
             if ((fd = mkstemps(c_file, 2)) == -1)
                 au_perror("cannot generate tmpnam");
             struct au_c_comp_state c_state = {
-                .f = fdopen(fd, "w"),
+                .as.f = fdopen(fd, "w"),
+                .type = AU_C_COMP_FILE,
             };
             au_c_comp(&c_state, &program);
             au_c_comp_state_del(&c_state);
@@ -180,8 +182,10 @@ int main(int argc, char **argv) {
                 int status;
                 waitpid(pid, &status, 0);
                 unlink(c_file);
+                return status;
             } else {
                 execvp(args[0], args);
+                return 1;
             }
         }
     }
