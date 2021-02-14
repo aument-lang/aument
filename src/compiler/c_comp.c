@@ -18,7 +18,11 @@
 
 #include "c_comp.h"
 
+#ifdef USE_NAN_TAGGING
+#define ARG_STACK_THRESHOLD 8
+#else
 #define ARG_STACK_THRESHOLD 4
+#endif
 
 struct au_c_comp_global_state {
     struct au_str_array modules;
@@ -242,11 +246,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     if (has_dyn_arg_stack) {
         comp_printf(state, INDENT "struct au_value_array s={0};\n");
     } else if (arg_stack_max > 0) {
-        comp_printf(
-            state,
-            INDENT "au_value_t s_data[%d];struct au_value_array s=(struct "
-                   "au_value_array){.data=s_data,.len=0,.cap=%d};\n",
-            arg_stack_max, arg_stack_max);
+        comp_printf(state,
+                    INDENT "au_value_t s_data[%d]; size_t s_len=0;\n",
+                    arg_stack_max);
     }
 
     for (size_t pos = 0; pos < bcs->bc.len;) {
@@ -392,8 +394,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 const struct au_bc_storage *bcs = &fn->as.bc_func;
                 assert(n_args == bcs->num_args);
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
-                if (n_args > 0) {
+                if (n_args > 0 && has_dyn_arg_stack) {
                     comp_printf(state, "_M%ld_f%d(&s.data[s.len-%d])",
+                                module_idx, func_id, n_args);
+                } else if (n_args > 0) {
+                    comp_printf(state, "_M%ld_f%d(&s_data[s_len-%d])",
                                 module_idx, func_id, n_args);
                 } else {
                     comp_printf(state, "_M%ld_f%d()", module_idx, func_id);
@@ -403,20 +408,29 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 const struct au_lib_func *lib_func = &fn->as.native_func;
                 assert(n_args == lib_func->num_args);
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
-                if (n_args > 0) {
+                if (n_args > 0 && has_dyn_arg_stack) {
                     comp_printf(state, "%s(0,0,&s.data[s.len-%d])",
+                                lib_func->symbol, n_args);
+                } else if (n_args > 0) {
+                    comp_printf(state, "%s(0,0,&s_data[s_len-%d])",
                                 lib_func->symbol, n_args);
                 } else {
                     comp_printf(state, "%s(0,0,0)", lib_func->symbol);
                 }
                 comp_printf(state, ");");
             }
-            if (n_args > 0) {
+            if (n_args > 0 && has_dyn_arg_stack) {
                 for (int i = 0; i < n_args; i++) {
                     comp_printf(state, "au_value_deref(s.data[s.len-%d]);",
                                 i + 1);
                 }
                 comp_printf(state, "s.len-=%d;", n_args);
+            } else if (n_args > 0) {
+                for (int i = 0; i < n_args; i++) {
+                    comp_printf(state, "au_value_deref(s_data[s_len-%d]);",
+                                i + 1);
+                }
+                comp_printf(state, "s_len-=%d;", n_args);
             }
             comp_printf(state, "\n");
             break;
@@ -460,9 +474,12 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
         case OP_PUSH_ARG: {
             uint8_t reg = bc(pos);
-            comp_printf(state,
-                        "au_value_ref(r%d);au_value_array_add(&s,r%d);\n",
-                        reg, reg);
+            comp_printf(state, "au_value_ref(r%d);", reg);
+            if (has_dyn_arg_stack) {
+                comp_printf(state, "au_value_array_add(&s,r%d);\n", reg);
+            } else {
+                comp_printf(state, "s_data[s_len++]=r%d;\n", reg);
+            }
             break;
         }
         case OP_IMPORT: {
