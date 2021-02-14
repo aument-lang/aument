@@ -5,6 +5,8 @@
 // See LICENSE.txt for license information
 #pragma once
 
+#include "exception.h"
+
 struct au_program;
 
 /// [func] Parses source code into an au_program instance
@@ -12,4 +14,5 @@ struct au_program;
 /// @param len the bytesize len of the source code
 /// @param program output into a program
 /// @return 1 if parsed successfully, 0 if an error occurred
-int au_parse(const char *src, size_t len, struct au_program *program);
+struct au_parser_result au_parse(const char *src, size_t len,
+                                 struct au_program *program);

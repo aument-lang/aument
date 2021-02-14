@@ -10,11 +10,12 @@
 
 #include "platform/mmap.h"
 
-#include "array.h"
+#include "core/array.h"
+#include "core/program.h"
+#include "core/rt/exception.h"
+
 #include "lexer.h"
 #include "parser.h"
-#include "program.h"
-#include "rt/exception.h"
 
 ARRAY_TYPE(size_t, size_t_array, 1)
 
@@ -45,6 +46,8 @@ struct parser {
     size_t self_len;
     struct size_t_array self_fill_call;
     int self_num_args;
+
+    struct au_parser_result res;
 };
 
 static void parser_flush_free_regs(struct parser *p) {
@@ -308,7 +311,11 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
     } else if (tok.len == 1 && tok.src[0] == ')') {
         lexer_next(l);
     } else {
-        au_fatal("unexpected character");
+        p->res = (struct au_parser_result){
+            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
+            .data.unexpected_token.got_token = tok,
+        };
+        return 0;
     }
 
     func_p.self_num_args = bcs.num_args;
@@ -405,8 +412,12 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
             // Else jump
             if (else_replace_idx != (size_t)-1) {
                 const size_t offset = (end_len - else_len) / 4;
-                if (offset > (uint16_t)-1)
-                    au_fatal("offset is more than (uint16_t)-1\n");
+                if (offset > (uint16_t)-1) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_BYTECODE_GEN,
+                    };
+                    return 0;
+                }
                 parser_replace_bc_u16(p, else_replace_idx,
                                       (uint16_t)offset);
             }
@@ -414,8 +425,12 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
             // Condition jump
             {
                 const size_t offset = (else_start - c_len) / 4;
-                if (offset > (uint16_t)-1)
-                    au_fatal("offset is more than (uint16_t)-1\n");
+                if (offset > (uint16_t)-1) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_BYTECODE_GEN,
+                    };
+                    return 0;
+                }
                 parser_replace_bc_u16(p, c_replace_idx, (uint16_t)offset);
             }
         }
@@ -426,16 +441,24 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l) {
     // Condition jump
     if (!has_else_part) {
         const size_t offset = (end_len - c_len) / 4;
-        if (offset > (uint16_t)-1)
-            au_fatal("offset is more than (uint16_t)-1\n");
+        if (offset > (uint16_t)-1) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_BYTECODE_GEN,
+            };
+            return 0;
+        }
         parser_replace_bc_u16(p, c_replace_idx, (uint16_t)offset);
     }
 
     // Block jump
     if (body_replace_idx != (size_t)-1) {
         const size_t offset = (end_len - body_len) / 4;
-        if (offset > (uint16_t)-1)
-            au_fatal("offset is more than (uint16_t)-1\n");
+        if (offset > (uint16_t)-1) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_BYTECODE_GEN,
+            };
+            return 0;
+        }
         parser_replace_bc_u16(p, body_replace_idx, (uint16_t)offset);
     }
 
@@ -485,16 +508,24 @@ static int parser_exec_while_statement(struct parser *p, struct lexer *l) {
     // Condition jump
     {
         const size_t offset = (end_len - c_len) / 4;
-        if (offset > (uint16_t)-1)
-            au_fatal("offset is more than (uint16_t)-1\n");
+        if (offset > (uint16_t)-1) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_BYTECODE_GEN,
+            };
+            return 0;
+        }
         parser_replace_bc_u16(p, c_replace_idx, (uint16_t)offset);
     }
 
     // Block jump
     if (body_replace_idx != (size_t)-1) {
         const size_t offset = (body_len - cond_part) / 4;
-        if (offset > (uint16_t)-1)
-            au_fatal("offset is more than (uint16_t)-1\n");
+        if (offset > (uint16_t)-1) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_BYTECODE_GEN,
+            };
+            return 0;
+        }
         parser_replace_bc_u16(p, body_replace_idx, (uint16_t)offset);
     }
 
@@ -959,12 +990,21 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             if (!parser_exec_expr(p, l))
                 return 0;
             t = lexer_next(l);
-            if (!(t.len == 1 && t.src[0] == ')'))
-                au_fatal("expected )\n");
+            if (!(t.len == 1 && t.src[0] == ')')) {
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
+                    .data.unexpected_token.got_token = t,
+                };
+                return 0;
+            }
         } else if (t.len == 1 && t.src[0] == '[') {
             return parser_exec_array(p, l);
         } else {
-            au_fatal("unexpected operator %.*s\n", t.len, t.src);
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
+                .data.unexpected_token.got_token = t,
+            };
+            return 0;
         }
         break;
     }
@@ -988,15 +1028,22 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             }
 
             if (!execute_self && val == NULL) {
-                au_fatal("unknown function '%.*s'\n", t.len, t.src);
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNKNOWN_FUNCTION,
+                    .data.unknown_function.name_token = t,
+                };
+                return 0;
             }
 
             if (execute_self) {
                 if (p->self_num_args != n_args) {
-                    au_fatal(
-                        "unexpected number of arguments (got %d, expected "
-                        "%d)\n",
-                        n_args, p->self_num_args);
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_WRONG_ARGS,
+                        .data.wrong_args.got_args = n_args,
+                        .data.wrong_args.expected_args = p->self_num_args,
+                        .data.wrong_args.call_token = t,
+                    };
+                    return 0;
                 }
             } else {
                 assert(val->idx < p->p_data->fns.len);
@@ -1004,17 +1051,26 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 if (fn->type == AU_FN_BC) {
                     const struct au_bc_storage *bcs = &fn->as.bc_func;
                     if (bcs->num_args != n_args) {
-                        au_fatal("unexpected number of arguments (got %d, "
-                                 "expected %d)\n",
-                                 n_args, bcs->num_args);
+                        p->res = (struct au_parser_result){
+                            .type = AU_PARSER_RES_WRONG_ARGS,
+                            .data.wrong_args.got_args = n_args,
+                            .data.wrong_args.expected_args = bcs->num_args,
+                            .data.wrong_args.call_token = t,
+                        };
+                        return 0;
                     }
                 } else if (fn->type == AU_FN_NATIVE) {
                     const struct au_lib_func *lib_func =
                         &fn->as.native_func;
                     if (lib_func->num_args != n_args) {
-                        au_fatal("unexpected number of arguments (got %d, "
-                                 "expected %d)\n",
-                                 n_args, lib_func->num_args);
+                        p->res = (struct au_parser_result){
+                            .type = AU_PARSER_RES_WRONG_ARGS,
+                            .data.wrong_args.got_args = n_args,
+                            .data.wrong_args.expected_args =
+                                lib_func->num_args,
+                            .data.wrong_args.call_token = t,
+                        };
+                        return 0;
                     }
                 }
             }
@@ -1045,7 +1101,11 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             const struct au_bc_var_value *val =
                 au_bc_vars_get(&p->vars, t.src, t.len);
             if (val == NULL) {
-                au_fatal("unknown variable '%.*s'\n", t.len, t.src);
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNKNOWN_VAR,
+                    .data.unknown_var.name_token = t,
+                };
+                return 0;
             }
             parser_emit_bc_u8(p, OP_MOV_LOCAL_REG);
             parser_emit_bc_u8(p, val->idx);
@@ -1098,8 +1158,11 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
         break;
     }
     default: {
-        au_fatal("unexpected token %.*s\n", t.len, t.src);
-        break;
+        p->res = (struct au_parser_result){
+            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
+            .data.unexpected_token.got_token = t,
+        };
+        return 0;
     }
     }
 
@@ -1162,7 +1225,8 @@ static int parser_exec_array(struct parser *p, struct lexer *l) {
     return 1;
 }
 
-int au_parse(const char *src, size_t len, struct au_program *program) {
+struct au_parser_result au_parse(const char *src, size_t len,
+                                 struct au_program *program) {
     struct au_program_data p_data;
     au_program_data_init(&p_data);
 
@@ -1172,10 +1236,11 @@ int au_parse(const char *src, size_t len, struct au_program *program) {
     struct parser p;
     parser_init(&p, &p_data);
     if (!parser_exec(&p, &l)) {
+        struct au_parser_result res = p.res;
         lexer_del(&l);
         parser_del(&p);
         au_program_data_del(&p_data);
-        return 0;
+        return res;
     }
 
     struct au_bc_storage p_main;
@@ -1191,5 +1256,7 @@ int au_parse(const char *src, size_t len, struct au_program *program) {
     lexer_del(&l);
     parser_del(&p);
     // p_data is moved
-    return 1;
+    return (struct au_parser_result){
+        .type = AU_PARSER_RES_OK,
+    };
 }
