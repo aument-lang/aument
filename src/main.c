@@ -15,7 +15,7 @@
 #include "platform/tmpfile.h"
 
 #include "core/bc.h"
-#include "core/parser.h"
+#include "core/parser/parser.h"
 #include "core/program.h"
 #include "core/rt/exception.h"
 #include "core/vm.h"
@@ -40,6 +40,8 @@
 #define FLAG_GENERATE_C (1 << 0)
 #define FLAG_DUMP_BYTECODE (1 << 1)
 #define has_flag(FLAG, MASK) (((FLAG) & (MASK)) != 0)
+
+#include "core/int_error/error_printer.h"
 
 #include "help.h"
 #include "version.h"
@@ -122,7 +124,17 @@ int main(int argc, char **argv) {
         au_perror("mmap");
 
     struct au_program program;
-    assert(au_parse(mmap.bytes, mmap.size, &program) == 1);
+    struct au_parser_result parse_res =
+        au_parse(mmap.bytes, mmap.size, &program);
+    if (parse_res.type != AU_PARSER_RES_OK) {
+        au_print_parser_error(parse_res, (struct au_error_location){
+                                             .src = mmap.bytes,
+                                             .len = mmap.size,
+                                             .path = input_file,
+                                         });
+        au_mmap_del(&mmap);
+        return 1;
+    }
     au_mmap_del(&mmap);
 
 #ifdef _WIN32

@@ -6,9 +6,9 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include "core/rt/exception.h"
 #include "lexer.h"
 #include "platform/platform.h"
-#include "rt/exception.h"
 
 static inline int l_isspace(int ch) {
     return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';

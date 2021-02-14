@@ -23,7 +23,7 @@ c_src = """
 #include <string.h>
 
 #include "core/bc.h"
-#include "core/parser.h"
+#include "core/parser/parser.h"
 #include "core/program.h"
 #include "core/rt/exception.h"
 #include "core/rt/au_array.h"

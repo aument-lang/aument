@@ -13,17 +13,15 @@
 #include <libgen.h>
 #endif
 
+#include "parser/parser.h"
 #include "platform/mmap.h"
-
-#include "parser.h"
+#include "stdlib/au_stdlib.h"
 #include "vm.h"
 
 #include "rt/au_array.h"
 #include "rt/au_string.h"
 #include "rt/au_struct.h"
 #include "rt/exception.h"
-
-#include "stdlib/au_stdlib.h"
 
 static void au_vm_frame_del(struct au_vm_frame *frame,
                             const struct au_bc_storage *bcs) {
@@ -358,18 +356,22 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
                 const au_value_t *args =
                     &frame.arg_stack.data[frame.arg_stack.len - n_regs];
-                if (call_fn->type == AU_FN_BC) {
+                switch (call_fn->type) {
+                case AU_FN_BC: {
                     const struct au_bc_storage *call_bcs =
                         &call_fn->as.bc_func;
                     const au_value_t callee_retval =
                         au_vm_exec_unverified(tl, call_bcs, p_data, args);
                     MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-                } else if (call_fn->type == AU_FN_NATIVE) {
+                    break;
+                }
+                case AU_FN_NATIVE: {
                     const struct au_lib_func *lib_func =
                         &call_fn->as.native_func;
                     const au_value_t callee_retval =
                         lib_func->func(tl, p_data, args);
                     MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+                }
                 }
                 for (int i = frame.arg_stack.len - n_regs;
                      i < frame.arg_stack.len; i++)
@@ -438,7 +440,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 }
 
                 struct au_program program;
-                assert(au_parse(mmap.bytes, mmap.size, &program) == 1);
+                assert(au_parse(mmap.bytes, mmap.size, &program).type ==
+                       AU_PARSER_RES_OK);
                 au_mmap_del(&mmap);
 #ifdef _WIN32
                 {

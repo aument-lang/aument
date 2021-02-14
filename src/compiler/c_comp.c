@@ -12,7 +12,7 @@
 
 #include "core/bc.h"
 #include "core/bit_array.h"
-#include "core/parser.h"
+#include "core/parser/parser.h"
 #include "core/program.h"
 #include "core/rt/exception.h"
 
@@ -489,7 +489,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             const size_t module_idx = g_state->modules.len + 1;
 
             struct au_program program;
-            assert(au_parse(mmap.bytes, mmap.size, &program) == 1);
+            assert(au_parse(mmap.bytes, mmap.size, &program).type ==
+                   AU_PARSER_RES_OK);
             au_mmap_del(&mmap);
             program.data.cwd = dirname(abspath);
             // abspath is transferred to program.data
