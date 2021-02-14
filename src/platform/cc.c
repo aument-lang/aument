@@ -53,7 +53,10 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
         if (!cc->_stdlib_cache) {
             // TODO: look up standard library file
             char buffer[BUFSIZ];
-            readlink("/proc/self/exe", buffer, BUFSIZ);
+            if (readlink("/proc/self/exe", buffer, BUFSIZ) < 0) {
+                free(args.data);
+                return -1;
+            }
             char *my_path = dirname(buffer);
             size_t my_len = strlen(my_path);
             size_t stdlib_cache_len = my_len + sizeof(au_lib_file);
