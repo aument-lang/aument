@@ -18,7 +18,7 @@
 #include "core/parser/parser.h"
 #include "core/program.h"
 #include "core/rt/exception.h"
-#include "core/vm.h"
+#include "core/vm/vm.h"
 
 #ifdef FEAT_COMPILER
 #include <libgen.h>
@@ -146,6 +146,7 @@ int main(int argc, char **argv) {
 #else
     {
         char *program_path = realpath(input_file, 0);
+        program.data.file = strdup(program_path);
         program.data.cwd = dirname(program_path);
     }
 #endif

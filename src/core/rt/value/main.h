@@ -143,13 +143,12 @@ struct _au_value {
 
 typedef struct _au_value au_value_t;
 
-static _AlwaysInline enum au_vtype
-au_value_get_type(const struct _au_value v) {
+static _AlwaysInline enum au_vtype au_value_get_type(const au_value_t v) {
     return v._type;
 }
 
-static _AlwaysInline struct _au_value au_value_none() {
-    struct _au_value v = {0};
+static _AlwaysInline au_value_t au_value_none() {
+    au_value_t v = {0};
     v._type = VALUE_NONE;
     return v;
 }
@@ -164,69 +163,67 @@ static _AlwaysInline int au_value_is_op_error(au_value_t v) {
     return v._type = VALUE_OP_ERROR;
 }
 
-static _AlwaysInline struct _au_value au_value_int(int32_t n) {
-    struct _au_value v = {0};
+static _AlwaysInline au_value_t au_value_int(int32_t n) {
+    au_value_t v = {0};
     v._type = VALUE_INT;
     v._data.d_int = n;
     return v;
 }
-static _AlwaysInline int32_t au_value_get_int(const struct _au_value v) {
+static _AlwaysInline int32_t au_value_get_int(const au_value_t v) {
     return v._data.d_int;
 }
 
-static _AlwaysInline struct _au_value au_value_double(double n) {
-    struct _au_value v = {0};
+static _AlwaysInline au_value_t au_value_double(double n) {
+    au_value_t v = {0};
     v._type = VALUE_DOUBLE;
     v._data.d_double = n;
     return v;
 }
-static _AlwaysInline double au_value_get_double(const struct _au_value v) {
+static _AlwaysInline double au_value_get_double(const au_value_t v) {
     return v._data.d_double;
 }
 
-static _AlwaysInline struct _au_value au_value_bool(int32_t n) {
-    struct _au_value v = {0};
+static _AlwaysInline au_value_t au_value_bool(int32_t n) {
+    au_value_t v = {0};
     v._type = VALUE_BOOL;
     v._data.d_int = n;
     return v;
 }
-static _AlwaysInline int32_t au_value_get_bool(const struct _au_value v) {
+static _AlwaysInline int32_t au_value_get_bool(const au_value_t v) {
     return v._data.d_int;
 }
 
 struct au_string;
-static _AlwaysInline struct _au_value
-au_value_string(struct au_string *data) {
-    struct _au_value v = {0};
+static _AlwaysInline au_value_t au_value_string(struct au_string *data) {
+    au_value_t v = {0};
     v._type = VALUE_STR;
     v._data.d_ptr = data;
     return v;
 }
 static _AlwaysInline struct au_string *
-au_value_get_string(const struct _au_value v) {
+au_value_get_string(const au_value_t v) {
     return v._data.d_ptr;
 }
 
-static _AlwaysInline struct _au_value au_value_fn(uint32_t n) {
-    struct _au_value v = {0};
+static _AlwaysInline au_value_t au_value_fn(uint32_t n) {
+    au_value_t v = {0};
     v._type = VALUE_FN;
     v._data.d_fn_idx = n;
     return v;
 }
-static _AlwaysInline uint32_t au_value_get_fn(const struct _au_value v) {
+static _AlwaysInline uint32_t au_value_get_fn(const au_value_t v) {
     return v._data.d_fn_idx;
 }
 
 struct au_string;
-static _AlwaysInline struct _au_value
-au_value_struct(struct au_struct *data) {
-    struct _au_value v = {0};
+static _AlwaysInline au_value_t au_value_struct(struct au_struct *data) {
+    au_value_t v = {0};
     v._type = VALUE_STRUCT;
     v._data.d_ptr = data;
     return v;
 }
 static _AlwaysInline struct au_struct *
-au_value_get_struct(const struct _au_value v) {
+au_value_get_struct(const au_value_t v) {
     return v._data.d_ptr;
 }
 #endif

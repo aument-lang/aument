@@ -19,7 +19,7 @@ const char *au_opcode_dbg[256] = {
     "call.1",  "call.2",    "call.3",     "call.4",  "call.5",   "call.6",
     "call.7",  "call.8",    "call.9",     "call.10", "call.11",  "call.12",
     "call.13", "call.14",   "call.15",    "ret",     "ret",      "ret",
-    "import",  "array_new", "array_push", "idx_get", "idx_set", "not"};
+    "import",  "array_new", "array_push", "idx_get", "idx_set",  "not"};
 
 void au_bc_dbg(const struct au_bc_storage *bcs,
                const struct au_program_data *data) {

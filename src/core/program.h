@@ -27,11 +27,11 @@ ARRAY_TYPE(struct au_program_data_val, au_program_data_vals, 1)
 enum au_fn_type { AU_FN_NATIVE, AU_FN_BC };
 
 struct au_fn {
-    enum au_fn_type type;
     union {
         struct au_lib_func native_func;
         struct au_bc_storage bc_func;
     } as;
+    enum au_fn_type type;
 };
 
 /// [func] Deinitializes an au_fn instance
@@ -40,6 +40,14 @@ void au_fn_del(struct au_fn *fn);
 
 ARRAY_TYPE(struct au_fn, au_fn_array, 1)
 
+struct au_program_source_map {
+    size_t bc_from;
+    size_t bc_to;
+    size_t source_start;
+};
+
+ARRAY_TYPE(struct au_program_source_map, au_program_source_map_array, 1)
+
 struct au_program_data {
     struct au_fn_array fns;
     struct au_bc_vars fn_map;
@@ -47,7 +55,9 @@ struct au_program_data {
     uint8_t *data_buf;
     size_t data_buf_len;
     struct au_str_array imports;
+    char *file;
     char *cwd;
+    struct au_program_source_map_array source_map;
 };
 
 /// [func] Initializes an au_program_data instance

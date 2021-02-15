@@ -188,7 +188,8 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l);
 static int parser_exec_print_statement(struct parser *p, struct lexer *l);
 static int parser_exec_return_statement(struct parser *p, struct lexer *l);
 
-static int parser_exec_with_semicolon(struct parser *p, struct lexer *l, int retval) {
+static int parser_exec_with_semicolon(struct parser *p, struct lexer *l,
+                                      int retval) {
     if (!retval)
         return retval;
     struct token t = lexer_next(l);
@@ -237,30 +238,44 @@ static int parser_exec_block(struct parser *p, struct lexer *l) {
 static int parser_exec_statement(struct parser *p, struct lexer *l) {
 #define WITH_SEMICOLON(FUNC) parser_exec_with_semicolon(p, l, FUNC(p, l))
     const struct token t = lexer_peek(l, 0);
+    const size_t bc_from = p->bc.len;
+    int retval = 0;
     if (t.type == TOK_EOF) {
         return -1;
     } else if (t.type == TOK_IDENTIFIER) {
         if (token_keyword_cmp(&t, "def")) {
             lexer_next(l);
-            return parser_exec_def_statement(p, l);
+            retval = parser_exec_def_statement(p, l);
         } else if (token_keyword_cmp(&t, "if")) {
             lexer_next(l);
-            return parser_exec_if_statement(p, l);
+            retval = parser_exec_if_statement(p, l);
         } else if (token_keyword_cmp(&t, "while")) {
             lexer_next(l);
-            return parser_exec_while_statement(p, l);
+            retval = parser_exec_while_statement(p, l);
         } else if (token_keyword_cmp(&t, "print")) {
             lexer_next(l);
-            return WITH_SEMICOLON(parser_exec_print_statement);
+            retval = WITH_SEMICOLON(parser_exec_print_statement);
         } else if (token_keyword_cmp(&t, "return")) {
             lexer_next(l);
-            return WITH_SEMICOLON(parser_exec_return_statement);
+            retval = WITH_SEMICOLON(parser_exec_return_statement);
         } else if (token_keyword_cmp(&t, "import")) {
             lexer_next(l);
-            return WITH_SEMICOLON(parser_exec_import_statement);
+            retval = WITH_SEMICOLON(parser_exec_import_statement);
+        } else {
+            retval = WITH_SEMICOLON(parser_exec_expr);
         }
     }
-    return WITH_SEMICOLON(parser_exec_expr);
+    if (retval) {
+        const size_t bc_to = p->bc.len;
+        const size_t source_start = t.src - l->src;
+        struct au_program_source_map map = (struct au_program_source_map){
+            .bc_from = bc_from,
+            .bc_to = bc_to,
+            .source_start = source_start,
+        };
+        au_program_source_map_array_add(&p->p_data->source_map, map);
+    }
+    return retval;
 }
 
 static int parser_exec_import_statement(struct parser *p,

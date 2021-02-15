@@ -5,9 +5,14 @@
 // See LICENSE.txt for license information
 #pragma once
 
-#include "core/parser/exception.h"
-#include "error_location.h"
 #include <stdlib.h>
+
+#include "core/parser/exception.h"
+#include "core/vm/exception.h"
+#include "error_location.h"
 
 void au_print_parser_error(struct au_parser_result res,
                            struct au_error_location loc);
+
+void au_print_interpreter_error(struct au_interpreter_result type,
+                                struct au_error_location loc);

@@ -13,15 +13,16 @@
 #include <libgen.h>
 #endif
 
-#include "parser/parser.h"
+#include "core/parser/parser.h"
+#include "exception.h"
 #include "platform/mmap.h"
 #include "stdlib/au_stdlib.h"
 #include "vm.h"
 
-#include "rt/au_array.h"
-#include "rt/au_string.h"
-#include "rt/au_struct.h"
-#include "rt/exception.h"
+#include "core/rt/au_array.h"
+#include "core/rt/au_string.h"
+#include "core/rt/au_struct.h"
+#include "core/rt/exception.h"
 
 static void au_vm_frame_del(struct au_vm_frame *frame,
                             const struct au_bc_storage *bcs) {
@@ -93,17 +94,24 @@ static void debug_frame(struct au_vm_frame *frame) {
 }
 #endif
 
-void au_vm_type_error(struct au_vm_thread_local *tl,
-                      const struct au_bc_storage *bcs,
-                      const struct au_program_data *p_data,
-                      struct au_vm_frame *frame) {
-    au_fatal("type errored!\n");
+static inline void bin_op_error(au_value_t left, au_value_t right,
+                                const struct au_program_data *p_data,
+                                struct au_vm_frame *frame) {
+    au_vm_error(
+        (struct au_interpreter_result){
+            .type = AU_INT_ERR_INCOMPAT_BIN_OP,
+            .data.incompat_bin_op.left = left,
+            .data.incompat_bin_op.right = right,
+            .pos = 0,
+        },
+        p_data, frame);
 }
 
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
                                  const struct au_program_data *p_data,
-                                 const au_value_t *args) {
+                                 const au_value_t *args,
+                                 struct au_vm_frame_link link) {
     struct au_vm_frame frame;
     au_value_clear(frame.regs, bcs->num_registers);
     au_value_clear(&frame.retval, 1);
@@ -117,6 +125,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     frame.bc = bcs->bc.data;
     frame.pc = 0;
     frame.arg_stack = (struct au_value_array){0};
+    frame.link = link;
     au_value_t retval;
 
     while (1) {
@@ -243,7 +252,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const uint8_t res = frame.bc[frame.pc + 3];                       \
         MOVE_VALUE(frame.regs[res], au_value_##FUN(lhs, rhs));            \
         if (_Unlikely(au_value_is_op_error(frame.regs[res]))) {           \
-            au_vm_type_error(tl, bcs, p_data, &frame);                    \
+            bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         DISPATCH;                                                         \
     }
@@ -373,8 +382,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 case AU_FN_BC: {
                     const struct au_bc_storage *call_bcs =
                         &call_fn->as.bc_func;
-                    const au_value_t callee_retval =
-                        au_vm_exec_unverified(tl, call_bcs, p_data, args);
+                    struct au_vm_frame_link link =
+                        (struct au_vm_frame_link){
+                            .as.p_data = p_data,
+                            .type = AU_VM_FRAME_LINK_IMPORTER,
+                        };
+                    const au_value_t callee_retval = au_vm_exec_unverified(
+                        tl, call_bcs, p_data, args, link);
                     MOVE_VALUE(frame.regs[ret_reg], callee_retval);
                     break;
                 }
@@ -396,10 +410,11 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     CASE(NAME) : {                                                        \
         const uint8_t reg = frame.bc[frame.pc + 1];                       \
         const uint8_t local = frame.bc[frame.pc + 2];                     \
-        MOVE_VALUE(frame.locals[local],                                   \
-                   au_value_##FUN(frame.locals[local], frame.regs[reg])); \
+        const au_value_t lhs = frame.locals[local];                       \
+        const au_value_t rhs = frame.regs[reg];                           \
+        MOVE_VALUE(frame.locals[local], au_value_##FUN(lhs, rhs));        \
         if (_Unlikely(au_value_is_op_error(frame.locals[local]))) {       \
-            au_vm_type_error(tl, bcs, p_data, &frame);                    \
+            bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         DISPATCH;                                                         \
     }
@@ -458,6 +473,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 assert(au_parse(mmap.bytes, mmap.size, &program).type ==
                        AU_PARSER_RES_OK);
                 au_mmap_del(&mmap);
+
 #ifdef _WIN32
                 {
                     char program_path[_MAX_DIR];
@@ -467,8 +483,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     free(abspath);
                 }
 #else
+            program.data.file = strdup(abspath);
             program.data.cwd = dirname(abspath);
-            // abspath is transferred to program.data
 #endif
 
                 au_vm_exec_unverified_main(tl, &program);
@@ -492,7 +508,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     frame.regs[frame.bc[frame.pc + 2]];
                 struct au_obj_array *obj_array =
                     au_obj_array_coerce(array_val);
-                if(_Likely(obj_array != 0)) {
+                if (_Likely(obj_array != 0)) {
                     au_obj_array_push(obj_array, value_val);
                 }
                 DISPATCH;
@@ -504,10 +520,10 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     frame.regs[frame.bc[frame.pc + 2]];
                 const uint8_t ret_reg = frame.bc[frame.pc + 3];
                 struct au_struct *collection = au_struct_coerce(col_val);
-                if(_Likely(collection != 0)) {
-                    COPY_VALUE(
-                        frame.regs[ret_reg],
-                        collection->vdata->idx_get_fn(collection, idx_val));
+                if (_Likely(collection != 0)) {
+                    COPY_VALUE(frame.regs[ret_reg],
+                               collection->vdata->idx_get_fn(collection,
+                                                             idx_val));
                 }
                 DISPATCH;
             }
@@ -519,18 +535,22 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const au_value_t value_val =
                     frame.regs[frame.bc[frame.pc + 3]];
                 struct au_struct *collection = au_struct_coerce(col_val);
-                if(_Likely(collection != 0)) {
+                if (_Likely(collection != 0)) {
                     collection->vdata->idx_set_fn(collection, idx_val,
-                                                value_val);
+                                                  value_val);
                 }
                 DISPATCH;
             }
-            CASE(OP_NOT): {
+            CASE(OP_NOT) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
-                if(_Likely(au_value_get_type(frame.regs[reg]) == VALUE_BOOL)) {
-                    frame.regs[reg] = au_value_bool(!au_value_get_bool(frame.regs[reg]));
+                if (_Likely(au_value_get_type(frame.regs[reg]) ==
+                            VALUE_BOOL)) {
+                    frame.regs[reg] =
+                        au_value_bool(!au_value_get_bool(frame.regs[reg]));
                 } else {
-                    MOVE_VALUE(frame.regs[reg], au_value_bool(!au_value_is_truthy(frame.regs[reg])));
+                    MOVE_VALUE(frame.regs[reg],
+                               au_value_bool(
+                                   !au_value_is_truthy(frame.regs[reg])));
                 }
                 DISPATCH;
             }
