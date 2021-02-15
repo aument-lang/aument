@@ -93,6 +93,13 @@ static void debug_frame(struct au_vm_frame *frame) {
 }
 #endif
 
+void au_vm_type_error(struct au_vm_thread_local *tl,
+                      const struct au_bc_storage *bcs,
+                      const struct au_program_data *p_data,
+                      struct au_vm_frame *frame) {
+    au_fatal("type errored!\n");
+}
+
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
                                  const struct au_program_data *p_data,
@@ -230,11 +237,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
 #define BIN_OP(NAME, FUN)                                                 \
     CASE(NAME) : {                                                        \
-        const au_value_t old = frame.regs[frame.bc[frame.pc + 3]];        \
         const au_value_t lhs = frame.regs[frame.bc[frame.pc + 1]];        \
         const au_value_t rhs = frame.regs[frame.bc[frame.pc + 2]];        \
-        frame.regs[frame.bc[frame.pc + 3]] = au_value_##FUN(lhs, rhs);    \
-        au_value_deref(old);                                              \
+        const uint8_t res = frame.bc[frame.pc + 3];                       \
+        MOVE_VALUE(frame.regs[res], au_value_##FUN(lhs, rhs));            \
+        if (_Unlikely(au_value_is_op_error(frame.regs[res]))) {           \
+            au_vm_type_error(tl, bcs, p_data, &frame);                    \
+        }                                                                 \
         DISPATCH;                                                         \
     }
             BIN_OP(OP_MUL, mul)
@@ -388,6 +397,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const uint8_t local = frame.bc[frame.pc + 2];                     \
         MOVE_VALUE(frame.locals[local],                                   \
                    au_value_##FUN(frame.locals[local], frame.regs[reg])); \
+        if (_Unlikely(au_value_is_op_error(frame.locals[local]))) {       \
+            au_vm_type_error(tl, bcs, p_data, &frame);                    \
+        }                                                                 \
         DISPATCH;                                                         \
     }
             BIN_OP_ASG(OP_MUL_ASG, mul)
