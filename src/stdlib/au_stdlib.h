@@ -48,7 +48,12 @@ AU_EXTERN_FUNC_DECL(au_std_bool);
 /// @return The string equivalent of the `input` object.
 AU_EXTERN_FUNC_DECL(au_std_str);
 
-/// [func-au] Gets the length of a collection
+/// [func-au] Gets the length of a collection\n\n
+/// * For structures (arrays), calling len will use the structure's
+/// internal length function.\n
+/// * For strings, it returns the number of UTF-8 codepoints in the
+/// string\n
+/// * For all other inputs, the result is 0.
 /// @name len
 /// @param collection The collection (an array, string,...)
 /// @return The length of the collection.
