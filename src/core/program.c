@@ -33,6 +33,8 @@ void au_program_data_del(struct au_program_data *data) {
         free(data->imports.data[i]);
     free(data->imports.data);
     free(data->cwd);
+    free(data->file);
+    free(data->source_map.data);
     memset(data, 0, sizeof(struct au_program_data));
 }
 

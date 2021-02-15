@@ -27,7 +27,7 @@ c_src = """
 #include "core/program.h"
 #include "core/rt/exception.h"
 #include "core/rt/au_array.h"
-#include "core/vm.h"
+#include "core/vm/vm.h"
 """
 
 c_src_comp_test = c_src + """

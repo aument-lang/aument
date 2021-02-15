@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 struct au_error_location {
-    char *path;
-    char *src;
+    const char *path;
+    const char *src;
     size_t len;
 };
