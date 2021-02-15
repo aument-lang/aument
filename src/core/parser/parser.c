@@ -155,6 +155,7 @@ static void parser_emit_bc_u16(struct parser *p, uint16_t val) {
 static void parser_emit_pad8(struct parser *p) { parser_emit_bc_u8(p, 0); }
 
 static int parser_exec_statement(struct parser *p, struct lexer *l);
+
 static int parser_exec_expr(struct parser *p, struct lexer *l);
 static int parser_exec_assign(struct parser *p, struct lexer *l);
 static int parser_exec_logical(struct parser *p, struct lexer *l);
@@ -162,7 +163,7 @@ static int parser_exec_eq(struct parser *p, struct lexer *l);
 static int parser_exec_cmp(struct parser *p, struct lexer *l);
 static int parser_exec_addsub(struct parser *p, struct lexer *l);
 static int parser_exec_muldiv(struct parser *p, struct lexer *l);
-
+static int parser_exec_unary_expr(struct parser *p, struct lexer *l);
 static int parser_exec_index_expr(struct parser *p, struct lexer *l);
 static int parser_exec_val(struct parser *p, struct lexer *l);
 static int parser_exec_array(struct parser *p, struct lexer *l);
@@ -187,14 +188,19 @@ static int parser_exec_if_statement(struct parser *p, struct lexer *l);
 static int parser_exec_print_statement(struct parser *p, struct lexer *l);
 static int parser_exec_return_statement(struct parser *p, struct lexer *l);
 
-static int parser_exec_with_semicolon(struct lexer *l, int retval) {
+static int parser_exec_with_semicolon(struct parser *p, struct lexer *l, int retval) {
     if (!retval)
         return retval;
     struct token t = lexer_next(l);
     if (t.type == TOK_EOF)
         return 1;
-    if (!(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ';'))
+    if (!(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ';')) {
+        p->res = (struct au_parser_result){
+            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
+            .data.unexpected_token.got_token = t,
+        };
         return 0;
+    }
     return 1;
 }
 
@@ -229,6 +235,7 @@ static int parser_exec_block(struct parser *p, struct lexer *l) {
 }
 
 static int parser_exec_statement(struct parser *p, struct lexer *l) {
+#define WITH_SEMICOLON(FUNC) parser_exec_with_semicolon(p, l, FUNC(p, l))
     const struct token t = lexer_peek(l, 0);
     if (t.type == TOK_EOF) {
         return -1;
@@ -244,19 +251,16 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
             return parser_exec_while_statement(p, l);
         } else if (token_keyword_cmp(&t, "print")) {
             lexer_next(l);
-            return parser_exec_with_semicolon(
-                l, parser_exec_print_statement(p, l));
+            return WITH_SEMICOLON(parser_exec_print_statement);
         } else if (token_keyword_cmp(&t, "return")) {
             lexer_next(l);
-            return parser_exec_with_semicolon(
-                l, parser_exec_return_statement(p, l));
+            return WITH_SEMICOLON(parser_exec_return_statement);
         } else if (token_keyword_cmp(&t, "import")) {
             lexer_next(l);
-            return parser_exec_with_semicolon(
-                l, parser_exec_import_statement(p, l));
+            return WITH_SEMICOLON(parser_exec_import_statement);
         }
     }
-    return parser_exec_with_semicolon(l, parser_exec_expr(p, l));
+    return WITH_SEMICOLON(parser_exec_expr);
 }
 
 static int parser_exec_import_statement(struct parser *p,
@@ -903,7 +907,26 @@ BIN_EXPR(
             parser_emit_bc_u8(p, OP_MOD);
         parser_emit_bc_binary_expr(p);
     },
-    parser_exec_index_expr)
+    parser_exec_unary_expr)
+
+static int parser_exec_unary_expr(struct parser *p, struct lexer *l) {
+    struct token tok = lexer_peek(l, 0);
+    if (tok.type == TOK_OPERATOR && tok.len == 1 && tok.src[0] == '!') {
+        lexer_next(l);
+        if (!parser_exec_expr(p, l))
+            return 0;
+
+        const uint8_t reg = parser_last_reg(p);
+        parser_emit_bc_u8(p, OP_NOT);
+        parser_emit_bc_u8(p, reg);
+        parser_emit_pad8(p);
+        parser_emit_pad8(p);
+
+        return 1;
+    } else {
+        return parser_exec_index_expr(p, l);
+    }
+}
 
 static int parser_exec_index_expr(struct parser *p, struct lexer *l) {
     if (!parser_exec_val(p, l))
@@ -913,7 +936,7 @@ static int parser_exec_index_expr(struct parser *p, struct lexer *l) {
     struct token tok = lexer_peek(l, 0);
     if (tok.type == TOK_OPERATOR && tok.len == 1 && tok.src[0] == '[') {
         lexer_next(l);
-        if (!parser_exec_val(p, l))
+        if (!parser_exec_expr(p, l))
             return 0;
         const uint8_t idx_reg = parser_last_reg(p);
         tok = lexer_next(l);
