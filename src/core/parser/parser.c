@@ -19,36 +19,53 @@
 
 ARRAY_TYPE(size_t, size_t_array, 1)
 
+struct parser {
+    /// Bytecode buffer that the parser is outputting to
+    struct au_bc_buf bc;
+
+    /// Stack of used register
+    uint8_t rstack[AU_REGS];
+    /// Length of rstack
+    size_t rstack_len;
+
+    /// Stack of unused "free" registers
+    uint8_t free_regs[AU_REGS];
+    // Length of free_regs
+    size_t free_regs_len;
+
+    /// Hash table of local variables
+    struct au_bc_vars vars;
+
+    /// Global program data.
+    ///     This struct does not own this pointer.
+    struct au_program_data *p_data;
+
+    /// Number of local registers
+    int locals_len;
+    /// Maximum register index used
+    int max_register;
+    /// Current scope level
+    int block_level;
+
+    /// Name of current function or NULL.
+    ///     This struct does not own this pointer.
+    const char *self_name;
+    /// Byte size of self_name
+    size_t self_len;
+    /// Array of offsets representing OP_CALL function index.
+    ///     After parsing, the bytecode at offsets in this array
+    ///     opcode will be filled with the current function index.
+    struct size_t_array self_fill_call;
+    /// Number of arguments in the current function
+    int self_num_args;
+
+    /// Result of the parser
+    struct au_parser_result res;
+};
+
 static inline int is_return_op(uint8_t op) {
     return op == OP_RET_LOCAL || op == OP_RET || op == OP_RET_NULL;
 }
-
-struct parser {
-    struct au_bc_buf bc;
-
-    uint8_t rstack[AU_REGS];
-    size_t rstack_len;
-
-    uint8_t free_regs[AU_REGS];
-    size_t free_regs_len;
-
-    struct au_bc_vars vars;
-
-    /// This struct does not own the data
-    struct au_program_data *p_data;
-
-    int locals_len;
-    int max_register;
-    int block_level;
-
-    // Not owned by this parser
-    const char *self_name;
-    size_t self_len;
-    struct size_t_array self_fill_call;
-    int self_num_args;
-
-    struct au_parser_result res;
-};
 
 static void parser_flush_free_regs(struct parser *p) {
     p->rstack_len = 0;
