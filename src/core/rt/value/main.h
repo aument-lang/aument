@@ -24,6 +24,8 @@ enum au_vtype {
     VALUE_STR = 5,
     VALUE_DOUBLE = 6,
     VALUE_STRUCT = 7,
+    // ...
+    VALUE_OP_ERROR = 15,
 };
 
 #ifdef USE_NAN_TAGGING
@@ -39,8 +41,9 @@ typedef union {
 #define AU_REPR_NAN_FRACTION 0x1
 #define AU_REPR_BOXED(TAG, POINTER)                                       \
     (0x7ff0000000000000UL |                                               \
-     ((((uint64_t)TAG) << 48) | ((POINTER)&0xffffffffffff)))
+     ((((uint64_t)TAG) << 48) | ((POINTER)&0xffffffffffffUL)))
 #define AU_REPR_GET_POINTER(x) ((x)&0x0000ffffffffffffUL)
+#define AU_REPR_OP_ERROR 0x7ff0ffffffffffff
 
 static _AlwaysInline enum au_vtype au_value_get_type(const au_value_t v) {
     if (AU_REPR_FRACTION(v.raw) != AU_REPR_INF_FRACTION &&
@@ -50,6 +53,16 @@ static _AlwaysInline enum au_vtype au_value_get_type(const au_value_t v) {
     } else {
         return VALUE_DOUBLE;
     }
+}
+
+static _AlwaysInline au_value_t au_value_op_error() {
+    au_value_t v;
+    v.raw = AU_REPR_OP_ERROR;
+    return v;
+}
+
+static _AlwaysInline int au_value_is_op_error(au_value_t v) {
+    return v.raw == AU_REPR_OP_ERROR;
 }
 
 static _AlwaysInline au_value_t au_value_none() {
@@ -139,6 +152,16 @@ static _AlwaysInline struct _au_value au_value_none() {
     struct _au_value v = {0};
     v._type = VALUE_NONE;
     return v;
+}
+
+static _AlwaysInline au_value_t au_value_op_error() {
+    au_value_t v = {0};
+    v._type = VALUE_OP_ERROR;
+    return v;
+}
+
+static _AlwaysInline int au_value_is_op_error(au_value_t v) {
+    return v._type = VALUE_OP_ERROR;
 }
 
 static _AlwaysInline struct _au_value au_value_int(int32_t n) {
@@ -241,7 +264,7 @@ static _AlwaysInline int au_value_is_truthy(const au_value_t v) {
 static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
                                              au_value_t rhs) {
     if (au_value_get_type(lhs) != au_value_get_type(rhs))
-        return au_value_none();
+        return au_value_op_error();
     switch (au_value_get_type(lhs)) {
     case VALUE_INT: {
         return au_value_int(au_value_get_int(lhs) + au_value_get_int(rhs));
@@ -257,14 +280,14 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
     default:
         break;
     }
-    return au_value_none();
+    return au_value_op_error();
 }
 
 #define _BIN_OP_GENERIC_NUMBER(NAME, OP)                                  \
     static _AlwaysInline au_value_t NAME(au_value_t lhs,                  \
                                          au_value_t rhs) {                \
         if (au_value_get_type(lhs) != au_value_get_type(rhs))             \
-            return au_value_none();                                       \
+            return au_value_op_error();                                   \
         switch (au_value_get_type(lhs)) {                                 \
         case VALUE_INT: {                                                 \
             return au_value_int(au_value_get_int(lhs)                     \
@@ -277,7 +300,7 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
         default:                                                          \
             break;                                                        \
         }                                                                 \
-        return au_value_none();                                           \
+        return au_value_op_error();                                       \
     }
 _BIN_OP_GENERIC_NUMBER(au_value_sub, -)
 _BIN_OP_GENERIC_NUMBER(au_value_mul, *)
@@ -286,7 +309,7 @@ _BIN_OP_GENERIC_NUMBER(au_value_div, /)
 static _AlwaysInline au_value_t au_value_mod(au_value_t lhs,
                                              au_value_t rhs) {
     if (au_value_get_type(lhs) != au_value_get_type(rhs))
-        return au_value_none();
+        return au_value_op_error();
     switch (au_value_get_type(lhs)) {
     case VALUE_INT: {
         return au_value_int(au_value_get_int(lhs) % au_value_get_int(rhs));
@@ -294,7 +317,7 @@ static _AlwaysInline au_value_t au_value_mod(au_value_t lhs,
     default:
         break;
     }
-    return au_value_none();
+    return au_value_op_error();
 }
 
 #define _BIN_OP_BOOL_GENERIC(NAME, OP)                                    \
