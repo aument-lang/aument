@@ -114,33 +114,33 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 
     while (1) {
 #ifdef DEBUG_VM
-#define MAYBE_DISPATCH_DEBUG debug_frame(&frame);
+#define DISPATCH_DEBUG debug_frame(&frame);
 #else
-#define MAYBE_DISPATCH_DEBUG
+#define DISPATCH_DEBUG
 #endif
 
 #ifndef USE_DISPATCH_JMP
 #define CASE(x) case x
 #define DISPATCH                                                          \
-    MAYBE_DISPATCH_DEBUG;                                                 \
+    DISPATCH_DEBUG;                                                 \
     frame.pc += 4;                                                        \
     continue
 #define DISPATCH_JMP                                                      \
-    MAYBE_DISPATCH_DEBUG;                                                 \
+    DISPATCH_DEBUG;                                                 \
     continue
         switch (frame.bc[frame.pc]) {
 #else
 #define CASE(x) CB_##x
 #define DISPATCH                                                          \
     do {                                                                  \
-        MAYBE_DISPATCH_DEBUG;                                             \
+        DISPATCH_DEBUG;                                             \
         frame.pc += 4;                                                    \
         uint8_t op = frame.bc[frame.pc];                                  \
         goto *cb[op];                                                     \
     } while (0)
 #define DISPATCH_JMP                                                      \
     do {                                                                  \
-        MAYBE_DISPATCH_DEBUG;                                             \
+        DISPATCH_DEBUG;                                             \
         uint8_t op = frame.bc[frame.pc];                                  \
         goto *cb[op];                                                     \
     } while (0)
@@ -201,13 +201,31 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         };
         goto *cb[frame.bc[0]];
 #endif
+
+/// Copies an au_value from src to dest.
+/// NOTE: for memory safety, please use this function instead of
+///     copying directly
+#define COPY_VALUE(dest, src)                                             \
+    do {                                                                  \
+        const au_value_t old = dest;                                      \
+        dest = src;                                                       \
+        au_value_ref(dest);                                               \
+        au_value_deref(old);                                              \
+    } while (0)
+
+#define MOVE_VALUE(dest, src)                                             \
+    do {                                                                  \
+        const au_value_t old = dest;                                      \
+        dest = src;                                                       \
+        au_value_deref(old);                                              \
+    } while (0)
+
             CASE(OP_EXIT) : { goto end; }
             CASE(OP_NOP) : { DISPATCH; }
             CASE(OP_MOV_U16) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
                 const uint16_t n = *(uint16_t *)(&frame.bc[frame.pc + 2]);
-                au_value_deref(frame.regs[reg]);
-                frame.regs[reg] = au_value_int(n);
+                MOVE_VALUE(frame.regs[reg], au_value_int(n));
                 DISPATCH;
             }
 #define BIN_OP(NAME, FUN)                                                 \
@@ -231,25 +249,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             BIN_OP(OP_LEQ, leq)
             BIN_OP(OP_GEQ, geq)
 #undef BIN_OP
-
-/// Copies an au_value from src to dest.
-/// NOTE: for memory safety, please use this function instead of
-///     copying directly
-#define COPY_VALUE(dest, src)                                             \
-    do {                                                                  \
-        const au_value_t old = dest;                                      \
-        dest = src;                                                       \
-        au_value_ref(dest);                                               \
-        au_value_deref(old);                                              \
-    } while (0)
-
-#define MOVE_VALUE(dest, src)                                             \
-    do {                                                                  \
-        const au_value_t old = dest;                                      \
-        dest = src;                                                       \
-        au_value_deref(old);                                              \
-    } while (0)
-
             CASE(OP_MOV_REG_LOCAL) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
                 const uint8_t local = frame.bc[frame.pc + 2];
@@ -335,20 +334,24 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 COPY_VALUE(frame.regs[reg], au_value_bool(n));
                 DISPATCH;
             }
-            CASE(OP_CALL0)
-                : CASE(OP_CALL1)
-                : CASE(OP_CALL2)
-                : CASE(OP_CALL3)
-                : CASE(OP_CALL4)
-                : CASE(OP_CALL5)
-                : CASE(OP_CALL6)
-                : CASE(OP_CALL7)
-                : CASE(OP_CALL8)
-                : CASE(OP_CALL9)
-                : CASE(OP_CALL10)
-                : CASE(OP_CALL11)
-                : CASE(OP_CALL12)
-                : CASE(OP_CALL13) : CASE(OP_CALL14) : CASE(OP_CALL15) : {
+            // clang-format off
+            CASE(OP_CALL0) :
+            CASE(OP_CALL1) :
+            CASE(OP_CALL2) :
+            CASE(OP_CALL3) :
+            CASE(OP_CALL4) :
+            CASE(OP_CALL5) :
+            CASE(OP_CALL6) :
+            CASE(OP_CALL7) :
+            CASE(OP_CALL8) :
+            CASE(OP_CALL9) :
+            CASE(OP_CALL10) :
+            CASE(OP_CALL11) :
+            CASE(OP_CALL12) :
+            CASE(OP_CALL13) :
+            CASE(OP_CALL14) :
+            CASE(OP_CALL15) : // clang-format on
+            {
                 const int n_regs = frame.bc[frame.pc] - OP_CALL0;
                 const uint8_t ret_reg = frame.bc[frame.pc + 1];
                 const uint16_t func_id =
@@ -383,9 +386,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     CASE(NAME) : {                                                        \
         const uint8_t reg = frame.bc[frame.pc + 1];                       \
         const uint8_t local = frame.bc[frame.pc + 2];                     \
-        au_value_deref(frame.locals[local]);                              \
-        frame.locals[local] =                                             \
-            au_value_##FUN(frame.locals[local], frame.regs[reg]);         \
+        MOVE_VALUE(frame.locals[local],                                   \
+                   au_value_##FUN(frame.locals[local], frame.regs[reg])); \
         DISPATCH;                                                         \
     }
             BIN_OP_ASG(OP_MUL_ASG, mul)

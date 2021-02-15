@@ -119,7 +119,7 @@ for (i, (input_src_array, input_src_len)) in enumerate(input_srcs):
 static void test_{i}() {{
     const char source[] = {{{input_src_array}}};
     struct au_program program;
-    assert(au_parse(source, {input_src_len}, &program) != 0);
+    assert(au_parse(source, {input_src_len}, &program).type == AU_PARSER_RES_OK);
     struct au_vm_thread_local tl;
     au_vm_thread_local_init(&tl, &program.data);
     tl.print_fn = test_{i}_check;
@@ -169,7 +169,7 @@ void run_gcc(const char *source, const size_t source_len) {{
     }};
     c_file.f = 0;
     struct au_program program;
-    assert(au_parse(source, source_len, &program) != 0);
+    assert(au_parse(source, source_len, &program).type == AU_PARSER_RES_OK);
     au_c_comp(&c_state, &program);
     au_c_comp_state_del(&c_state);
     au_program_del(&program);
