@@ -63,6 +63,10 @@ Defined in *src/stdlib/au_stdlib.h*.
 
 Gets the length of a collection
 
+ * For structures (arrays), calling len will use the structure's internal length function.
+ * For strings, it returns the number of UTF-8 codepoints in the string
+ * For all other inputs, the result is 0.
+
 #### Arguments
 
  * **collection:** The collection (an array, string,...)

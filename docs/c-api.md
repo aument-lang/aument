@@ -174,10 +174,11 @@ Loads a file into memory and stores a reference into a au_mmap_info instance
 ### au_parse
 
 ```c
-int au_parse(const char *src, size_t len, struct au_program *program);
+struct au_parser_result au_parse(const char *src, size_t len,
+                                 struct au_program *program);
 ```
 
-Defined in *src/core/parser.h*.
+Defined in *src/core/parser/parser.h*.
 
 Parses source code into an au_program instance
 
