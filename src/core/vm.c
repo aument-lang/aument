@@ -122,25 +122,25 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #ifndef USE_DISPATCH_JMP
 #define CASE(x) case x
 #define DISPATCH                                                          \
-    DISPATCH_DEBUG;                                                 \
+    DISPATCH_DEBUG;                                                       \
     frame.pc += 4;                                                        \
     continue
 #define DISPATCH_JMP                                                      \
-    DISPATCH_DEBUG;                                                 \
+    DISPATCH_DEBUG;                                                       \
     continue
         switch (frame.bc[frame.pc]) {
 #else
 #define CASE(x) CB_##x
 #define DISPATCH                                                          \
     do {                                                                  \
-        DISPATCH_DEBUG;                                             \
+        DISPATCH_DEBUG;                                                   \
         frame.pc += 4;                                                    \
         uint8_t op = frame.bc[frame.pc];                                  \
         goto *cb[op];                                                     \
     } while (0)
 #define DISPATCH_JMP                                                      \
     do {                                                                  \
-        DISPATCH_DEBUG;                                             \
+        DISPATCH_DEBUG;                                                   \
         uint8_t op = frame.bc[frame.pc];                                  \
         goto *cb[op];                                                     \
     } while (0)
