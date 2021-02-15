@@ -2,7 +2,7 @@
 
 What if we had a scripting language with...
 
-  * **minimal dependencies:** you only need a C compiler to build the aulang's interpreter.
+  * **minimal dependencies**
   * **fast development time:** like Python and Javascript, you can simply write code and run it directly.
   * **fast run time:** once finished, you can compile your code into a lightweight executable. You don't even need any external runtime to run it!
 

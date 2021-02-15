@@ -15,10 +15,10 @@ You can also do some binary operations, add `+`, subtraction `-`, multiply `*`, 
 Comparisons (`<`, `>`, `<=`, `>=`, `==`, `!=` operators) work as you'd expect:
 
 ```
-1 < 2; // (false)
+1 < 2; // (true)
 ```
 
-You can also use boolean operators:
+You can also use boolean operators (logical and `&&` and logical or `||`):
 
 ```
 true && false; // false
