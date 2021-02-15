@@ -573,6 +573,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 ret, reg, idx, ret);
             break;
         }
+        case OP_NOT: {
+            uint8_t reg = bc(pos);
+            comp_printf(
+                state,
+                "MOVE_VALUE(r%d,au_value_bool(!au_value_is_truthy(r%d)));",
+                reg, reg);
+            break;
+        }
         default: {
             au_fatal("unimplemented: %s\n", au_opcode_dbg[opcode]);
             break;

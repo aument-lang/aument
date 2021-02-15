@@ -71,6 +71,7 @@ enum au_opcode {
     OP_ARRAY_PUSH = 50,
     OP_IDX_GET = 51,
     OP_IDX_SET = 52,
+    OP_NOT = 53,
     PRINTABLE_OP_LEN,
 };
 

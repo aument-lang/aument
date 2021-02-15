@@ -205,6 +205,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(OP_ARRAY_PUSH),
             &&CASE(OP_IDX_GET),
             &&CASE(OP_IDX_SET),
+            &&CASE(OP_NOT),
         };
         goto *cb[frame.bc[0]];
 #endif
@@ -491,7 +492,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     frame.regs[frame.bc[frame.pc + 2]];
                 struct au_obj_array *obj_array =
                     au_obj_array_coerce(array_val);
-                au_obj_array_push(obj_array, value_val);
+                if(_Likely(obj_array != 0)) {
+                    au_obj_array_push(obj_array, value_val);
+                }
                 DISPATCH;
             }
             CASE(OP_IDX_GET) : {
@@ -501,9 +504,11 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     frame.regs[frame.bc[frame.pc + 2]];
                 const uint8_t ret_reg = frame.bc[frame.pc + 3];
                 struct au_struct *collection = au_struct_coerce(col_val);
-                COPY_VALUE(
-                    frame.regs[ret_reg],
-                    collection->vdata->idx_get_fn(collection, idx_val));
+                if(_Likely(collection != 0)) {
+                    COPY_VALUE(
+                        frame.regs[ret_reg],
+                        collection->vdata->idx_get_fn(collection, idx_val));
+                }
                 DISPATCH;
             }
             CASE(OP_IDX_SET) : {
@@ -514,8 +519,19 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const au_value_t value_val =
                     frame.regs[frame.bc[frame.pc + 3]];
                 struct au_struct *collection = au_struct_coerce(col_val);
-                collection->vdata->idx_set_fn(collection, idx_val,
-                                              value_val);
+                if(_Likely(collection != 0)) {
+                    collection->vdata->idx_set_fn(collection, idx_val,
+                                                value_val);
+                }
+                DISPATCH;
+            }
+            CASE(OP_NOT): {
+                const uint8_t reg = frame.bc[frame.pc + 1];
+                if(_Likely(au_value_get_type(frame.regs[reg]) == VALUE_BOOL)) {
+                    frame.regs[reg] = au_value_bool(!au_value_get_bool(frame.regs[reg]));
+                } else {
+                    MOVE_VALUE(frame.regs[reg], au_value_bool(!au_value_is_truthy(frame.regs[reg])));
+                }
                 DISPATCH;
             }
 #undef COPY_VALUE
