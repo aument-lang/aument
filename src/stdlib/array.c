@@ -21,7 +21,7 @@ AU_EXTERN_FUNC_DECL(au_std_len) {
         return au_value_int(0);
     }
     case VALUE_STR: {
-        struct au_string *s = au_value_get_struct(value);
+        struct au_string *s = au_value_get_string(value);
         int32_t utf8_len = 0;
         for (size_t i = 0; i < s->len;) {
             if (s->data[i] >= 0x10000) {
