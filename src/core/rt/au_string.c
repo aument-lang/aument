@@ -32,8 +32,7 @@ int au_string_cmp(struct au_string *left, struct au_string *right) {
         return 1;
     } else if (left->len < right->len) {
         return -1;
-    } else if (left->len == right->len) {
+    } else {
         return memcmp(left->data, right->data, left->len);
     }
-    return -1;
 }
