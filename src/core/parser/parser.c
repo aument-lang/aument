@@ -181,6 +181,7 @@ static int parser_exec(struct parser *p, struct lexer *l) {
     return 1;
 }
 
+static int parser_exec_export_statement(struct parser *p, struct lexer *l);
 static int parser_exec_import_statement(struct parser *p, struct lexer *l);
 static int parser_exec_def_statement(struct parser *p, struct lexer *l);
 static int parser_exec_while_statement(struct parser *p, struct lexer *l);
@@ -261,6 +262,9 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
         } else if (token_keyword_cmp(&t, "import")) {
             lexer_next(l);
             retval = WITH_SEMICOLON(parser_exec_import_statement);
+        } else if (token_keyword_cmp(&t, "export")) {
+            lexer_next(l);
+            retval = WITH_SEMICOLON(parser_exec_export_statement);
         } else {
             retval = WITH_SEMICOLON(parser_exec_expr);
         }
@@ -280,18 +284,86 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
 
 static int parser_exec_import_statement(struct parser *p,
                                         struct lexer *l) {
+    assert(p->block_level == 0);
+
     const struct token path_tok = lexer_next(l);
-    assert(path_tok.type == TOK_STRING);
+    if (path_tok.type != TOK_STRING) {
+        p->res = (struct au_parser_result){
+            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
+            .data.unexpected_token.got_token = path_tok,
+        };
+        return 0;
+    }
 
     char *path_dup = malloc(path_tok.len + 1);
-    strncpy(path_dup, path_tok.src, path_tok.len);
+    memcpy(path_dup, path_tok.src, path_tok.len);
     path_dup[path_tok.len] = 0;
+
     const size_t idx = p->p_data->imports.len;
-    au_str_array_add(&p->p_data->imports, path_dup);
+    struct token tok = lexer_peek(l, 0);
+    if (token_keyword_cmp(&tok, "as")) {
+        lexer_next(l);
+        const struct token module_tok = lexer_next(l);
+
+        const size_t module_idx = p->p_data->imported_modules.len;
+        struct au_imported_module module;
+        au_imported_module_init(&module);
+        au_imported_module_array_add(&p->p_data->imported_modules, module);
+
+        const struct au_bc_var_value value = (struct au_bc_var_value){
+            .idx = module_idx,
+        };
+        const struct au_bc_var_value *old_value = au_bc_vars_add(
+            &p->p_data->imported_module_map, module_tok.src,
+            module_tok.len, &value);
+        assert(old_value == 0);
+
+        const struct au_program_import import = (struct au_program_import){
+            .path = path_dup,
+            .module_idx = module_idx,
+        };
+        au_program_import_array_add(&p->p_data->imports, import);
+    } else {
+        const struct au_program_import import = (struct au_program_import){
+            .path = path_dup,
+            .module_idx = AU_PROGRAM_IMPORT_NO_MODULE,
+        };
+        au_program_import_array_add(&p->p_data->imports, import);
+    }
 
     parser_emit_bc_u8(p, OP_IMPORT);
     parser_emit_pad8(p);
     parser_emit_bc_u16(p, (uint16_t)idx);
+
+    return 1;
+}
+
+static int parser_exec_export_statement(struct parser *p,
+                                        struct lexer *l) {
+    assert(p->block_level == 0);
+
+    struct token tok = lexer_peek(l, 0);
+    if (token_keyword_cmp(&tok, "def")) {
+        lexer_next(l);
+        const struct token name_tok = lexer_peek(l, 0);
+        if (name_tok.type != TOK_IDENTIFIER) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
+                .data.unexpected_token.got_token = tok,
+            };
+            return 0;
+        }
+        if (!parser_exec_def_statement(p, l))
+            return 0;
+        size_t idx =
+            au_bc_vars_get(&p->p_data->fn_map, name_tok.src, name_tok.len)
+                ->idx;
+        struct au_fn *fn = &p->p_data->fns.data[idx];
+        fn->exported = 1;
+    } else {
+        // TODO: export locals
+        assert(0);
+    }
 
     return 1;
 }
@@ -313,11 +385,11 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
     tok = lexer_peek(l, 0);
     if (tok.type == TOK_IDENTIFIER) {
         lexer_next(l);
-        const struct au_bc_var_value v = (struct au_bc_var_value){
+        const struct au_bc_var_value value = (struct au_bc_var_value){
             .idx = bcs.num_args,
         };
         const struct au_bc_var_value *old =
-            au_bc_vars_add(&func_p.vars, tok.src, tok.len, &v);
+            au_bc_vars_add(&func_p.vars, tok.src, tok.len, &value);
         assert(old == NULL);
         func_p.locals_len++;
         bcs.num_args++;
@@ -372,13 +444,13 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
         // Forward declaration
         assert(0);
     } else {
-        for (int i = 0; i < func_p.self_fill_call.len; i++) {
+        for (size_t i = 0; i < func_p.self_fill_call.len; i++) {
             const size_t offset = func_p.self_fill_call.data[i];
             replace_bc_u16(&bcs.bc, offset, var_value.idx);
         }
         struct au_fn fn = (struct au_fn){
             .type = AU_FN_BC,
-            // bcs is moved
+            .exported = 0,
             .as.bc_func = bcs,
         };
         au_fn_array_add(&p->p_data->fns, fn);
@@ -1065,6 +1137,17 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
     }
     case TOK_IDENTIFIER: {
         struct token peek = lexer_peek(l, 0);
+        
+        struct token module_tok = (struct token){.type = TOK_EOF};
+        if (peek.type == TOK_OPERATOR && peek.len == 2 &&
+            peek.src[0] == ':' && peek.src[1] == ':') {
+            module_tok = t;
+            lexer_next(l);
+            t = lexer_next(l);
+            assert(t.type == TOK_IDENTIFIER);
+            peek = lexer_peek(l, 0);
+        }
+
         if (peek.type == TOK_OPERATOR && peek.len == 1 &&
             peek.src[0] == '(') {
             lexer_next(l);
@@ -1072,16 +1155,54 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             if (!parser_exec_call_args(p, l, &n_args))
                 return 0;
 
-            const struct au_bc_var_value *val = 0;
+            size_t func_idx = 0;
+            int func_idx_found = 0;
             int execute_self = 0;
-            if (p->self_name && t.len == p->self_len &&
+            if (module_tok.type != TOK_EOF) {
+                const struct au_bc_var_value *module_val = au_bc_vars_get(&p->p_data->imported_module_map, module_tok.src, module_tok.len);
+                assert(module_val != 0);
+                const uint32_t module_idx = module_val->idx;
+                struct au_imported_module *module = &p->p_data->imported_modules.data[module_idx];
+                const struct au_bc_var_value *val = au_bc_vars_get(&module->fn_map, t.src, t.len);
+                if(val == 0) {
+                    struct au_bc_var_value value = (struct au_bc_var_value){
+                        .idx = p->p_data->fns.len,
+                    };
+                    char *import_name = malloc(t.len);
+                    memcpy(import_name, t.src, t.len);
+                    struct au_fn fn = (struct au_fn){
+                        .type = AU_FN_IMPORTER,
+                        .exported = 0,
+                        .as.import_func.num_args = n_args,
+                        .as.import_func.module_idx = module_idx,
+                        .as.import_func.name = import_name,
+                        .as.import_func.name_len = t.len,
+                        .as.import_func.au_fn_cached = 0,
+                        .as.import_func.p_data_cached = 0,
+                        .as.import_func.is_cached = 0,
+                    };
+                    au_fn_array_add(&p->p_data->fns, fn);
+                    func_idx = value.idx;
+                    struct au_bc_var_value *old = au_bc_vars_add(&module->fn_map, t.src, t.len, &value);
+                    assert(old == 0);
+                    val = au_bc_vars_get(&module->fn_map, t.src, t.len);
+                } else {
+                    func_idx = val->idx;
+                }
+                func_idx_found = 1;
+            } else if (p->self_name && t.len == p->self_len &&
                 memcmp(p->self_name, t.src, p->self_len) == 0) {
                 execute_self = 1;
+                func_idx_found = 1;
             } else {
-                val = au_bc_vars_get(&p->p_data->fn_map, t.src, t.len);
+                const struct au_bc_var_value *val = au_bc_vars_get(&p->p_data->fn_map, t.src, t.len);
+                if(val) {
+                    func_idx = val->idx;
+                    func_idx_found = 1;
+                }
             }
 
-            if (!execute_self && val == NULL) {
+            if (!func_idx_found) {
                 p->res = (struct au_parser_result){
                     .type = AU_PARSER_RES_UNKNOWN_FUNCTION,
                     .data.unknown_function.name_token = t,
@@ -1100,32 +1221,30 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                     return 0;
                 }
             } else {
-                assert(val->idx < p->p_data->fns.len);
-                const struct au_fn *fn = &p->p_data->fns.data[val->idx];
-                if (fn->type == AU_FN_BC) {
-                    const struct au_bc_storage *bcs = &fn->as.bc_func;
-                    if (bcs->num_args != n_args) {
-                        p->res = (struct au_parser_result){
-                            .type = AU_PARSER_RES_WRONG_ARGS,
-                            .data.wrong_args.got_args = n_args,
-                            .data.wrong_args.expected_args = bcs->num_args,
-                            .data.wrong_args.call_token = t,
-                        };
-                        return 0;
-                    }
-                } else if (fn->type == AU_FN_NATIVE) {
-                    const struct au_lib_func *lib_func =
-                        &fn->as.native_func;
-                    if (lib_func->num_args != n_args) {
-                        p->res = (struct au_parser_result){
-                            .type = AU_PARSER_RES_WRONG_ARGS,
-                            .data.wrong_args.got_args = n_args,
-                            .data.wrong_args.expected_args =
-                                lib_func->num_args,
-                            .data.wrong_args.call_token = t,
-                        };
-                        return 0;
-                    }
+                const struct au_fn *fn = &p->p_data->fns.data[func_idx];
+                int expected_n_args = 0;
+                switch (fn->type) {
+                case AU_FN_NATIVE: {
+                    expected_n_args = fn->as.native_func.num_args;
+                    break;
+                }
+                case AU_FN_BC: {
+                    expected_n_args = fn->as.bc_func.num_args;
+                    break;
+                }
+                case AU_FN_IMPORTER: {
+                    expected_n_args = fn->as.import_func.num_args;
+                    break;
+                }
+                }
+                if (expected_n_args != n_args) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_WRONG_ARGS,
+                        .data.wrong_args.got_args = n_args,
+                        .data.wrong_args.expected_args = expected_n_args,
+                        .data.wrong_args.call_token = t,
+                    };
+                    return 0;
                 }
             }
 
@@ -1137,7 +1256,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             if (execute_self) {
                 size_t_array_add(&p->self_fill_call, offset);
             } else {
-                parser_replace_bc_u16(p, offset, val->idx);
+                parser_replace_bc_u16(p, offset, func_idx);
             }
         } else if (token_keyword_cmp(&t, "true")) {
             const uint8_t reg = parser_new_reg(p);

@@ -5,6 +5,7 @@
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
 #pragma once
+#include "platform/platform.h"
 #include "value.h"
 #endif
 
@@ -16,16 +17,16 @@ typedef au_value_t (*au_extern_func_t)(
     const au_value_t *args);
 
 struct au_lib_func {
+    int num_args;
     au_extern_func_t func;
     const char *name;
     const char *symbol;
-    int num_args;
 };
 
 #define AU_EXTERN_FUNC_DECL(NAME)                                         \
-    au_value_t NAME(struct au_vm_thread_local *tl,                        \
-                    const struct au_program_data *p_data,                 \
-                    const au_value_t *args)
+    au_value_t NAME(_Unused struct au_vm_thread_local *tl,                \
+                    _Unused const struct au_program_data *p_data,         \
+                    _Unused const au_value_t *args)
 
 #define AU_C_COMP_EXTERN_FUNC_DECL                                        \
     "#define AU_EXTERN_FUNC_DECL(NAME) au_value_t NAME("                  \

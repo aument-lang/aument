@@ -164,8 +164,7 @@ static struct token lexer_next_(struct lexer *l) {
         };
     } else if (start_ch == '&' || start_ch == '|') {
         l->pos++;
-        if (!L_EOF() &&
-            (l->src[l->pos] == start_ch || l->src[l->pos] == '=')) {
+        if (!L_EOF() && l->src[l->pos] == start_ch) {
             l->pos++;
             return (struct token){
                 .type = TOK_OPERATOR,
@@ -179,7 +178,7 @@ static struct token lexer_next_(struct lexer *l) {
             .len = 1,
         };
     } else if (start_ch == '(' || start_ch == ')' || start_ch == ';' ||
-               start_ch == ',' || start_ch == ':' || start_ch == '{' ||
+               start_ch == ',' || start_ch == '{' ||
                start_ch == '}' || start_ch == '[' || start_ch == ']') {
         l->pos++;
         return (struct token){
@@ -187,6 +186,16 @@ static struct token lexer_next_(struct lexer *l) {
             .src = l->src + start,
             .len = 1,
         };
+    } else if(start_ch == ':') {
+        l->pos++;
+        if (!L_EOF() && l->src[l->pos] == ':') {
+            l->pos++;
+            return (struct token){
+                .type = TOK_OPERATOR,
+                .src = l->src + start,
+                .len = 2,
+            };
+        }
     }
 
     au_fatal("unexpected character %c", start_ch);

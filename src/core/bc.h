@@ -64,10 +64,10 @@ extern const char *au_opcode_dbg[256];
 ARRAY_TYPE(uint8_t, au_bc_buf, 4)
 
 struct au_bc_storage {
+    int num_args;
     struct au_bc_buf bc;
     int locals_len;
     int num_registers;
-    int num_args;
 };
 
 /// [func] Initializes an au_bc_storage instance

@@ -33,7 +33,7 @@ static void au_vm_frame_del(struct au_vm_frame *frame,
         au_value_deref(frame->locals[i]);
     }
     free(frame->locals);
-    for (int i = 0; i < frame->arg_stack.len; i++) {
+    for (size_t i = 0; i < frame->arg_stack.len; i++) {
         au_value_deref(frame->arg_stack.data[i]);
     }
     free(frame->arg_stack.data);
@@ -53,7 +53,19 @@ void au_vm_thread_local_del(struct au_vm_thread_local *tl) {
         au_value_deref(tl->const_cache[i]);
     }
     free(tl->const_cache);
+    for (size_t i = 0; i < tl->module_data.len; i++) {
+        au_program_data_del(&tl->module_data.data[i]);
+    }
+    free(tl->module_data.data);
     memset(tl, 0, sizeof(struct au_vm_thread_local));
+}
+
+void au_vm_thread_local_reserve_modules(struct au_vm_thread_local *tl,
+                                        size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        au_program_data_array_add(&tl->module_data,
+                                  (struct au_program_data){0});
+    }
 }
 
 #ifdef DEBUG_VM
@@ -374,8 +386,20 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     MOVE_VALUE(frame.regs[ret_reg], callee_retval);
                     break;
                 }
+                case AU_FN_IMPORTER: {
+                    const struct au_imported_func *import_func =
+                        &call_fn->as.import_func;
+                    n_regs = import_func->num_args;
+                    const au_value_t *args =
+                        &frame.arg_stack
+                             .data[frame.arg_stack.len - n_regs];
+                    const au_value_t callee_retval =
+                        au_fn_call(call_fn, tl, p_data, args);
+                    MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+                    break;
                 }
-                for (int i = frame.arg_stack.len - n_regs;
+                }
+                for (size_t i = frame.arg_stack.len - n_regs;
                      i < frame.arg_stack.len; i++)
                     au_value_deref(frame.arg_stack.data[i]);
                 frame.arg_stack.len -= n_regs;
@@ -426,7 +450,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(OP_IMPORT) : {
                 const uint16_t idx =
                     *((uint16_t *)(&frame.bc[frame.pc + 2]));
-                const char *relpath = p_data->imports.data[idx];
+                const struct au_program_import *import =
+                    &p_data->imports.data[idx];
+                const char *relpath = import->path;
 
                 struct au_mmap_info mmap;
                 char *abspath;
@@ -458,12 +484,24 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     free(abspath);
                 }
 #else
-            program.data.file = strdup(abspath);
-            program.data.cwd = dirname(abspath);
+            {
+                program.data.file = strdup(abspath);
+                program.data.cwd = dirname(abspath);
+            }
 #endif
+                program.data.tl_imported_modules_start =
+                    tl->module_data.len;
 
                 au_vm_exec_unverified_main(tl, &program);
-                au_program_del(&program);
+
+                if (import->module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
+                    au_program_del(&program);
+                } else {
+                    tl->module_data
+                        .data[p_data->tl_imported_modules_start +
+                              import->module_idx] = program.data;
+                    au_bc_storage_del(&program.main);
+                }
                 DISPATCH;
             }
             CASE(OP_ARRAY_NEW) : {

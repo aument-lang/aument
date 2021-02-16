@@ -224,6 +224,10 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 n_args = lib_func->num_args;
                 break;
             }
+            case AU_FN_IMPORTER: {
+                assert(0);
+                break;
+            }
             }
             arg_stack_len -= n_args;
             break;
@@ -390,6 +394,10 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 comp_printf(state, ");");
                 break;
             }
+            case AU_FN_IMPORTER: {
+                assert(0);
+                break;
+            }
             }
             if (n_args > 0) {
                 for (int i = 0; i < n_args; i++) {
@@ -448,7 +456,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
         case OP_IMPORT: {
             DEF_BC16(idx, 1)
-            const char *relpath = au_str_array_at(&p_data->imports, idx);
+            const struct au_program_import *import =
+                &p_data->imports.data[idx];
+            const char *relpath = import->path;
 
             struct au_mmap_info mmap;
             char *abspath;

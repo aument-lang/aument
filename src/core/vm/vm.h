@@ -29,8 +29,7 @@ struct au_vm_frame {
     au_value_t regs[AU_REGS];
     au_value_t retval;
     au_value_t *locals;
-    /// This object does not own the bytecode pointer
-    uint8_t *bc;
+    const uint8_t *bc;
     size_t pc;
     struct au_value_array arg_stack;
     struct au_vm_frame_link link;
@@ -39,9 +38,10 @@ struct au_vm_frame {
 typedef void (*au_vm_print_fn_t)(au_value_t);
 
 struct au_vm_thread_local {
+    au_vm_print_fn_t print_fn;
     au_value_t *const_cache;
     size_t const_len;
-    au_vm_print_fn_t print_fn;
+    struct au_program_data_array module_data;
 };
 
 /// [func] Initializes an au_vm_thread_local instance
@@ -53,6 +53,9 @@ void au_vm_thread_local_init(struct au_vm_thread_local *tl,
 /// [func] Deinitializes an au_vm_thread_local instance
 /// @param tl instance to be deinitialized
 void au_vm_thread_local_del(struct au_vm_thread_local *tl);
+
+void au_vm_thread_local_reserve_modules(struct au_vm_thread_local *tl,
+                                        size_t len);
 
 /// [func] Executes unverified bytecode in a au_bc_storage
 /// @param tl thread local storage
@@ -82,6 +85,8 @@ au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
 
 au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
                                       struct au_program *program) {
+    au_vm_thread_local_reserve_modules(tl,
+                                       program->data.imported_modules.len);
     return au_vm_exec_unverified(tl, &program->main, &program->data, 0,
                                  (struct au_vm_frame_link){0});
 }

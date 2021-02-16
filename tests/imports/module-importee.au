@@ -1,0 +1,7 @@
+def private() {
+    return 10;
+}
+
+export def func() {
+    return private();
+}

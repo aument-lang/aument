@@ -24,13 +24,14 @@ AU_EXTERN_FUNC_DECL(au_std_len) {
         struct au_string *s = au_value_get_string(value);
         int32_t utf8_len = 0;
         for (size_t i = 0; i < s->len;) {
-            if (s->data[i] >= 0x10000) {
+            uint8_t utf8_char = (uint8_t)s->data[i];
+            if (utf8_char >= 0xE0) {
                 utf8_len++;
                 i += 4;
-            } else if (s->data[i] >= 0x800) {
+            } else if (utf8_char >= 0xC0) {
                 utf8_len++;
                 i += 3;
-            } else if (s->data[i] >= 0x80) {
+            } else if (utf8_char >= 0x80) {
                 utf8_len++;
                 i += 2;
             } else {
