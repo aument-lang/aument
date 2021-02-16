@@ -18,12 +18,6 @@
 
 #include "c_comp.h"
 
-#ifdef USE_NAN_TAGGING
-#define ARG_STACK_THRESHOLD 8
-#else
-#define ARG_STACK_THRESHOLD 4
-#endif
-
 struct au_c_comp_global_state {
     struct au_str_array modules;
 };
@@ -139,16 +133,13 @@ try_continue:;
 
 static void comp_cleanup(struct au_c_comp_state *state,
                          const struct au_bc_storage *bcs,
-                         int has_dyn_arg_stack, int except_register,
-                         int except_local) {
+                         int except_register, int except_local) {
     for (int i = 0; i < bcs->num_registers; i++)
         if (i != except_register)
             comp_printf(state, "au_value_deref(r%d);", i);
     for (int i = 0; i < bcs->locals_len; i++)
         if (i != except_local)
             comp_printf(state, "au_value_deref(l%d);", i);
-    if (has_dyn_arg_stack)
-        comp_printf(state, "free(s.data);");
 }
 
 #define INDENT "    "
@@ -186,8 +177,10 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));
 
     bit_array labelled_lines = calloc(1, BA_LEN(bcs->bc.len / 4));
-    int has_dyn_arg_stack = 0;
-    int arg_stack_max = 0, arg_stack_len = 0;
+
+    int arg_stack_max = 0;
+    int arg_stack_len = 0;
+
     for (size_t pos = 0; pos < bcs->bc.len;) {
         uint8_t opcode = bc(pos);
         pos++;
@@ -213,27 +206,25 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             arg_stack_len++;
             arg_stack_max = arg_stack_max > arg_stack_len ? arg_stack_max
                                                           : arg_stack_len;
-            if (arg_stack_max > ARG_STACK_THRESHOLD)
-                has_dyn_arg_stack = 1;
             break;
         }
-        case OP_CALL0:
-        case OP_CALL1:
-        case OP_CALL2:
-        case OP_CALL3:
-        case OP_CALL4:
-        case OP_CALL5:
-        case OP_CALL6:
-        case OP_CALL7:
-        case OP_CALL8:
-        case OP_CALL9:
-        case OP_CALL10:
-        case OP_CALL11:
-        case OP_CALL12:
-        case OP_CALL13:
-        case OP_CALL14:
-        case OP_CALL15: {
-            const uint8_t n_args = opcode - OP_CALL0;
+        case OP_CALL: {
+            DEF_BC16(func_id, 1)
+            assert(func_id <= p_data->fns.len);
+            const struct au_fn *fn = &p_data->fns.data[func_id];
+            int n_args;
+            switch (fn->type) {
+            case AU_FN_BC: {
+                const struct au_bc_storage *bcs = &fn->as.bc_func;
+                n_args = bcs->num_args;
+                break;
+            }
+            case AU_FN_NATIVE: {
+                const struct au_lib_func *lib_func = &fn->as.native_func;
+                n_args = lib_func->num_args;
+                break;
+            }
+            }
             arg_stack_len -= n_args;
             break;
         }
@@ -243,9 +234,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         pos += 3;
     }
 
-    if (has_dyn_arg_stack) {
-        comp_printf(state, INDENT "struct au_value_array s={0};\n");
-    } else if (arg_stack_max > 0) {
+    if (arg_stack_max > 0) {
         comp_printf(state,
                     INDENT "au_value_t s_data[%d]; size_t s_len=0;\n",
                     arg_stack_max);
@@ -266,7 +255,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 
         switch (opcode) {
         case OP_EXIT: {
-            comp_cleanup(state, bcs, has_dyn_arg_stack, -1, -1);
+            comp_cleanup(state, bcs, -1, -1);
             comp_printf(state, "return au_value_none();\n");
             break;
         }
@@ -368,64 +357,41 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         n);
             break;
         }
-        case OP_CALL0:
-        case OP_CALL1:
-        case OP_CALL2:
-        case OP_CALL3:
-        case OP_CALL4:
-        case OP_CALL5:
-        case OP_CALL6:
-        case OP_CALL7:
-        case OP_CALL8:
-        case OP_CALL9:
-        case OP_CALL10:
-        case OP_CALL11:
-        case OP_CALL12:
-        case OP_CALL13:
-        case OP_CALL14:
-        case OP_CALL15: {
-            const uint8_t n_args = opcode - OP_CALL0;
+        case OP_CALL: {
             uint8_t reg = bc(pos);
             DEF_BC16(func_id, 1)
-
             assert(func_id <= p_data->fns.len);
             const struct au_fn *fn = &p_data->fns.data[func_id];
-            if (fn->type == AU_FN_BC) {
+            int n_args;
+            switch (fn->type) {
+            case AU_FN_BC: {
                 const struct au_bc_storage *bcs = &fn->as.bc_func;
-                assert(n_args == bcs->num_args);
+                n_args = bcs->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
-                if (n_args > 0 && has_dyn_arg_stack) {
-                    comp_printf(state, "_M%ld_f%d(&s.data[s.len-%d])",
-                                module_idx, func_id, n_args);
-                } else if (n_args > 0) {
+                if (n_args > 0) {
                     comp_printf(state, "_M%ld_f%d(&s_data[s_len-%d])",
                                 module_idx, func_id, n_args);
                 } else {
                     comp_printf(state, "_M%ld_f%d()", module_idx, func_id);
                 }
                 comp_printf(state, ");");
-            } else if (fn->type == AU_FN_NATIVE) {
+                break;
+            }
+            case AU_FN_NATIVE: {
                 const struct au_lib_func *lib_func = &fn->as.native_func;
-                assert(n_args == lib_func->num_args);
+                n_args = lib_func->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
-                if (n_args > 0 && has_dyn_arg_stack) {
-                    comp_printf(state, "%s(0,0,&s.data[s.len-%d])",
-                                lib_func->symbol, n_args);
-                } else if (n_args > 0) {
+                if (n_args > 0) {
                     comp_printf(state, "%s(0,0,&s_data[s_len-%d])",
                                 lib_func->symbol, n_args);
                 } else {
                     comp_printf(state, "%s(0,0,0)", lib_func->symbol);
                 }
                 comp_printf(state, ");");
+                break;
             }
-            if (n_args > 0 && has_dyn_arg_stack) {
-                for (int i = 0; i < n_args; i++) {
-                    comp_printf(state, "au_value_deref(s.data[s.len-%d]);",
-                                i + 1);
-                }
-                comp_printf(state, "s.len-=%d;", n_args);
-            } else if (n_args > 0) {
+            }
+            if (n_args > 0) {
                 for (int i = 0; i < n_args; i++) {
                     comp_printf(state, "au_value_deref(s_data[s_len-%d]);",
                                 i + 1);
@@ -457,29 +423,27 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 #undef BIN_OP_ASG
         case OP_RET: {
             uint8_t reg = bc(pos);
-            comp_cleanup(state, bcs, has_dyn_arg_stack, reg, -1);
+            comp_cleanup(state, bcs, reg, -1);
             comp_printf(state, "return r%d;\n", reg);
             break;
         }
         case OP_RET_LOCAL: {
             uint8_t local = bc(pos);
-            comp_cleanup(state, bcs, has_dyn_arg_stack, -1, local);
+            comp_cleanup(state, bcs, -1, local);
             comp_printf(state, "return l%d;\n", local);
             break;
         }
         case OP_RET_NULL: {
-            comp_cleanup(state, bcs, has_dyn_arg_stack, -1, -1);
+            comp_cleanup(state, bcs, -1, -1);
             comp_printf(state, "return au_value_none();\n");
             break;
         }
         case OP_PUSH_ARG: {
             uint8_t reg = bc(pos);
-            comp_printf(state, "au_value_ref(r%d);", reg);
-            if (has_dyn_arg_stack) {
-                comp_printf(state, "au_value_array_add(&s,r%d);\n", reg);
-            } else {
-                comp_printf(state, "s_data[s_len++]=r%d;\n", reg);
-            }
+            comp_printf(state,
+                        "au_value_ref(r%d);"
+                        "s_data[s_len++]=r%d;\n",
+                        reg, reg);
             break;
         }
         case OP_IMPORT: {

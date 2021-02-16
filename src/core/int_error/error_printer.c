@@ -36,7 +36,7 @@ static void print_source(struct au_error_location loc, size_t error_pos,
     int line_len = (int)(line_end - line_begin);
     int padding = printf("%d | ", lines);
     printf("%.*s\n", line_len, &loc.src[line_begin]);
-    if(error_len > 0) {
+    if (error_len > 0) {
         for (int i = 0; i < (padding + cols); i++)
             printf(" ");
         if (error_len < max_cols)

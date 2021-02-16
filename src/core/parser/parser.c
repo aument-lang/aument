@@ -1130,7 +1130,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 }
             }
 
-            parser_emit_bc_u8(p, OP_CALL0 + n_args);
+            parser_emit_bc_u8(p, OP_CALL);
             parser_emit_bc_u8(p, parser_new_reg(p));
             const size_t offset = p->bc.len;
             parser_emit_pad8(p);

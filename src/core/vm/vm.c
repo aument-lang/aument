@@ -190,22 +190,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(OP_SUB_ASG),
             &&CASE(OP_MOD_ASG),
             &&CASE(OP_PUSH_ARG),
-            &&CASE(OP_CALL0),
-            &&CASE(OP_CALL1),
-            &&CASE(OP_CALL2),
-            &&CASE(OP_CALL3),
-            &&CASE(OP_CALL4),
-            &&CASE(OP_CALL5),
-            &&CASE(OP_CALL6),
-            &&CASE(OP_CALL7),
-            &&CASE(OP_CALL8),
-            &&CASE(OP_CALL9),
-            &&CASE(OP_CALL10),
-            &&CASE(OP_CALL11),
-            &&CASE(OP_CALL12),
-            &&CASE(OP_CALL13),
-            &&CASE(OP_CALL14),
-            &&CASE(OP_CALL15),
+            &&CASE(OP_CALL),
             &&CASE(OP_RET_LOCAL),
             &&CASE(OP_RET),
             &&CASE(OP_RET_NULL),
@@ -353,35 +338,20 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 COPY_VALUE(frame.regs[reg], au_value_bool(n));
                 DISPATCH;
             }
-            // clang-format off
-            CASE(OP_CALL0) :
-            CASE(OP_CALL1) :
-            CASE(OP_CALL2) :
-            CASE(OP_CALL3) :
-            CASE(OP_CALL4) :
-            CASE(OP_CALL5) :
-            CASE(OP_CALL6) :
-            CASE(OP_CALL7) :
-            CASE(OP_CALL8) :
-            CASE(OP_CALL9) :
-            CASE(OP_CALL10) :
-            CASE(OP_CALL11) :
-            CASE(OP_CALL12) :
-            CASE(OP_CALL13) :
-            CASE(OP_CALL14) :
-            CASE(OP_CALL15) : // clang-format on
-            {
-                const int n_regs = frame.bc[frame.pc] - OP_CALL0;
+            CASE(OP_CALL) : {
                 const uint8_t ret_reg = frame.bc[frame.pc + 1];
                 const uint16_t func_id =
                     *((uint16_t *)(&frame.bc[frame.pc + 2]));
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
-                const au_value_t *args =
-                    &frame.arg_stack.data[frame.arg_stack.len - n_regs];
+                int n_regs;
                 switch (call_fn->type) {
                 case AU_FN_BC: {
                     const struct au_bc_storage *call_bcs =
                         &call_fn->as.bc_func;
+                    n_regs = call_bcs->num_args;
+                    const au_value_t *args =
+                        &frame.arg_stack
+                             .data[frame.arg_stack.len - n_regs];
                     struct au_vm_frame_link link =
                         (struct au_vm_frame_link){
                             .as.p_data = p_data,
@@ -395,9 +365,14 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 case AU_FN_NATIVE: {
                     const struct au_lib_func *lib_func =
                         &call_fn->as.native_func;
+                    n_regs = lib_func->num_args;
+                    const au_value_t *args =
+                        &frame.arg_stack
+                             .data[frame.arg_stack.len - n_regs];
                     const au_value_t callee_retval =
                         lib_func->func(tl, p_data, args);
                     MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+                    break;
                 }
                 }
                 for (int i = frame.arg_stack.len - n_regs;
