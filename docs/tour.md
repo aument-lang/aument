@@ -125,7 +125,7 @@ aulang's standard library provides some useful built-in functions. See the [stdl
 
 ## Modules
 
-You can import files using the `import` statement. Note that all files are executed separately and you cannot use an imported file's variables/functions (unless exported).
+You can import files using the `import` statement. Note that all files are executed separately and you cannot directly use an imported file's variables/functions (unless exported).
 
 ```
 // importee.au
@@ -137,4 +137,18 @@ print "Hello World\n";
 import "./importee.au"; // prints out Hello World
 ```
 
-As of aulang 0.1, the `export` statement has yet to be implemented.
+To export a function, use the `export` statement:
+
+```
+// importee.au
+export def random() {
+    return 4;
+}
+```
+
+Exported functions and variables are accessible under a **module**. You have to explicit import a file as a module in order to use it:
+
+```
+import "importee.au" as module;
+print module::random(); // => 4
+```
