@@ -52,6 +52,10 @@ if result.stdout().strip() == '1'
     au_hdr_cflags += ['DUSE_NAN_TAGGING']
 endif
 
+if compiler.has_argument('-Wextra')
+    add_project_arguments('-Wextra', language : ['c'])
+endif
+
 if compiler.has_argument('-Werror')
     add_project_arguments('-Werror', language : ['c'])
 endif

@@ -5,9 +5,6 @@
 # Licensed under Apache License v2.0 with Runtime Library Exception
 # See LICENSE.txt for license information
 
-MESONARG=""
-CCFLAGS=""
-
 for i in "$@"
 do
 case $i in
