@@ -30,8 +30,8 @@
         }                                                                 \
         array->data[array->len++] = el;                                   \
     }                                                                     \
-    static _Unused const INNER NAME##_at(const struct NAME *array,        \
-                                         size_t idx) {                    \
+    static _Unused INNER NAME##_at(const struct NAME *array,              \
+                                   size_t idx) {                          \
         if (idx > array->len)                                             \
             au_fatal("trying to access idx %ld in array with len %ld",    \
                      idx, array->len);                                    \

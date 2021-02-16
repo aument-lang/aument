@@ -28,7 +28,8 @@ void au_install_stdlib(struct au_program_data *data) {
         sizeof(au_stdlib_funcs) / sizeof(au_stdlib_funcs[0]);
     for (int i = 0; i < stdlib_len; i++) {
         struct au_lib_func lib_func = au_stdlib_funcs[i];
-        struct au_fn fn = (struct au_fn){.type = AU_FN_NATIVE,
+        struct au_fn fn = (struct au_fn){.exported = 0,
+                                         .type = AU_FN_NATIVE,
                                          .as.native_func = lib_func};
         const size_t len = data->fns.len;
         au_fn_array_add(&data->fns, fn);

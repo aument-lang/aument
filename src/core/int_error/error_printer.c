@@ -39,8 +39,8 @@ static void print_source(struct au_error_location loc, size_t error_pos,
     if (error_len > 0) {
         for (int i = 0; i < (padding + cols); i++)
             printf(" ");
-        if (error_len < max_cols)
-            max_cols = error_len;
+        if ((int)error_len < max_cols)
+            max_cols = (int)error_len;
         for (int i = 0; i < max_cols; i++)
             printf("^");
         printf("\n");

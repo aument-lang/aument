@@ -24,19 +24,40 @@ struct au_program_data_val {
 
 ARRAY_TYPE(struct au_program_data_val, au_program_data_vals, 1)
 
-enum au_fn_type { AU_FN_NATIVE, AU_FN_BC };
+enum au_fn_type {
+    AU_FN_NATIVE,
+    AU_FN_BC,
+    AU_FN_IMPORTER,
+};
+
+struct au_imported_func {
+    int num_args;
+    int module_idx;
+    const char *name;
+    size_t name_len;
+    const struct au_fn *au_fn_cached;
+    const struct au_program_data *p_data_cached;
+    // FIXME: use atomic integer type
+    int is_cached;
+};
 
 struct au_fn {
     union {
         struct au_lib_func native_func;
         struct au_bc_storage bc_func;
+        struct au_imported_func import_func;
     } as;
     enum au_fn_type type;
+    int exported;
 };
 
 /// [func] Deinitializes an au_fn instance
 /// @param fn instance to be initialized
 void au_fn_del(struct au_fn *fn);
+
+au_value_t au_fn_call(const struct au_fn *fn, struct au_vm_thread_local *tl,
+                      const struct au_program_data *p_data,
+                      const au_value_t *args);
 
 ARRAY_TYPE(struct au_fn, au_fn_array, 1)
 
@@ -48,17 +69,51 @@ struct au_program_source_map {
 
 ARRAY_TYPE(struct au_program_source_map, au_program_source_map_array, 1)
 
+#define AU_PROGRAM_IMPORT_NO_MODULE ((size_t)-1)
+
+struct au_program_import {
+    char *path;
+    size_t module_idx;
+};
+
+/// [func] Deinitializes an au_program_import instance
+/// @param data instance to be deinitialized
+void au_program_import_del(struct au_program_import *data);
+
+ARRAY_TYPE(struct au_program_import, au_program_import_array, 1)
+
+struct au_program_data;
+struct au_imported_module {
+    struct au_bc_vars fn_map;
+    struct au_bc_vars vars_map;
+};
+
+ARRAY_TYPE(struct au_imported_module, au_imported_module_array, 1)
+
+/// [func] Initializes an au_imported_module instance
+/// @param data instance to be initialized
+void au_imported_module_init(struct au_imported_module *data);
+
+/// [func] Deinitializes an au_imported_module instance
+/// @param data instance to be deinitialized
+void au_imported_module_del(struct au_imported_module *data);
+
 struct au_program_data {
     struct au_fn_array fns;
     struct au_bc_vars fn_map;
     struct au_program_data_vals data_val;
     uint8_t *data_buf;
     size_t data_buf_len;
-    struct au_str_array imports;
+    struct au_program_import_array imports;
+    struct au_bc_vars imported_module_map;
+    struct au_imported_module_array imported_modules;
+    size_t tl_imported_modules_start;
     char *file;
     char *cwd;
     struct au_program_source_map_array source_map;
 };
+
+ARRAY_TYPE(struct au_program_data, au_program_data_array, 1)
 
 /// [func] Initializes an au_program_data instance
 /// @param data instance to be initialized

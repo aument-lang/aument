@@ -34,9 +34,9 @@ static void rehash_table(struct au_bc_vars *vars) {
     const int new_len = vars->buckets_len * 2;
     struct au_bc_bucket *new_buckets =
         calloc(new_len, sizeof(struct au_bc_bucket));
-    for (int i = 0; i < vars->buckets_len; i++) {
+    for (size_t i = 0; i < vars->buckets_len; i++) {
         const struct au_bc_bucket *old_bucket = &vars->buckets[i];
-        for (int i = 0; i < old_bucket->len; i++) {
+        for (size_t i = 0; i < old_bucket->len; i++) {
             const struct au_bc_var_el *el = &old_bucket->data[i];
             const int new_bucket_idx = el->key_hash & (new_len - 1);
             struct au_bc_bucket *bucket = &new_buckets[new_bucket_idx];
@@ -69,7 +69,7 @@ au_bc_vars_add(struct au_bc_vars *vars, const char *key, size_t len,
     if (vars->buckets_len > 0) {
         const int bucket_idx = ((int)hash) & (vars->buckets_len - 1);
         const struct au_bc_bucket *bucket = &vars->buckets[bucket_idx];
-        for (int i = 0; i < bucket->len; i++) {
+        for (size_t i = 0; i < bucket->len; i++) {
             struct au_bc_var_el *el = &bucket->data[i];
             if (el->key_len == len && memcmp(&vars->var_name[el->key_idx],
                                              key, el->key_len) == 0) {
@@ -131,7 +131,7 @@ const struct au_bc_var_value *au_bc_vars_get(const struct au_bc_vars *vars,
     const hash_t hash = au_hash((const uint8_t *)key, len);
     const int bucket_idx = ((int)hash) & (vars->buckets_len - 1);
     const struct au_bc_bucket *bucket = &vars->buckets[bucket_idx];
-    for (int i = 0; i < bucket->len; i++) {
+    for (size_t i = 0; i < bucket->len; i++) {
         const struct au_bc_var_el *el = &bucket->data[i];
         if (el->key_len == len &&
             memcmp(&vars->var_name[el->key_idx], key, el->key_len) == 0) {
