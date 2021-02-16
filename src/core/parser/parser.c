@@ -1071,7 +1071,6 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             int n_args = 0;
             if (!parser_exec_call_args(p, l, &n_args))
                 return 0;
-            assert(n_args <= AU_MAX_ARGS);
 
             const struct au_bc_var_value *val = 0;
             int execute_self = 0;

@@ -10,7 +10,6 @@
 #include "bc_vars.h"
 
 #define AU_REGS 256
-#define AU_MAX_ARGS 15
 
 enum au_opcode {
     OP_EXIT = 0,
