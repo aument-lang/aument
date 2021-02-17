@@ -327,7 +327,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         }
         case OP_MOV_LOCAL_REG: {
-            uint8_t local = bc(pos), reg = bc(pos + 1);
+            uint8_t reg = bc(pos), local = bc(pos + 1);
             comp_printf(state, "COPY_VALUE(r%d,l%d);\n", reg, local);
             break;
         }

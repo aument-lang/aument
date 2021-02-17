@@ -40,7 +40,7 @@ The `au_vm_thread_local` object should always be allocated within that thread's 
 
 #### Executing the program
 
-After setting up everything required, the virtual machine is called. It runs any bytecode generated in the parsing process.
+After setting up everything required, the virtual machine is called. It runs any bytecode generated in the parsing process, starting with the top-level main function.
 
 If at any point the virtual machine unrecoverably panics, the program will abort through the `abort` C function.
 
@@ -53,6 +53,10 @@ Once finished, the C source is written to a temporary file, and aulang invokes t
 
 
 ## Data structures
+
+### Values
+
+Everything that can be represented in the aulang language is a **value**. In the implementation, a value is a structure which holds type and data information. On platforms that support it, values are represented as 64-bit floating point numbers, with non-float values represented as *not-a-number* through NaN tagging.
 
 ## Virtual machine details
 
@@ -68,13 +72,15 @@ See the function `au_vm_exec_unverified` for more details.
 
 ### The bytecode
 
-A program in the VM is represented by bytecode. Bytecode in aulang's VM is a flat array containing 32-bit operations, which generally has the following form:
+A program in the VM is represented by bytecode. Bytecode in aulang's VM is a flat byte array containing 32-bit operations, which has the following form:
 
 ```
 [ code (1 byte) ] [ code-specific data (3 byte) ]
 ```
 
 Where the `code` byte tells the virtual machine what operation to do (add, subtract, call a function, ...).
+
+Like a real machine, aulang's VM has a program counter, it starts at zero and it points to the current instruction being processed.
 
 #### `OP_EXIT`
 
@@ -94,7 +100,7 @@ Does nothing.
 [ code (1 byte) ] [ reg (1 byte) ] [ n (2 bytes) ]
 ```
 
-Moves the integer specified by the 16-bit number (with endianness specified by the running platform) `n` into register `reg`.
+Moves the integer specified by the 16-bit number (platform-specific-endianness) `n` into register `reg`.
 
 ##### `OP_MOV_BOOL`
 
@@ -148,31 +154,123 @@ They perform the unary operation specified by `code` directly on the register sp
 
 #### `OP_MOV_REG_LOCAL` and `OP_MOV_LOCAL_REG`
 
+**Structure:**
+
+```
+[ code (1 byte) ] [ reg (1 byte) ] [ local (1 byte) ] [ (unused 1 byte) ]
+```
+
+The `OP_MOV_REG_LOCAL` operation copies the value in register `reg` to the local `local`.
+
+The `OP_MOV_LOCAL_REG` operation copies the value in local `local` to the register `reg`.
+
 #### `OP_PRINT`
+
+**Structure:**
+
+```
+[ code (1 byte) ] [ reg (1 byte) ] [ (unused 2 bytes) ]
+```
+
+Prints the value in register `reg`.
 
 #### Jump opcodes
 
 ##### `OP_JIF` and `OP_JNIF`
 
+**Structure:**
+
+```
+[ code (1 byte) ] [ reg (1 byte) ] [ address (2 bytes) ]
+```
+
 ##### `OP_JREL` and `OP_JRELB`
+
+**Structure:**
+
+```
+[ code (1 byte) ] [ (unused 1 byte) ] [ address (2 bytes) ]
+```
 
 #### Function-related opcodes
 
 ##### `OP_PUSH_ARG`
 
+**Structure:**
+
+```
+[ code (1 byte) ] [ reg (1 byte) ] [ (unused 2 bytes) ]
+```
+
+Pushes the value in the register `reg` to the call argument stack.
+
 ##### `OP_CALL`
 
-##### `OP_RET_LOCAL`, `OP_RET`, `OP_RET_NULL`
+**Structure:**
+
+```
+[ code (1 byte) ] [ reg (1 byte) ] [ idx (2 bytes) ]
+```
+
+Calls the function specified by the 16-bit index  (platform-specific-endianness) `idx`, and sets its return value to the register `reg`.
+
+##### `OP_RET_LOCAL`, `OP_RET`
+
+**Structure:**
+
+```
+[ code (1 byte) ] [ loc (1 byte) ] [ (unused 2 bytes) ]
+```
+
+The `OP_RET_LOCAL` operation returns the local `loc`.
+
+The `OP_RET` operation returns the register `loc`.
+
+##### `OP_RET_NULL`
+
+Returns a null value.
 
 #### Array-related opcodes
 
 ##### `OP_ARRAY_NEW`
 
+**Structure:**
+
+```
+[ code (1 byte) ] [ reg (1 byte) ] [ n (2 bytes) ]
+```
+
+Allocates an array of capacity specified by the 16-bit number (platform-specific-endianness) `n` into register `reg`.
+
 ##### `OP_ARRAY_PUSH`
+
+**Structure:**
+
+```
+[ code (1 byte) ] [ array (1 byte) ] [ value (1 byte) ] [ (unused 1 byte) ]
+```
+
+Pushes the value in the register `value` to the array in the register `array`.
 
 ##### `OP_IDX_GET`
 
+**Structure:**
+
+```
+[ code (1 byte) ] [ col (1 byte) ] [ idx (1 byte) ] [ result (1 byte) ]
+```
+
+Gets the value of the collection `col` specified by the index value in the register `idx`, and puts the value into the register `result`.
+
 ##### `OP_IDX_SET`
+
+**Structure:**
+
+```
+[ code (1 byte) ] [ col (1 byte) ] [ idx (1 byte) ] [ value (1 byte) ]
+```
+
+Sets the value of the collection `col` specified by the index value in the register `idx` to the value in the register `value`.
 
 ### Function calls 
 

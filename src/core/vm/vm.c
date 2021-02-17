@@ -272,14 +272,14 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 DISPATCH;
             }
             CASE(OP_MOV_LOCAL_REG) : {
-                const uint8_t local = frame.bc[frame.pc + 1];
-                const uint8_t reg = frame.bc[frame.pc + 2];
+                const uint8_t reg = frame.bc[frame.pc + 1];
+                const uint8_t local = frame.bc[frame.pc + 2];
                 COPY_VALUE(frame.regs[reg], frame.locals[local]);
                 DISPATCH;
             }
             CASE(OP_PRINT) : {
-                const au_value_t lhs = frame.regs[frame.bc[frame.pc + 1]];
-                tl->print_fn(lhs);
+                const au_value_t reg = frame.regs[frame.bc[frame.pc + 1]];
+                tl->print_fn(reg);
                 DISPATCH;
             }
             CASE(OP_JIF) : {
