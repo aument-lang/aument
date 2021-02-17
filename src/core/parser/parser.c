@@ -1182,9 +1182,8 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                         .as.import_func.module_idx = module_idx,
                         .as.import_func.name = import_name,
                         .as.import_func.name_len = t.len,
-                        .as.import_func.au_fn_cached = 0,
+                        .as.import_func.fn_cached = 0,
                         .as.import_func.p_data_cached = 0,
-                        .as.import_func.is_cached = 0,
                     };
                     au_fn_array_add(&p->p_data->fns, fn);
                     func_idx = value.idx;
@@ -1229,21 +1228,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 }
             } else {
                 const struct au_fn *fn = &p->p_data->fns.data[func_idx];
-                int expected_n_args = 0;
-                switch (fn->type) {
-                case AU_FN_NATIVE: {
-                    expected_n_args = fn->as.native_func.num_args;
-                    break;
-                }
-                case AU_FN_BC: {
-                    expected_n_args = fn->as.bc_func.num_args;
-                    break;
-                }
-                case AU_FN_IMPORTER: {
-                    expected_n_args = fn->as.import_func.num_args;
-                    break;
-                }
-                }
+                int expected_n_args = au_fn_num_args(fn);
                 if (expected_n_args != n_args) {
                     p->res = (struct au_parser_result){
                         .type = AU_PARSER_RES_WRONG_ARGS,

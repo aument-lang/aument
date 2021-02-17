@@ -33,13 +33,15 @@ enum au_fn_type {
 struct au_imported_func {
     int num_args;
     int module_idx;
-    const char *name;
+    char *name;
     size_t name_len;
-    const struct au_fn *au_fn_cached;
+    const struct au_fn *fn_cached;
     const struct au_program_data *p_data_cached;
-    // FIXME: use atomic integer type
-    int is_cached;
 };
+
+/// [func] Deinitializes an au_imported_func instance
+/// @param fn instance to be initialized
+void au_imported_func_del(struct au_imported_func *fn);
 
 struct au_fn {
     union {
@@ -51,9 +53,32 @@ struct au_fn {
     int exported;
 };
 
+static inline int au_fn_num_args(const struct au_fn *fn) {
+    switch (fn->type) {
+    case AU_FN_NATIVE: {
+        return fn->as.native_func.num_args;
+    }
+    case AU_FN_BC: {
+        return fn->as.bc_func.num_args;
+    }
+    case AU_FN_IMPORTER: {
+        return fn->as.import_func.num_args;
+    }
+    }
+    return 0;
+}
+
 /// [func] Deinitializes an au_fn instance
 /// @param fn instance to be initialized
 void au_fn_del(struct au_fn *fn);
+
+/// [func] Fills a cached reference to a function in an external
+///     module, and a reference to module itself, into the
+///     au_fn instance. This function is unsafe so DO NOT
+///     use it if the au_fn instance is shared across threads.
+void au_fn_fill_import_cache_unsafe(
+    const struct au_fn *fn, const struct au_fn *fn_cached,
+    const struct au_program_data *p_data_cached);
 
 au_value_t au_fn_call(const struct au_fn *fn,
                       struct au_vm_thread_local *tl,
@@ -101,6 +126,7 @@ void au_imported_module_init(struct au_imported_module *data);
 void au_imported_module_del(struct au_imported_module *data);
 
 struct au_program_data {
+    struct au_program_data *ll_next;
     struct au_fn_array fns;
     struct au_hm_vars fn_map;
     struct au_program_data_vals data_val;
@@ -109,13 +135,10 @@ struct au_program_data {
     struct au_program_import_array imports;
     struct au_hm_vars imported_module_map;
     struct au_imported_module_array imported_modules;
-    size_t tl_imported_modules_start;
     char *file;
     char *cwd;
     struct au_program_source_map_array source_map;
 };
-
-ARRAY_TYPE_COPY(struct au_program_data, au_program_data_array, 1)
 
 /// [func] Initializes an au_program_data instance
 /// @param data instance to be initialized

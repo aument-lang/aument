@@ -9,9 +9,13 @@
 #include "stdlib/au_stdlib.h"
 #include "vm/vm.h"
 
+void au_imported_func_del(struct au_imported_func *fn) { free(fn->name); }
+
 void au_fn_del(struct au_fn *fn) {
     if (fn->type == AU_FN_BC) {
         au_bc_storage_del(&fn->as.bc_func);
+    } else if (fn->type == AU_FN_IMPORTER) {
+        au_imported_func_del(&fn->as.import_func);
     }
     memset(fn, 0, sizeof(struct au_fn));
 }
@@ -86,6 +90,14 @@ void au_program_del(struct au_program *p) {
     memset(p, 0, sizeof(struct au_program));
 }
 
+void au_fn_fill_import_cache_unsafe(
+    const struct au_fn *fn, const struct au_fn *fn_cached,
+    const struct au_program_data *p_data_cached) {
+    *(const struct au_fn **)(&fn->as.import_func.fn_cached) = fn_cached;
+    *(const struct au_program_data **)(&fn->as.import_func.p_data_cached) =
+        p_data_cached;
+}
+
 au_value_t au_fn_call(const struct au_fn *fn,
                       struct au_vm_thread_local *tl,
                       const struct au_program_data *p_data,
@@ -99,24 +111,7 @@ au_value_t au_fn_call(const struct au_fn *fn,
                                      (struct au_vm_frame_link){0});
     }
     case AU_FN_IMPORTER: {
-        if (!fn->as.import_func.is_cached) {
-            // FIXME: use atomic locking
-            const struct au_program_data *func_p_data =
-                &tl->module_data.data[p_data->tl_imported_modules_start +
-                                      fn->as.import_func.num_args];
-            const size_t func_idx_in_p_data =
-                au_hm_vars_get(&func_p_data->fn_map,
-                               fn->as.import_func.name,
-                               fn->as.import_func.name_len)
-                    ->idx;
-            *(const struct au_fn **)(&fn->as.import_func.au_fn_cached) =
-                &func_p_data->fns.data[func_idx_in_p_data];
-            *(const struct au_program_data **)(&fn->as.import_func
-                                                    .p_data_cached) =
-                func_p_data;
-            *(int *)(&fn->as.import_func.is_cached) = 1;
-        }
-        return au_fn_call(fn->as.import_func.au_fn_cached, tl,
+        return au_fn_call(fn->as.import_func.fn_cached, tl,
                           fn->as.import_func.p_data_cached, args);
     }
     default: {
