@@ -129,7 +129,7 @@ static void test_{i}() {{
 }}\n\n"""
 
 c_src += """
-int main(int argc, char **argv) {
+int main() {
 """
 
 for (i, fn) in enumerate(files):
@@ -201,7 +201,7 @@ static void test_{i}() {{
 }}\n\n"""
 
 c_src_comp_test += """
-int main(int argc, char **argv) {
+int main() {
     setup();
 """
 

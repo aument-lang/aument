@@ -1273,8 +1273,8 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 return 0;
             }
             parser_emit_bc_u8(p, OP_MOV_LOCAL_REG);
-            parser_emit_bc_u8(p, val->idx);
             parser_emit_bc_u8(p, parser_new_reg(p));
+            parser_emit_bc_u8(p, val->idx);
             parser_emit_pad8(p);
         }
         break;
