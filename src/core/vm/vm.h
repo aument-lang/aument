@@ -41,7 +41,7 @@ struct au_vm_thread_local {
     au_vm_print_fn_t print_fn;
     au_value_t *const_cache;
     size_t const_len;
-    struct au_program_data_array module_data;
+    struct au_program_data *ll_module;
 };
 
 /// [func] Initializes an au_vm_thread_local instance
@@ -54,8 +54,8 @@ void au_vm_thread_local_init(struct au_vm_thread_local *tl,
 /// @param tl instance to be deinitialized
 void au_vm_thread_local_del(struct au_vm_thread_local *tl);
 
-void au_vm_thread_local_reserve_modules(struct au_vm_thread_local *tl,
-                                        size_t len);
+void au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
+                                   struct au_program_data *data);
 
 /// [func] Executes unverified bytecode in a au_bc_storage
 /// @param tl thread local storage
@@ -85,8 +85,6 @@ au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
 
 au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
                                       struct au_program *program) {
-    au_vm_thread_local_reserve_modules(tl,
-                                       program->data.imported_modules.len);
     return au_vm_exec_unverified(tl, &program->main, &program->data, 0,
                                  (struct au_vm_frame_link){0});
 }

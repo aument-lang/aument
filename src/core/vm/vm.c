@@ -53,19 +53,19 @@ void au_vm_thread_local_del(struct au_vm_thread_local *tl) {
         au_value_deref(tl->const_cache[i]);
     }
     free(tl->const_cache);
-    for (size_t i = 0; i < tl->module_data.len; i++) {
-        au_program_data_del(&tl->module_data.data[i]);
+    for (struct au_program_data *next = tl->ll_module; next != 0;) {
+        struct au_program_data *ll_next = next->ll_next;
+        au_program_data_del(next);
+        free(next);
+        next = ll_next;
     }
-    free(tl->module_data.data);
     memset(tl, 0, sizeof(struct au_vm_thread_local));
 }
 
-void au_vm_thread_local_reserve_modules(struct au_vm_thread_local *tl,
-                                        size_t len) {
-    for (size_t i = 0; i < len; i++) {
-        au_program_data_array_add(&tl->module_data,
-                                  (struct au_program_data){0});
-    }
+void au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
+                                   struct au_program_data *data) {
+    data->ll_next = tl->ll_module;
+    tl->ll_module = data;
 }
 
 #ifdef DEBUG_VM
@@ -489,18 +489,40 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 program.data.cwd = dirname(abspath);
             }
 #endif
-                program.data.tl_imported_modules_start =
-                    tl->module_data.len;
 
                 au_vm_exec_unverified_main(tl, &program);
 
                 if (import->module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
                     au_program_del(&program);
                 } else {
-                    tl->module_data
-                        .data[p_data->tl_imported_modules_start +
-                              import->module_idx] = program.data;
                     au_bc_storage_del(&program.main);
+
+                    struct au_program_data *malloced_data =
+                        malloc(sizeof(struct au_program_data));
+                    memcpy(malloced_data, &program.data,
+                           sizeof(struct au_program_data));
+                    au_vm_thread_local_add_module(tl, malloced_data);
+
+                    struct au_imported_module *module =
+                        &p_data->imported_modules.data[import->module_idx];
+                    AU_HM_VARS_FOREACH_PAIR(&module->fn_map, key, entry, {
+                        assert(p_data->fns.data[entry->idx].type ==
+                               AU_FN_IMPORTER);
+                        const struct au_imported_func *import_func =
+                            &p_data->fns.data[entry->idx].as.import_func;
+                        const struct au_hm_var_value *fn_idx =
+                            au_hm_vars_get(&malloced_data->fn_map, key,
+                                           key_len);
+                        assert(fn_idx != 0);
+                        struct au_fn *fn =
+                            &malloced_data->fns.data[fn_idx->idx];
+                        assert(fn->exported);
+                        assert(au_fn_num_args(fn) ==
+                               import_func->num_args);
+                        au_fn_fill_import_cache_unsafe(
+                            &p_data->fns.data[entry->idx], fn,
+                            malloced_data);
+                    })
                 }
                 DISPATCH;
             }

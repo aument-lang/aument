@@ -59,3 +59,15 @@ au_hm_vars_add(struct au_hm_vars *vars, const char *key, size_t len,
 /// @return the value (if it exists), otherwise `NULL`
 const struct au_hm_var_value *au_hm_vars_get(const struct au_hm_vars *vars,
                                              const char *key, size_t len);
+
+#define AU_HM_VARS_FOREACH_PAIR(HM, NAME_VAR, ENTRY_VAR, BLOCK)           \
+    for (size_t _i = 0; _i < (HM)->buckets_len; _i++) {                   \
+        for (size_t _el_idx = 0; _el_idx < (HM)->buckets[_i].len;         \
+             _el_idx++) {                                                 \
+            struct au_hm_var_el *_el = &(HM)->buckets[_i].data[_el_idx];  \
+            const char *NAME_VAR = &(HM)->var_name[_el->key_idx];         \
+            const size_t NAME_VAR##_len = _el->key_len;                   \
+            const struct au_hm_var_value *ENTRY_VAR = &_el->value;        \
+            BLOCK                                                         \
+        }                                                                 \
+    }

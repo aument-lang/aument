@@ -212,24 +212,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(func_id, 1)
             const struct au_fn *fn =
                 au_fn_array_at_ptr(&p_data->fns, func_id);
-            int n_args;
-            switch (fn->type) {
-            case AU_FN_BC: {
-                const struct au_bc_storage *bcs = &fn->as.bc_func;
-                n_args = bcs->num_args;
-                break;
-            }
-            case AU_FN_NATIVE: {
-                const struct au_lib_func *lib_func = &fn->as.native_func;
-                n_args = lib_func->num_args;
-                break;
-            }
-            case AU_FN_IMPORTER: {
-                assert(0);
-                break;
-            }
-            }
-            arg_stack_len -= n_args;
+            arg_stack_len -= au_fn_num_args(fn);
             break;
         }
         default:
