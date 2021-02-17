@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 #include "array.h"
-#include "bc_vars.h"
+#include "hm_vars.h"
 
 #define AU_REGS 256
 
@@ -65,8 +65,8 @@ ARRAY_TYPE(uint8_t, au_bc_buf, 4)
 
 struct au_bc_storage {
     int num_args;
-    struct au_bc_buf bc;
     int locals_len;
+    struct au_bc_buf bc;
     int num_registers;
 };
 

@@ -49,7 +49,7 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
         return au_value_string(au_string_from_const(repr, strlen(repr)));
     }
     case VALUE_INT: {
-        int abs_num = au_value_get_int(value);
+        int32_t abs_num = au_value_get_int(value);
         struct au_string *header = malloc(sizeof(struct au_string) + 1);
         header->rc = 1;
         header->len = 1;
