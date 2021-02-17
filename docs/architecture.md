@@ -70,7 +70,7 @@ The virtual machine also contains an argument stack, it is used to passed argume
 
 See the function `au_vm_exec_unverified` for more details.
 
-### The bytecode
+### Bytecode
 
 A program in the VM is represented by bytecode. Bytecode in aulang's VM is a flat byte array containing 32-bit operations, which has the following form:
 
@@ -250,7 +250,7 @@ Allocates an array of capacity specified by the 16-bit number (platform-specific
 [ code (1 byte) ] [ array (1 byte) ] [ value (1 byte) ] [ (unused 1 byte) ]
 ```
 
-Pushes the value in the register `value` to the array in the register `array`.
+Pushes the value in the register `value` to the array in the register `array`. Does nothing if the register isn't an array.
 
 ##### `OP_IDX_GET`
 
@@ -274,12 +274,18 @@ Sets the value of the collection `col` specified by the index value in the regis
 
 ### Function calls 
 
-### Module imports and exports
+### Modules
+
+Every file imported by aulang (including the main file) is stored in a program structure (the `au_program_data` object).
+
+#### Imports and exports
 
 In interpreter mode, aulang imports files in runtime rather than parsing time. Imported modules are referenced as indices to an imported file array, internal to the **importer**. We'll call the imported module's index relative to the *importer*, the *relative module index*.
 
-When a file is parsed, if it calls an external module's function, the parser records it as a "virtual function". The virtual function is an object which has a name, the number of arguments it takes and the *relative module index* of the module. This *virtual function* is blank, it doesn't know which external function it points to, only what the external function is named and what it looks like.
+When a file is parsed, if it calls an external module's function, the parser records it as a "virtual function". The virtual function is an object which has a name, the number of arguments it takes and the *relative module index* of the module. This *virtual imported function* is blank, it doesn't know which external function it points to, only what the external function looks like.
 
-On runtime, when the virtual machine imports the module, it will store a reference to the module in the `au_vm_thread_local` object. The *relative module index* of the imported module is used to store pointers to the corresponding actual module function, into the virtual function that refers to it.
+On runtime, when the virtual machine imports the module, it will store a reference to the module in the `au_vm_thread_local` object. The *relative module index* of the imported module is used to store the pointer to the corresponding actual module function, plus the pointer to the module structure, into the *virtual imported function* that refers to it.
+
+**Invariant:** a pointer to an external module must not be moved or freed, which is why imported modules are stored in a linked list in the `au_vm_thread_local` object instead of an array.
 
 ## C compiler details
