@@ -80,7 +80,7 @@ A program in the VM is represented by bytecode. Bytecode in aulang's VM is a fla
 
 Where the `code` byte tells the virtual machine what operation to do (add, subtract, call a function, ...).
 
-Like a real machine, aulang's VM has a program counter, it starts at zero and it points to the current instruction being processed.
+Like a real machine, aulang's VM has a program counter, it starts at zero and it points to the current instruction being processed. The program counter counts in **bytes**, not 32-bit values.
 
 #### `OP_EXIT`
 
@@ -184,6 +184,10 @@ Prints the value in register `reg`.
 [ code (1 byte) ] [ reg (1 byte) ] [ address (2 bytes) ]
 ```
 
+The `OP_JIF` operation adds the 16-bit value  (platform-specific-endianness) `address`, multiplied by 4 to virtual machine address (i.e. jumps to it) if the value in register `reg` is truthy.
+
+The `OP_JNIF` does the same thing, except only if the value is not truthy.
+
 ##### `OP_JREL` and `OP_JRELB`
 
 **Structure:**
@@ -191,6 +195,10 @@ Prints the value in register `reg`.
 ```
 [ code (1 byte) ] [ (unused 1 byte) ] [ address (2 bytes) ]
 ```
+
+The `OP_JREL` operation adds the 16-bit value  (platform-specific-endianness) `address`, multiplied by 4 to virtual machine address (i.e. jumps forwards to it).
+
+The `OP_JREL` operation subtracts the 16-bit value  (platform-specific-endianness) `address`, multiplied by 4 to virtual machine address (i.e. jumps back to it).
 
 #### Function-related opcodes
 
