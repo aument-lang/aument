@@ -4,6 +4,7 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #pragma once
+#include <stdint.h>
 
 typedef uint32_t hash_t;
 

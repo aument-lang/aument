@@ -61,7 +61,7 @@ enum au_opcode {
 
 extern const char *au_opcode_dbg[256];
 
-ARRAY_TYPE(uint8_t, au_bc_buf, 4)
+ARRAY_TYPE_COPY(uint8_t, au_bc_buf, 4)
 
 struct au_bc_storage {
     int num_args;

@@ -178,15 +178,15 @@ static struct token lexer_next_(struct lexer *l) {
             .len = 1,
         };
     } else if (start_ch == '(' || start_ch == ')' || start_ch == ';' ||
-               start_ch == ',' || start_ch == '{' ||
-               start_ch == '}' || start_ch == '[' || start_ch == ']') {
+               start_ch == ',' || start_ch == '{' || start_ch == '}' ||
+               start_ch == '[' || start_ch == ']') {
         l->pos++;
         return (struct token){
             .type = TOK_OPERATOR,
             .src = l->src + start,
             .len = 1,
         };
-    } else if(start_ch == ':') {
+    } else if (start_ch == ':') {
         l->pos++;
         if (!L_EOF() && l->src[l->pos] == ':') {
             l->pos++;

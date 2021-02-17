@@ -166,7 +166,9 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         case OP_IMPORT: {
             DEF_BC16(idx, 1)
             assert(idx < data->imports.len);
-            printf(" \"%s\"\n", data->imports.data[idx].path);
+            printf(
+                " \"%s\"\n",
+                au_program_import_array_at_ptr(&data->imports, idx)->path);
             pos += 3;
             break;
         }

@@ -23,7 +23,7 @@ int au_spawn(struct au_str_array *array) {
             return WEXITSTATUS(status);
         return -1;
     } else {
-        execvp(array->data[0], array->data);
+        execvp(au_str_array_at(array, 0), array->data);
         exit(1);
     }
 }

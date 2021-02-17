@@ -8,10 +8,16 @@
 #include "platform/platform.h"
 #endif
 
-/// Print fatal exception and exit program
+/// Print fatal exception and abort
 /// @param fmt printf formatted string
 _NoReturn void au_fatal(const char *fmt, ...);
 
 /// Print fatal exception from perror and exit program
 /// @param msg what the program was trying to do when the error occured
 _NoReturn void au_perror(const char *msg);
+
+/// Print index error and abort
+/// @param array the array
+/// @param idx the index the code is accessing
+/// @param len the length of the array
+_NoReturn void au_fatal_index(void *array, size_t idx, size_t len);

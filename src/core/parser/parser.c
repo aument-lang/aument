@@ -17,7 +17,7 @@
 #include "lexer.h"
 #include "parser.h"
 
-ARRAY_TYPE(size_t, size_t_array, 1)
+ARRAY_TYPE_COPY(size_t, size_t_array, 1)
 
 struct parser {
     /// Bytecode buffer that the parser is outputting to
@@ -313,9 +313,9 @@ static int parser_exec_import_statement(struct parser *p,
         const struct au_hm_var_value value = (struct au_hm_var_value){
             .idx = module_idx,
         };
-        const struct au_hm_var_value *old_value = au_hm_vars_add(
-            &p->p_data->imported_module_map, module_tok.src,
-            module_tok.len, &value);
+        const struct au_hm_var_value *old_value =
+            au_hm_vars_add(&p->p_data->imported_module_map, module_tok.src,
+                           module_tok.len, &value);
         assert(old_value == 0);
 
         const struct au_program_import import = (struct au_program_import){
@@ -1137,7 +1137,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
     }
     case TOK_IDENTIFIER: {
         struct token peek = lexer_peek(l, 0);
-        
+
         struct token module_tok = (struct token){.type = TOK_EOF};
         if (peek.type == TOK_OPERATOR && peek.len == 2 &&
             peek.src[0] == ':' && peek.src[1] == ':') {
@@ -1159,15 +1159,20 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             int func_idx_found = 0;
             int execute_self = 0;
             if (module_tok.type != TOK_EOF) {
-                const struct au_hm_var_value *module_val = au_hm_vars_get(&p->p_data->imported_module_map, module_tok.src, module_tok.len);
+                const struct au_hm_var_value *module_val =
+                    au_hm_vars_get(&p->p_data->imported_module_map,
+                                   module_tok.src, module_tok.len);
                 assert(module_val != 0);
                 const uint32_t module_idx = module_val->idx;
-                struct au_imported_module *module = &p->p_data->imported_modules.data[module_idx];
-                const struct au_hm_var_value *val = au_hm_vars_get(&module->fn_map, t.src, t.len);
-                if(val == 0) {
-                    struct au_hm_var_value value = (struct au_hm_var_value){
-                        .idx = p->p_data->fns.len,
-                    };
+                struct au_imported_module *module =
+                    &p->p_data->imported_modules.data[module_idx];
+                const struct au_hm_var_value *val =
+                    au_hm_vars_get(&module->fn_map, t.src, t.len);
+                if (val == 0) {
+                    struct au_hm_var_value value =
+                        (struct au_hm_var_value){
+                            .idx = p->p_data->fns.len,
+                        };
                     char *import_name = malloc(t.len);
                     memcpy(import_name, t.src, t.len);
                     struct au_fn fn = (struct au_fn){
@@ -1183,7 +1188,8 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                     };
                     au_fn_array_add(&p->p_data->fns, fn);
                     func_idx = value.idx;
-                    struct au_hm_var_value *old = au_hm_vars_add(&module->fn_map, t.src, t.len, &value);
+                    struct au_hm_var_value *old = au_hm_vars_add(
+                        &module->fn_map, t.src, t.len, &value);
                     assert(old == 0);
                     val = au_hm_vars_get(&module->fn_map, t.src, t.len);
                 } else {
@@ -1191,12 +1197,13 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 }
                 func_idx_found = 1;
             } else if (p->self_name && t.len == p->self_len &&
-                memcmp(p->self_name, t.src, p->self_len) == 0) {
+                       memcmp(p->self_name, t.src, p->self_len) == 0) {
                 execute_self = 1;
                 func_idx_found = 1;
             } else {
-                const struct au_hm_var_value *val = au_hm_vars_get(&p->p_data->fn_map, t.src, t.len);
-                if(val) {
+                const struct au_hm_var_value *val =
+                    au_hm_vars_get(&p->p_data->fn_map, t.src, t.len);
+                if (val) {
                     func_idx = val->idx;
                     func_idx_found = 1;
                 }
