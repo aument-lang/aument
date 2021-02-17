@@ -23,23 +23,23 @@ void au_program_import_del(struct au_program_import *data) {
 
 void au_imported_module_init(struct au_imported_module *data) {
     memset(data, 0, sizeof(struct au_imported_module));
-    au_bc_vars_init(&data->fn_map);
-    au_bc_vars_init(&data->vars_map);
+    au_hm_vars_init(&data->fn_map);
+    au_hm_vars_init(&data->vars_map);
 }
 
 void au_imported_module_del(struct au_imported_module *data) {
-    au_bc_vars_del(&data->fn_map);
-    au_bc_vars_del(&data->vars_map);
+    au_hm_vars_del(&data->fn_map);
+    au_hm_vars_del(&data->vars_map);
 }
 
 void au_program_data_init(struct au_program_data *data) {
     memset(data, 0, sizeof(struct au_program_data));
-    au_bc_vars_init(&data->fn_map);
+    au_hm_vars_init(&data->fn_map);
     au_install_stdlib(data);
 }
 
 void au_program_data_del(struct au_program_data *data) {
-    au_bc_vars_del(&data->fn_map);
+    au_hm_vars_del(&data->fn_map);
     for (size_t i = 0; i < data->fns.len; i++)
         au_fn_del(&data->fns.data[i]);
     free(data->fns.data);
@@ -48,7 +48,7 @@ void au_program_data_del(struct au_program_data *data) {
     for (size_t i = 0; i < data->imports.len; i++)
         au_program_import_del(&data->imports.data[i]);
     free(data->imports.data);
-    au_bc_vars_del(&data->imported_module_map);
+    au_hm_vars_del(&data->imported_module_map);
     for (size_t i = 0; i < data->imported_modules.len; i++)
         au_imported_module_del(&data->imported_modules.data[i]);
     free(data->imported_modules.data);
@@ -101,7 +101,7 @@ au_value_t au_fn_call(const struct au_fn *fn, struct au_vm_thread_local *tl,
         if(!fn->as.import_func.is_cached) {
             // FIXME: use atomic locking
             const struct au_program_data *func_p_data = &tl->module_data.data[p_data->tl_imported_modules_start + fn->as.import_func.num_args];
-            const size_t func_idx_in_p_data = au_bc_vars_get(&func_p_data->fn_map, fn->as.import_func.name, fn->as.import_func.name_len)->idx;
+            const size_t func_idx_in_p_data = au_hm_vars_get(&func_p_data->fn_map, fn->as.import_func.name, fn->as.import_func.name_len)->idx;
             *(const struct au_fn **)(&fn->as.import_func.au_fn_cached) = &func_p_data->fns.data[func_idx_in_p_data];
             *(const struct au_program_data **)(&fn->as.import_func.p_data_cached) = func_p_data;
             *(int*)(&fn->as.import_func.is_cached) = 1;

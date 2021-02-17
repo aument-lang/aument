@@ -10,7 +10,7 @@
 
 #include "array.h"
 #include "bc.h"
-#include "bc_vars.h"
+#include "hm_vars.h"
 #include "str_array.h"
 
 #include "rt/extern_fn.h"
@@ -84,8 +84,8 @@ ARRAY_TYPE(struct au_program_import, au_program_import_array, 1)
 
 struct au_program_data;
 struct au_imported_module {
-    struct au_bc_vars fn_map;
-    struct au_bc_vars vars_map;
+    struct au_hm_vars fn_map;
+    struct au_hm_vars vars_map;
 };
 
 ARRAY_TYPE(struct au_imported_module, au_imported_module_array, 1)
@@ -100,12 +100,12 @@ void au_imported_module_del(struct au_imported_module *data);
 
 struct au_program_data {
     struct au_fn_array fns;
-    struct au_bc_vars fn_map;
+    struct au_hm_vars fn_map;
     struct au_program_data_vals data_val;
     uint8_t *data_buf;
     size_t data_buf_len;
     struct au_program_import_array imports;
-    struct au_bc_vars imported_module_map;
+    struct au_hm_vars imported_module_map;
     struct au_imported_module_array imported_modules;
     size_t tl_imported_modules_start;
     char *file;
