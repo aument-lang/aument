@@ -210,8 +210,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
         case OP_CALL: {
             DEF_BC16(func_id, 1)
-            assert(func_id <= p_data->fns.len);
-            const struct au_fn *fn = &p_data->fns.data[func_id];
+            const struct au_fn *fn =
+                au_fn_array_at_ptr(&p_data->fns, func_id);
             int n_args;
             switch (fn->type) {
             case AU_FN_BC: {
@@ -364,8 +364,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case OP_CALL: {
             uint8_t reg = bc(pos);
             DEF_BC16(func_id, 1)
-            assert(func_id <= p_data->fns.len);
-            const struct au_fn *fn = &p_data->fns.data[func_id];
+            const struct au_fn *fn =
+                au_fn_array_at_ptr(&p_data->fns, func_id);
             int n_args;
             switch (fn->type) {
             case AU_FN_BC: {
@@ -457,7 +457,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case OP_IMPORT: {
             DEF_BC16(idx, 1)
             const struct au_program_import *import =
-                &p_data->imports.data[idx];
+                au_program_import_array_at_ptr(&p_data->imports, idx);
             const char *relpath = import->path;
 
             struct au_mmap_info mmap;

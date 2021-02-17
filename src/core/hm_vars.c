@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "hm_vars.h"
 #include "hash.h"
+#include "hm_vars.h"
 #include "rt/exception.h"
 
 void au_hm_vars_init(struct au_hm_vars *vars) {

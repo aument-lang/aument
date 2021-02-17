@@ -13,7 +13,7 @@
 #include "rt/exception.h"
 #endif
 
-#define ARRAY_TYPE(INNER, NAME, IN_CAP)                                   \
+#define ARRAY_TYPE_COPY(INNER, NAME, IN_CAP)                              \
     struct NAME {                                                         \
         INNER *data;                                                      \
         size_t len;                                                       \
@@ -33,7 +33,20 @@
     static _Unused INNER NAME##_at(const struct NAME *array,              \
                                    size_t idx) {                          \
         if (idx > array->len)                                             \
-            au_fatal("trying to access idx %ld in array with len %ld",    \
-                     idx, array->len);                                    \
+            au_fatal_index((void *)array, idx, array->len);               \
         return array->data[idx];                                          \
+    }
+
+#define ARRAY_TYPE_STRUCT(INNER, NAME, IN_CAP)                            \
+    ARRAY_TYPE_COPY(INNER, NAME, IN_CAP)                                  \
+    static _Unused const INNER *NAME##_at_ptr(const struct NAME *array,   \
+                                              size_t idx) {               \
+        if (idx > array->len)                                             \
+            au_fatal_index((void *)array, idx, array->len);               \
+        return &array->data[idx];                                         \
+    }                                                                     \
+    static _Unused INNER *NAME##_at_mut(struct NAME *array, size_t idx) { \
+        if (idx > array->len)                                             \
+            au_fatal_index((void *)array, idx, array->len);               \
+        return &array->data[idx];                                         \
     }

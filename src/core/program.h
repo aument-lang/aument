@@ -22,7 +22,7 @@ struct au_program_data_val {
     uint32_t buf_len;
 };
 
-ARRAY_TYPE(struct au_program_data_val, au_program_data_vals, 1)
+ARRAY_TYPE_COPY(struct au_program_data_val, au_program_data_vals, 1)
 
 enum au_fn_type {
     AU_FN_NATIVE,
@@ -55,11 +55,12 @@ struct au_fn {
 /// @param fn instance to be initialized
 void au_fn_del(struct au_fn *fn);
 
-au_value_t au_fn_call(const struct au_fn *fn, struct au_vm_thread_local *tl,
+au_value_t au_fn_call(const struct au_fn *fn,
+                      struct au_vm_thread_local *tl,
                       const struct au_program_data *p_data,
                       const au_value_t *args);
 
-ARRAY_TYPE(struct au_fn, au_fn_array, 1)
+ARRAY_TYPE_STRUCT(struct au_fn, au_fn_array, 1)
 
 struct au_program_source_map {
     size_t bc_from;
@@ -67,7 +68,8 @@ struct au_program_source_map {
     size_t source_start;
 };
 
-ARRAY_TYPE(struct au_program_source_map, au_program_source_map_array, 1)
+ARRAY_TYPE_COPY(struct au_program_source_map, au_program_source_map_array,
+                1)
 
 #define AU_PROGRAM_IMPORT_NO_MODULE ((size_t)-1)
 
@@ -80,7 +82,7 @@ struct au_program_import {
 /// @param data instance to be deinitialized
 void au_program_import_del(struct au_program_import *data);
 
-ARRAY_TYPE(struct au_program_import, au_program_import_array, 1)
+ARRAY_TYPE_STRUCT(struct au_program_import, au_program_import_array, 1)
 
 struct au_program_data;
 struct au_imported_module {
@@ -88,7 +90,7 @@ struct au_imported_module {
     struct au_hm_vars vars_map;
 };
 
-ARRAY_TYPE(struct au_imported_module, au_imported_module_array, 1)
+ARRAY_TYPE_COPY(struct au_imported_module, au_imported_module_array, 1)
 
 /// [func] Initializes an au_imported_module instance
 /// @param data instance to be initialized
@@ -113,7 +115,7 @@ struct au_program_data {
     struct au_program_source_map_array source_map;
 };
 
-ARRAY_TYPE(struct au_program_data, au_program_data_array, 1)
+ARRAY_TYPE_COPY(struct au_program_data, au_program_data_array, 1)
 
 /// [func] Initializes an au_program_data instance
 /// @param data instance to be initialized
