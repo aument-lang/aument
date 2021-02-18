@@ -138,6 +138,7 @@ struct au_program_data {
     char *file;
     char *cwd;
     struct au_program_source_map_array source_map;
+    size_t tl_constant_start;
 };
 
 /// [func] Initializes an au_program_data instance

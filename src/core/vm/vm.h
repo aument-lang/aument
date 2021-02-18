@@ -54,6 +54,9 @@ void au_vm_thread_local_init(struct au_vm_thread_local *tl,
 /// @param tl instance to be deinitialized
 void au_vm_thread_local_del(struct au_vm_thread_local *tl);
 
+void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
+                                        size_t len);
+
 void au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
                                    struct au_program_data *data);
 
