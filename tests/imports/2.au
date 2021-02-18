@@ -1,0 +1,2 @@
+print "Hello World\n";
+import "./2-import.au";

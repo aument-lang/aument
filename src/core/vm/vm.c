@@ -62,6 +62,14 @@ void au_vm_thread_local_del(struct au_vm_thread_local *tl) {
     memset(tl, 0, sizeof(struct au_vm_thread_local));
 }
 
+void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
+                                        size_t len) {
+    tl->const_cache = realloc(tl->const_cache,
+                              sizeof(au_value_t) * (tl->const_len + len));
+    au_value_clear(&tl->const_cache[tl->const_len], len);
+    tl->const_len += len;
+}
+
 void au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
                                    struct au_program_data *data) {
     data->ll_next = tl->ll_module;
@@ -319,13 +327,16 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             CASE(OP_LOAD_CONST) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
-                const uint16_t c = *(uint16_t *)(&frame.bc[frame.pc + 2]);
+                const uint16_t rel_c =
+                    *(uint16_t *)(&frame.bc[frame.pc + 2]);
+                const size_t abs_c = rel_c + p_data->tl_constant_start;
                 au_value_t v;
-                if (au_value_get_type(tl->const_cache[c]) != VALUE_NONE) {
-                    v = tl->const_cache[c];
+                if (au_value_get_type(tl->const_cache[abs_c]) !=
+                    VALUE_NONE) {
+                    v = tl->const_cache[abs_c];
                 } else {
                     const struct au_program_data_val *data_val =
-                        &p_data->data_val.data[c];
+                        &p_data->data_val.data[rel_c];
                     v = data_val->real_value;
                     switch (au_value_get_type(v)) {
                     case VALUE_STR: {
@@ -334,7 +345,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  *)(&p_data->data_buf[data_val->buf_idx]),
                             data_val->buf_len));
                         // Transfer ownership of v to the cache
-                        tl->const_cache[c] = v;
+                        tl->const_cache[abs_c] = v;
                         break;
                     }
                     default:
@@ -489,7 +500,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 program.data.cwd = dirname(abspath);
             }
 #endif
-
+                program.data.tl_constant_start = tl->const_len;
+                au_vm_thread_local_add_const_cache(
+                    tl, program.data.data_val.len);
                 au_vm_exec_unverified_main(tl, &program);
 
                 if (import->module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
