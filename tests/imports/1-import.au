@@ -1,5 +1,5 @@
 def private() {
-    return 10;
+    return "OK\n";
 }
 
 export def func() {

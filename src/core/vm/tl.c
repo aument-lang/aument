@@ -41,19 +41,43 @@ void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
     tl->const_len += len;
 }
 
-int au_vm_thread_local_reserve_module(struct au_vm_thread_local *tl,
-                                      const char *abspath,
-                                      uint32_t *retidx) {
+enum au_tl_reserve_mod_retval
+au_vm_thread_local_reserve_import_only(struct au_vm_thread_local *tl,
+                                       const char *abspath) {
+    struct au_hm_var_value value = (struct au_hm_var_value){
+        .idx = AU_HM_VAR_VALUE_NONE,
+    };
+    struct au_hm_var_value *old_value;
+    if ((old_value = au_hm_vars_add(&tl->loaded_modules_map, abspath,
+                                    strlen(abspath), &value)) != 0) {
+        if (old_value->idx == AU_HM_VAR_VALUE_NONE) {
+            return AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED;
+        }
+        return AU_TL_RESMOD_RETVAL_FAIL;
+    }
+    return AU_TL_RESMOD_RETVAL_OK;
+}
+
+enum au_tl_reserve_mod_retval
+au_vm_thread_local_reserve_module(struct au_vm_thread_local *tl,
+                                  const char *abspath, uint32_t *retidx) {
     struct au_hm_var_value value = (struct au_hm_var_value){
         .idx = tl->loaded_modules.len,
     };
-    if (au_hm_vars_add(&tl->loaded_modules_map, abspath, strlen(abspath),
-                       &value) != 0) {
-        return 0;
+    struct au_hm_var_value *old_value;
+    if ((old_value = au_hm_vars_add(&tl->loaded_modules_map, abspath,
+                                    strlen(abspath), &value)) != 0) {
+        if (old_value->idx == AU_HM_VAR_VALUE_NONE) {
+            old_value->idx = value.idx;
+            *retidx = value.idx;
+            au_program_data_array_add(&tl->loaded_modules, 0);
+            return AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED;
+        }
+        return AU_TL_RESMOD_RETVAL_FAIL;
     }
     *retidx = value.idx;
     au_program_data_array_add(&tl->loaded_modules, 0);
-    return 1;
+    return AU_TL_RESMOD_RETVAL_OK;
 }
 
 void au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
@@ -71,7 +95,7 @@ au_vm_thread_local_get_module(const struct au_vm_thread_local *tl,
                               const char *abspath) {
     const struct au_hm_var_value *value =
         au_hm_vars_get(&tl->loaded_modules_map, abspath, strlen(abspath));
-    if (!value)
+    if (!value || value->idx == AU_HM_VAR_VALUE_NONE)
         return 0;
     if (value->idx >= tl->loaded_modules.len)
         au_fatal_index(&tl->loaded_modules, value->idx,
