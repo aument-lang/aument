@@ -304,9 +304,9 @@ Every file imported by aulang (including the main file) is stored in a program s
 
 In interpreter mode, aulang imports files in runtime rather than parsing time. Imported modules are referenced as indices to an imported file array, internal to the **importer**. We'll call the imported module's index relative to the *importer*, the *relative module index*.
 
-When a file is parsed, if it calls an external module's function, the parser records it as a "virtual function". The virtual function is an object which has a name, the number of arguments it takes and the *relative module index* of the module. This *virtual imported function* is blank, it doesn't know which external function it points to, only what the external function looks like.
+When a file is parsed, if it calls an unresolved external module's function, the parser records it as a "virtual function". The virtual function is an object which has a name, the number of arguments it takes and the *relative module index* of the module. This *virtual function* is blank, it doesn't know which external function it points to, only what the external function looks like.
 
-On runtime, when the virtual machine imports the module, it will store a reference to the module in the `au_vm_thread_local` object. The *relative module index* of the imported module is used to store the pointer to the corresponding actual module function, plus the pointer to the module structure, into the *virtual imported function* that refers to it.
+On the VM runtime, when the virtual machine imports the module, it will store a reference to the module in the `au_vm_thread_local` object. The *relative module index* of the imported module is used to store the pointer to the corresponding actual module function, plus the pointer to the module structure, into the *virtual imported function* that refers to it.
 
 **Invariant:** a pointer to an external module's data (`au_program_data`) must not be moved or freed, which is why imported modules are stored as pointers in an array in the `au_vm_thread_local` object.
 

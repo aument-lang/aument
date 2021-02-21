@@ -115,7 +115,7 @@ struct au_imported_module {
     struct au_hm_vars vars_map;
 };
 
-ARRAY_TYPE_COPY(struct au_imported_module, au_imported_module_array, 1)
+ARRAY_TYPE_STRUCT(struct au_imported_module, au_imported_module_array, 1)
 
 /// [func] Initializes an au_imported_module instance
 /// @param data instance to be initialized
