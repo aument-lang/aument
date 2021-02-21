@@ -91,12 +91,12 @@ static void link_to_imported(const struct au_program_data *p_data,
             &p_data->fns.data[entry->idx].as.import_func;
         const struct au_hm_var_value *fn_idx =
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
-        if(fn_idx == 0)
+        if (fn_idx == 0)
             au_fatal("unknown function %.*s", key_len, key);
         struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
-        if(!fn->exported)
+        if (!fn->exported)
             au_fatal("this function is not exported");
-        if(au_fn_num_args(fn) != import_func->num_args)
+        if (au_fn_num_args(fn) != import_func->num_args)
             au_fatal("unexpected number of arguments");
         au_fn_fill_import_cache_unsafe(&p_data->fns.data[entry->idx], fn,
                                        loaded_module);
@@ -431,7 +431,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 DISPATCH;
             }
             CASE(OP_RET_LOCAL) : {
-                const uint8_t ret_local = frame.bc[frame.pc + 1];
+                const uint8_t ret_local = frame.bc[frame.pc + 2];
                 // Move ownership of value in ret_local -> return reg in
                 // prev. frame
                 frame.retval = frame.locals[ret_local];
@@ -479,8 +479,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 
                 uint32_t tl_module_idx = ((uint32_t)-1);
                 if (relative_module_idx != AU_PROGRAM_IMPORT_NO_MODULE) {
-                    if(!au_vm_thread_local_reserve_module(tl, abspath,
-                                                    &tl_module_idx)) {
+                    if (!au_vm_thread_local_reserve_module(
+                            tl, abspath, &tl_module_idx)) {
                         au_fatal("circular module detected");
                     }
                 }
@@ -494,7 +494,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                        AU_PARSER_RES_OK);
                 au_mmap_del(&mmap);
 
-                au_split_path(abspath, &program.data.file, &program.data.cwd);
+                au_split_path(abspath, &program.data.file,
+                              &program.data.cwd);
                 free(abspath);
 
                 program.data.tl_constant_start = tl->const_len;

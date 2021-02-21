@@ -684,10 +684,8 @@ static int parser_exec_return_statement(struct parser *p,
         return 0;
     const uint8_t reg = parser_pop_reg(p);
     if (p->bc.data[p->bc.len - 4] == OP_MOV_LOCAL_REG &&
-        p->bc.data[p->bc.len - 2] == reg) {
-        const uint8_t local = p->bc.data[p->bc.len - 3];
+        p->bc.data[p->bc.len - 3] == reg) {
         p->bc.data[p->bc.len - 4] = OP_RET_LOCAL;
-        p->bc.data[p->bc.len - 3] = local;
     } else {
         parser_emit_bc_u8(p, OP_RET);
         parser_emit_bc_u8(p, reg);
@@ -780,13 +778,12 @@ static int parser_exec_assign(struct parser *p, struct lexer *l) {
             struct au_hm_var_value *old_value =
                 au_hm_vars_add(&p->vars, t.src, t.len, &var_value);
             if (old_value) {
-                parser_emit_bc_u8(p, old_value->idx);
+                parser_emit_bc_u16(p, old_value->idx);
             } else {
                 p->locals_len++;
                 assert(p->locals_len < AU_MAX_LOCALS);
-                parser_emit_bc_u8(p, var_value.idx);
+                parser_emit_bc_u16(p, var_value.idx);
             }
-            parser_emit_pad8(p);
             return 1;
         }
     }
@@ -1277,8 +1274,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             }
             parser_emit_bc_u8(p, OP_MOV_LOCAL_REG);
             parser_emit_bc_u8(p, parser_new_reg(p));
-            parser_emit_bc_u8(p, val->idx);
-            parser_emit_pad8(p);
+            parser_emit_bc_u16(p, val->idx);
         }
         break;
     }
@@ -1381,8 +1377,9 @@ static int parser_exec_array(struct parser *p, struct lexer *l) {
             parser_emit_bc_u8(p, array_reg);
             parser_emit_bc_u8(p, value_reg);
             parser_emit_pad8(p);
-            capacity++;
-            assert(capacity < AU_MAX_ARRAY);
+            if (capacity < (AU_MAX_ARRAY - 1)) {
+                capacity++;
+            }
         } else {
             assert(0);
         }

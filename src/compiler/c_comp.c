@@ -322,12 +322,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         }
         case OP_MOV_REG_LOCAL: {
-            uint8_t reg = bc(pos), local = bc(pos + 1);
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1)
             comp_printf(state, "COPY_VALUE(l%d,r%d);\n", local, reg);
             break;
         }
         case OP_MOV_LOCAL_REG: {
-            uint8_t reg = bc(pos), local = bc(pos + 1);
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1)
             comp_printf(state, "COPY_VALUE(r%d,l%d);\n", reg, local);
             break;
         }
@@ -395,7 +397,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 #define BIN_OP_ASG(NAME)                                                  \
     {                                                                     \
         uint8_t reg = bc(pos);                                            \
-        uint8_t local = bc(pos + 1);                                      \
+        DEF_BC16(local, 1)                                                \
         comp_printf(state,                                                \
                     "MOVE_VALUE(l%d,au_value_" NAME "(l%d,r%d));\n",      \
                     local, local, reg);                                   \
@@ -419,7 +421,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         }
         case OP_RET_LOCAL: {
-            uint8_t local = bc(pos);
+            DEF_BC16(local, 1)
             comp_cleanup(state, bcs, -1, local);
             comp_printf(state, "return l%d;\n", local);
             break;

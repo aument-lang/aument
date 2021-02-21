@@ -62,7 +62,7 @@ This section describes the various components of the virtual machine.
 
 ### The VM itself
 
-aulang's virtual machine is a register machine with 256 registers and 256 maximum local variables. These registers and local variables are specific to a function call and are stored on a virtual stack frame.
+aulang's virtual machine is a register machine with 256 registers and 65536 maximum local variables. These registers and local variables are specific to a function call and are stored on a virtual stack frame.
 
 The virtual machine also contains an argument stack, it is used to passed arguments in function calls. Every function call inside a virtual machine is represented by a real function call (i.e. a C function call).
 
@@ -135,7 +135,7 @@ They perform a binary operation specified by `code` on the registers specified b
 These are the opcodes `OP_MUL_ASG`, `OP_DIV_ASG`, `OP_ADD_ASG`, `OP_SUB_ASG`, `OP_MOD_ASG`. They have the following structure:
 
 ```
-[ code (1 byte) ] [ reg (1 byte) ] [ local (1 byte) ] [ (unused 1 byte) ]
+[ code (1 byte) ] [ reg (1 byte) ] [ local (2 bytes) ]
 ```
 
 They perform a binary operation specified by `code` on the local variable specified by `local` and register specified by `reg`, and stores the result into the local variable.
@@ -155,7 +155,7 @@ They perform the unary operation specified by `code` directly on the register sp
 **Structure:**
 
 ```
-[ code (1 byte) ] [ reg (1 byte) ] [ local (1 byte) ] [ (unused 1 byte) ]
+[ code (1 byte) ] [ reg (1 byte) ] [ local (2 bytes) ]
 ```
 
 The `OP_MOV_REG_LOCAL` operation copies the value in register `reg` to the local `local`.
@@ -220,17 +220,25 @@ Pushes the value in the register `reg` to the call argument stack.
 
 Calls the function specified by the 16-bit index  (platform-specific-endianness) `idx`, and sets its return value to the register `reg`.
 
-##### `OP_RET_LOCAL`, `OP_RET`
+##### `OP_RET_LOCAL`
 
 **Structure:**
 
 ```
-[ code (1 byte) ] [ loc (1 byte) ] [ (unused 2 bytes) ]
+[ code (1 byte) ] [ (unused 1 bytes) ] [ local (2 bytes) ]
 ```
 
-The `OP_RET_LOCAL` operation returns the local `loc`.
+The `OP_RET_LOCAL` operation returns the local `local`.
 
-The `OP_RET` operation returns the register `loc`.
+##### `OP_RET`
+
+**Structure:**
+
+```
+[ code (1 byte) ] [ reg (1 byte) ] [ (unused 2 bytes) ]
+```
+
+The `OP_RET` operation returns the register `reg`.
 
 ##### `OP_RET_NULL`
 
