@@ -478,11 +478,23 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 }
 
                 uint32_t tl_module_idx = ((uint32_t)-1);
-                if (relative_module_idx != AU_PROGRAM_IMPORT_NO_MODULE) {
-                    if (!au_vm_thread_local_reserve_module(
-                            tl, abspath, &tl_module_idx)) {
-                        au_fatal("circular module detected");
+                enum au_tl_reserve_mod_retval rmod_retval =
+                    AU_TL_RESMOD_RETVAL_FAIL;
+                if (relative_module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
+                    rmod_retval = au_vm_thread_local_reserve_import_only(
+                        tl, abspath);
+                    if (rmod_retval ==
+                        AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
+                        free(abspath);
+                        DISPATCH;
                     }
+                } else {
+                    rmod_retval = au_vm_thread_local_reserve_module(
+                        tl, abspath, &tl_module_idx);
+                }
+
+                if (rmod_retval == AU_TL_RESMOD_RETVAL_FAIL) {
+                    au_fatal("circular import detected");
                 }
 
                 if (!au_mmap_read(abspath, &mmap)) {
@@ -501,7 +513,10 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 program.data.tl_constant_start = tl->const_len;
                 au_vm_thread_local_add_const_cache(
                     tl, program.data.data_val.len);
-                au_vm_exec_unverified_main(tl, &program);
+
+                if (rmod_retval != AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
+                    au_vm_exec_unverified_main(tl, &program);
+                }
 
                 if (relative_module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
                     au_program_del(&program);

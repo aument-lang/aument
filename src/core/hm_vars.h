@@ -9,6 +9,8 @@
 
 #include "hash.h"
 
+#define AU_HM_VAR_VALUE_NONE ((uint32_t)-1)
+
 struct au_hm_var_value {
     uint32_t idx;
 };
