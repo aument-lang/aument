@@ -541,50 +541,52 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         "extern au_value_t _M%ld_main();_M%ld_main();\n",
                         imported_module_idx_in_source,
                         imported_module_idx_in_source);
+            
+            if(relative_module_idx != AU_PROGRAM_IMPORT_NO_MODULE) {
+                const struct au_imported_module *relative_module =
+                    au_imported_module_array_at_ptr(&p_data->imported_modules,
+                                                    relative_module_idx);
+                const struct au_c_comp_module *loaded_module =
+                    au_c_comp_module_array_at_ptr(&g_state->modules,
+                                                imported_module_idx);
 
-            const struct au_imported_module *relative_module =
-                au_imported_module_array_at_ptr(&p_data->imported_modules,
-                                                relative_module_idx);
-            const struct au_c_comp_module *loaded_module =
-                au_c_comp_module_array_at_ptr(&g_state->modules,
-                                              imported_module_idx);
-
-            AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
-                // TODO: this is ripped straight outta link_to_imported
-                // from core/vm/vm.c. It might be better to unify these two
-                // sections
-                const struct au_fn *relative_fn =
-                    au_fn_array_at_ptr(&p_data->fns, entry->idx);
-                assert(relative_fn->type == AU_FN_IMPORTER);
-                const struct au_imported_func *import_func =
-                    &relative_fn->as.import_func;
-                const struct au_hm_var_value *fn_idx =
-                    au_hm_vars_get(&loaded_module->fn_map, key, key_len);
-                if (fn_idx == 0)
-                    au_fatal("unknown function %.*s", key_len, key);
-                struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
-                if (!fn->exported)
-                    au_fatal("this function is not exported");
-                if (au_fn_num_args(fn) != import_func->num_args)
-                    au_fatal("unexpected number of arguments");
-                if (import_func->num_args == 0) {
-                    comp_printf(state,
-                                "extern au_value_t _M%ld_f%ld();"
-                                "_M%ld_f%ld=&_M%ld_f%ld;\n",
-                                imported_module_idx_in_source, fn_idx->idx,
-                                module_idx, entry->idx,
-                                imported_module_idx_in_source,
-                                fn_idx->idx);
-                } else {
-                    comp_printf(
-                        state,
-                        "extern au_value_t _M%ld_f%ld(au_value_t*);"
-                        "_M%ld_f%ld=&_M%ld_f%ld;\n",
-                        imported_module_idx_in_source, fn_idx->idx,
-                        module_idx, entry->idx,
-                        imported_module_idx_in_source, fn_idx->idx);
-                }
-            })
+                AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
+                    // TODO: this is ripped straight outta link_to_imported
+                    // from core/vm/vm.c. It might be better to unify these two
+                    // sections
+                    const struct au_fn *relative_fn =
+                        au_fn_array_at_ptr(&p_data->fns, entry->idx);
+                    assert(relative_fn->type == AU_FN_IMPORTER);
+                    const struct au_imported_func *import_func =
+                        &relative_fn->as.import_func;
+                    const struct au_hm_var_value *fn_idx =
+                        au_hm_vars_get(&loaded_module->fn_map, key, key_len);
+                    if (fn_idx == 0)
+                        au_fatal("unknown function %.*s", key_len, key);
+                    struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
+                    if (!fn->exported)
+                        au_fatal("this function is not exported");
+                    if (au_fn_num_args(fn) != import_func->num_args)
+                        au_fatal("unexpected number of arguments");
+                    if (import_func->num_args == 0) {
+                        comp_printf(state,
+                                    "extern au_value_t _M%ld_f%ld();"
+                                    "_M%ld_f%ld=&_M%ld_f%ld;\n",
+                                    imported_module_idx_in_source, fn_idx->idx,
+                                    module_idx, entry->idx,
+                                    imported_module_idx_in_source,
+                                    fn_idx->idx);
+                    } else {
+                        comp_printf(
+                            state,
+                            "extern au_value_t _M%ld_f%ld(au_value_t*);"
+                            "_M%ld_f%ld=&_M%ld_f%ld;\n",
+                            imported_module_idx_in_source, fn_idx->idx,
+                            module_idx, entry->idx,
+                            imported_module_idx_in_source, fn_idx->idx);
+                    }
+                })
+            }
 
             break;
         }
