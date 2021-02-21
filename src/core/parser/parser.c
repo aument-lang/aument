@@ -392,6 +392,7 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
             au_hm_vars_add(&func_p.vars, tok.src, tok.len, &value);
         assert(old == NULL);
         func_p.locals_len++;
+        assert(func_p.locals_len < AU_MAX_LOCALS);
         bcs.num_args++;
         while (1) {
             tok = lexer_peek(l, 0);
@@ -411,6 +412,7 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
                     au_hm_vars_add(&func_p.vars, tok.src, tok.len, &v);
                 assert(old == NULL);
                 func_p.locals_len++;
+                assert(func_p.locals_len < AU_MAX_LOCALS);
                 bcs.num_args++;
             } else {
                 assert(0);
@@ -781,6 +783,7 @@ static int parser_exec_assign(struct parser *p, struct lexer *l) {
                 parser_emit_bc_u8(p, old_value->idx);
             } else {
                 p->locals_len++;
+                assert(p->locals_len < AU_MAX_LOCALS);
                 parser_emit_bc_u8(p, var_value.idx);
             }
             parser_emit_pad8(p);
@@ -1378,9 +1381,8 @@ static int parser_exec_array(struct parser *p, struct lexer *l) {
             parser_emit_bc_u8(p, array_reg);
             parser_emit_bc_u8(p, value_reg);
             parser_emit_pad8(p);
-
-            assert(capacity < UINT16_MAX);
             capacity++;
+            assert(capacity < AU_MAX_ARRAY);
         } else {
             assert(0);
         }

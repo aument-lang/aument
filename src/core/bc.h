@@ -10,6 +10,8 @@
 #include "hm_vars.h"
 
 #define AU_REGS 256
+#define AU_MAX_LOCALS 65536
+#define AU_MAX_ARRAY 65536
 
 enum au_opcode {
     OP_EXIT = 0,
