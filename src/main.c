@@ -13,6 +13,7 @@
 
 #include "platform/mmap.h"
 #include "platform/tmpfile.h"
+#include "platform/path.h"
 
 #include "core/bc.h"
 #include "core/parser/parser.h"
@@ -137,19 +138,7 @@ int main(int argc, char **argv) {
     }
     au_mmap_del(&mmap);
 
-#ifdef _WIN32
-    {
-        char program_path[_MAX_DIR];
-        _splitpath_s(input_file, 0, 0, program_path, _MAX_DIR, 0, 0, 0, 0);
-        program.data.cwd = strdup(program_path);
-    }
-#else
-    {
-        char *program_path = realpath(input_file, 0);
-        program.data.file = strdup(program_path);
-        program.data.cwd = dirname(program_path);
-    }
-#endif
+    au_split_path(input_file, &program.data.file, &program.data.cwd);
 
     if (has_flag(flags, FLAG_DUMP_BYTECODE))
         au_program_dbg(&program);
