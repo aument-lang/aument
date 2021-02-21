@@ -12,8 +12,8 @@
 #include <string.h>
 
 #include "platform/mmap.h"
-#include "platform/tmpfile.h"
 #include "platform/path.h"
+#include "platform/tmpfile.h"
 
 #include "core/bc.h"
 #include "core/parser/parser.h"

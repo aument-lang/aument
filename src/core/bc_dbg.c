@@ -76,14 +76,14 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         }
         case OP_MOV_REG_LOCAL: {
             uint8_t reg = bc(pos);
-            uint8_t local = bc(pos + 1);
+            DEF_BC16(local, 1);
             printf(" r%d -> [%d]\n", reg, local);
             pos += 3;
             break;
         }
         case OP_MOV_LOCAL_REG: {
-            uint8_t local = bc(pos);
-            uint8_t reg = bc(pos + 1);
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1);
             printf(" [%d] -> r%d\n", reg, local);
             pos += 3;
             break;
@@ -134,7 +134,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             break;
         }
         case OP_RET_LOCAL: {
-            uint8_t local = bc(pos);
+            DEF_BC16(local, 1);
             printf(" [%d]\n", local);
             pos += 3;
             break;
@@ -152,7 +152,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         case OP_ADD_ASG:
         case OP_SUB_ASG: {
             uint8_t reg = bc(pos);
-            uint8_t local = bc(pos + 1);
+            DEF_BC16(local, 1);
             printf(" r%d -> [%d]\n", reg, local);
             pos += 3;
             break;
