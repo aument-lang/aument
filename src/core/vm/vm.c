@@ -13,9 +13,11 @@
 #include <libgen.h>
 #endif
 
+#include "platform/mmap.h"
+#include "platform/path.h"
+
 #include "core/parser/parser.h"
 #include "exception.h"
-#include "platform/mmap.h"
 #include "stdlib/au_stdlib.h"
 #include "vm.h"
 
@@ -38,42 +40,6 @@ static void au_vm_frame_del(struct au_vm_frame *frame,
     }
     free(frame->arg_stack.data);
     memset(frame, 0, sizeof(struct au_vm_frame));
-}
-
-void au_vm_thread_local_init(struct au_vm_thread_local *tl,
-                             const struct au_program_data *p_data) {
-    memset(tl, 0, sizeof(struct au_vm_thread_local));
-    tl->const_cache = au_value_calloc(p_data->data_val.len);
-    tl->const_len = p_data->data_val.len;
-    tl->print_fn = au_value_print;
-}
-
-void au_vm_thread_local_del(struct au_vm_thread_local *tl) {
-    for (size_t i = 0; i < tl->const_len; i++) {
-        au_value_deref(tl->const_cache[i]);
-    }
-    free(tl->const_cache);
-    for (struct au_program_data *next = tl->ll_module; next != 0;) {
-        struct au_program_data *ll_next = next->ll_next;
-        au_program_data_del(next);
-        free(next);
-        next = ll_next;
-    }
-    memset(tl, 0, sizeof(struct au_vm_thread_local));
-}
-
-void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
-                                        size_t len) {
-    tl->const_cache = realloc(tl->const_cache,
-                              sizeof(au_value_t) * (tl->const_len + len));
-    au_value_clear(&tl->const_cache[tl->const_len], len);
-    tl->const_len += len;
-}
-
-void au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
-                                   struct au_program_data *data) {
-    data->ll_next = tl->ll_module;
-    tl->ll_module = data;
 }
 
 #ifdef DEBUG_VM
@@ -113,6 +79,29 @@ static void debug_frame(struct au_vm_frame *frame) {
     scanf("%c", &c);
 }
 #endif
+
+static void link_to_imported(const struct au_program_data *p_data,
+                             const uint32_t relative_module_idx,
+                             const struct au_program_data *loaded_module) {
+    struct au_imported_module *module =
+        &p_data->imported_modules.data[relative_module_idx];
+    AU_HM_VARS_FOREACH_PAIR(&module->fn_map, key, entry, {
+        assert(p_data->fns.data[entry->idx].type == AU_FN_IMPORTER);
+        const struct au_imported_func *import_func =
+            &p_data->fns.data[entry->idx].as.import_func;
+        const struct au_hm_var_value *fn_idx =
+            au_hm_vars_get(&loaded_module->fn_map, key, key_len);
+        if(fn_idx == 0)
+            au_fatal("unknown function %.*s", key_len, key);
+        struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
+        if(!fn->exported)
+            au_fatal("this function is not exported");
+        if(au_fn_num_args(fn) != import_func->num_args)
+            au_fatal("unexpected number of arguments");
+        au_fn_fill_import_cache_unsafe(&p_data->fns.data[entry->idx], fn,
+                                       loaded_module);
+    })
+}
 
 static inline void bin_op_error(au_value_t left, au_value_t right,
                                 const struct au_program_data *p_data,
@@ -461,12 +450,12 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(OP_IMPORT) : {
                 const uint16_t idx =
                     *((uint16_t *)(&frame.bc[frame.pc + 2]));
-                const struct au_program_import *import =
-                    &p_data->imports.data[idx];
-                const char *relpath = import->path;
+                const size_t relative_module_idx =
+                    p_data->imports.data[idx].module_idx;
+                const char *relpath = p_data->imports.data[idx].path;
 
                 struct au_mmap_info mmap;
-                char *abspath;
+                char *abspath = 0;
 
                 if (relpath[0] == '.' && relpath[1] == '/') {
                     const char *relpath_canon = &relpath[2];
@@ -475,10 +464,29 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     abspath = malloc(abspath_len);
                     snprintf(abspath, abspath_len, "%s/%s", p_data->cwd,
                              relpath_canon);
-                    if (!au_mmap_read(abspath, &mmap))
-                        au_perror("mmap");
                 } else {
                     assert(0);
+                }
+
+                struct au_program_data *loaded_module =
+                    au_vm_thread_local_get_module(tl, abspath);
+                if (loaded_module != 0) {
+                    free(abspath);
+                    link_to_imported(p_data, relative_module_idx,
+                                     loaded_module);
+                    DISPATCH;
+                }
+
+                uint32_t tl_module_idx = ((uint32_t)-1);
+                if (relative_module_idx != AU_PROGRAM_IMPORT_NO_MODULE) {
+                    if(!au_vm_thread_local_reserve_module(tl, abspath,
+                                                    &tl_module_idx)) {
+                        au_fatal("circular module detected");
+                    }
+                }
+
+                if (!au_mmap_read(abspath, &mmap)) {
+                    au_perror("mmap");
                 }
 
                 struct au_program program;
@@ -486,56 +494,28 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                        AU_PARSER_RES_OK);
                 au_mmap_del(&mmap);
 
-#ifdef _WIN32
-                {
-                    char program_path[_MAX_DIR];
-                    _splitpath_s(abspath, 0, 0, program_path, _MAX_DIR, 0,
-                                 0, 0, 0);
-                    program.data.cwd = strdup(program_path);
-                    free(abspath);
-                }
-#else
-            {
-                program.data.file = strdup(abspath);
-                program.data.cwd = dirname(abspath);
-            }
-#endif
+                au_split_path(abspath, &program.data.file, &program.data.cwd);
+                free(abspath);
+
                 program.data.tl_constant_start = tl->const_len;
                 au_vm_thread_local_add_const_cache(
                     tl, program.data.data_val.len);
                 au_vm_exec_unverified_main(tl, &program);
 
-                if (import->module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
+                if (relative_module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
                     au_program_del(&program);
                 } else {
                     au_bc_storage_del(&program.main);
 
-                    struct au_program_data *malloced_data =
+                    struct au_program_data *loaded_module =
                         malloc(sizeof(struct au_program_data));
-                    memcpy(malloced_data, &program.data,
+                    memcpy(loaded_module, &program.data,
                            sizeof(struct au_program_data));
-                    au_vm_thread_local_add_module(tl, malloced_data);
+                    au_vm_thread_local_add_module(tl, tl_module_idx,
+                                                  loaded_module);
 
-                    struct au_imported_module *module =
-                        &p_data->imported_modules.data[import->module_idx];
-                    AU_HM_VARS_FOREACH_PAIR(&module->fn_map, key, entry, {
-                        assert(p_data->fns.data[entry->idx].type ==
-                               AU_FN_IMPORTER);
-                        const struct au_imported_func *import_func =
-                            &p_data->fns.data[entry->idx].as.import_func;
-                        const struct au_hm_var_value *fn_idx =
-                            au_hm_vars_get(&malloced_data->fn_map, key,
-                                           key_len);
-                        assert(fn_idx != 0);
-                        struct au_fn *fn =
-                            &malloced_data->fns.data[fn_idx->idx];
-                        assert(fn->exported);
-                        assert(au_fn_num_args(fn) ==
-                               import_func->num_args);
-                        au_fn_fill_import_cache_unsafe(
-                            &p_data->fns.data[entry->idx], fn,
-                            malloced_data);
-                    })
+                    link_to_imported(p_data, relative_module_idx,
+                                     loaded_module);
                 }
                 DISPATCH;
             }

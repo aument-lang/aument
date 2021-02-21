@@ -126,7 +126,6 @@ void au_imported_module_init(struct au_imported_module *data);
 void au_imported_module_del(struct au_imported_module *data);
 
 struct au_program_data {
-    struct au_program_data *ll_next;
     struct au_fn_array fns;
     struct au_hm_vars fn_map;
     struct au_program_data_vals data_val;

@@ -11,6 +11,8 @@
 #include "core/rt/value.h"
 #include "core/value_array.h"
 
+#include "tl.h"
+
 enum au_vm_frame_link_type {
     AU_VM_FRAME_LINK_NONE = 0,
     AU_VM_FRAME_LINK_IMPORTER = 1,
@@ -34,31 +36,6 @@ struct au_vm_frame {
     struct au_value_array arg_stack;
     struct au_vm_frame_link link;
 };
-
-typedef void (*au_vm_print_fn_t)(au_value_t);
-
-struct au_vm_thread_local {
-    au_vm_print_fn_t print_fn;
-    au_value_t *const_cache;
-    size_t const_len;
-    struct au_program_data *ll_module;
-};
-
-/// [func] Initializes an au_vm_thread_local instance
-/// @param tl instance to be initialized
-/// @param p_data global au_program_data instance
-void au_vm_thread_local_init(struct au_vm_thread_local *tl,
-                             const struct au_program_data *p_data);
-
-/// [func] Deinitializes an au_vm_thread_local instance
-/// @param tl instance to be deinitialized
-void au_vm_thread_local_del(struct au_vm_thread_local *tl);
-
-void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
-                                        size_t len);
-
-void au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
-                                   struct au_program_data *data);
 
 /// [func] Executes unverified bytecode in a au_bc_storage
 /// @param tl thread local storage

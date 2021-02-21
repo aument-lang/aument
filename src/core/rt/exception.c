@@ -22,7 +22,7 @@ void au_perror(const char *msg) {
     exit(1);
 }
 
-void au_fatal_index(void *array, size_t idx, size_t len) {
+void au_fatal_index(const void *array, size_t idx, size_t len) {
     au_fatal("trying to access array %p (with len %ld) at idx %ld", array,
              len, idx);
 }

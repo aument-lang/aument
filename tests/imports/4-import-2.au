@@ -1,0 +1,2 @@
+import "./4-import-1.au" as mod2;
+print mod2::f();

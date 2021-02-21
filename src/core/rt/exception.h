@@ -20,4 +20,4 @@ _NoReturn void au_perror(const char *msg);
 /// @param array the array
 /// @param idx the index the code is accessing
 /// @param len the length of the array
-_NoReturn void au_fatal_index(void *array, size_t idx, size_t len);
+_NoReturn void au_fatal_index(const void *array, size_t idx, size_t len);

@@ -300,6 +300,6 @@ When a file is parsed, if it calls an external module's function, the parser rec
 
 On runtime, when the virtual machine imports the module, it will store a reference to the module in the `au_vm_thread_local` object. The *relative module index* of the imported module is used to store the pointer to the corresponding actual module function, plus the pointer to the module structure, into the *virtual imported function* that refers to it.
 
-**Invariant:** a pointer to an external module must not be moved or freed, which is why imported modules are stored in a linked list in the `au_vm_thread_local` object instead of an array.
+**Invariant:** a pointer to an external module's data (`au_program_data`) must not be moved or freed, which is why imported modules are stored as pointers in an array in the `au_vm_thread_local` object.
 
 ## C compiler details
