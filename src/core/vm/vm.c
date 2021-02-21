@@ -83,9 +83,9 @@ static void debug_frame(struct au_vm_frame *frame) {
 static void link_to_imported(const struct au_program_data *p_data,
                              const uint32_t relative_module_idx,
                              const struct au_program_data *loaded_module) {
-    struct au_imported_module *module =
+    struct au_imported_module *relative_module =
         &p_data->imported_modules.data[relative_module_idx];
-    AU_HM_VARS_FOREACH_PAIR(&module->fn_map, key, entry, {
+    AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
         assert(p_data->fns.data[entry->idx].type == AU_FN_IMPORTER);
         const struct au_imported_func *import_func =
             &p_data->fns.data[entry->idx].as.import_func;
