@@ -4,7 +4,7 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
-#include "value.h"
+#include "main.h"
 #include <stdio.h>
 #endif
 
