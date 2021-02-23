@@ -67,13 +67,14 @@ struct au_program_data {
     struct au_program_data_vals data_val;
     uint8_t *data_buf;
     size_t data_buf_len;
+    size_t tl_constant_start;
     struct au_program_import_array imports;
     struct au_hm_vars imported_module_map;
     struct au_imported_module_array imported_modules;
     char *file;
     char *cwd;
     struct au_program_source_map_array source_map;
-    size_t tl_constant_start;
+    struct au_str_array fn_names;
 };
 
 /// [func] Initializes an au_program_data instance
