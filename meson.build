@@ -103,7 +103,7 @@ sources = [
     'src/core/rt/value.h',
     'src/core/rt/value/main.h',
     'src/core/rt/value/ref.h',
-    'src/core/rt/value_print.c',
+    'src/core/rt/value/print.c',
     'src/core/str_array.h',
     'src/core/value_array.h',
     'src/core/vm/exception.c',
@@ -170,7 +170,7 @@ if has_compile_feature
         'src/core/rt/au_array.c',
     )
     if not is_testing
-        rt_code_depends += files('src/core/rt/value_print.c')
+        rt_code_depends += files('src/core/rt/value/print.c')
     endif
     rt_code_src = custom_target(
         'comp_code.c',
