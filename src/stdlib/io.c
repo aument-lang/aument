@@ -8,6 +8,7 @@
 
 #include "core/rt/extern_fn.h"
 #include "core/rt/value.h"
+#include "core/vm/vm.h"
 
 AU_EXTERN_FUNC_DECL(au_std_input) {
     int ch = -1;

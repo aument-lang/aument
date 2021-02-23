@@ -11,10 +11,11 @@
 
 struct au_vm_thread_local;
 struct au_program_data;
+struct au_vm_frame_link;
 
-typedef au_value_t (*au_extern_func_t)(
-    struct au_vm_thread_local *tl, const struct au_program_data *p_data,
-    const au_value_t *args);
+typedef au_value_t (*au_extern_func_t)(struct au_vm_thread_local *tl,
+                                       const au_value_t *args,
+                                       const struct au_vm_frame_link link);
 
 struct au_lib_func {
     int num_args;
@@ -24,11 +25,12 @@ struct au_lib_func {
 };
 
 #define AU_EXTERN_FUNC_DECL(NAME)                                         \
-    au_value_t NAME(_Unused struct au_vm_thread_local *tl,                \
-                    _Unused const struct au_program_data *p_data,         \
-                    _Unused const au_value_t *args)
+    au_value_t NAME(_Unused struct au_vm_thread_local *_tl,               \
+                    _Unused const au_value_t *_args,                      \
+                    _Unused const struct au_vm_frame_link _link)
 
 #define AU_C_COMP_EXTERN_FUNC_DECL                                        \
     "#define AU_EXTERN_FUNC_DECL(NAME) au_value_t NAME("                  \
-    "struct au_vm_thread_local*,const struct au_program_data*,"           \
-    "const au_value_t *)"
+    "struct au_vm_thread_local*,"                                         \
+    "const au_value_t*,"                                                  \
+    "const struct au_vm_frame_link)"

@@ -17,3 +17,5 @@
         dest = src;                                                       \
         au_value_deref(old);                                              \
     } while (0)
+
+#define AU_FRAME_NONE ((struct au_vm_frame_link){0})

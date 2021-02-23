@@ -6,6 +6,7 @@
 
 #include "au_stdlib.h"
 #include "core/program.h"
+#include "core/vm/vm.h"
 
 #define STDLIB_FUNC(NAME, ARGS)                                           \
     (struct au_lib_func) {                                                \

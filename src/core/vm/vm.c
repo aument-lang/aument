@@ -16,6 +16,7 @@
 #include "platform/mmap.h"
 #include "platform/path.h"
 
+#include "core/fn.h"
 #include "core/parser/parser.h"
 #include "exception.h"
 #include "stdlib/au_stdlib.h"
@@ -355,50 +356,16 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const uint16_t func_id =
                     *((uint16_t *)(&frame.bc[frame.pc + 2]));
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
-                int n_regs;
-                switch (call_fn->type) {
-                case AU_FN_BC: {
-                    const struct au_bc_storage *call_bcs =
-                        &call_fn->as.bc_func;
-                    n_regs = call_bcs->num_args;
-                    const au_value_t *args =
-                        &frame.arg_stack
-                             .data[frame.arg_stack.len - n_regs];
-                    struct au_vm_frame_link link =
-                        (struct au_vm_frame_link){
-                            .as.p_data = p_data,
-                            .type = AU_VM_FRAME_LINK_IMPORTER,
-                        };
-                    const au_value_t callee_retval = au_vm_exec_unverified(
-                        tl, call_bcs, p_data, args, link);
-                    MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-                    break;
-                }
-                case AU_FN_NATIVE: {
-                    const struct au_lib_func *lib_func =
-                        &call_fn->as.native_func;
-                    n_regs = lib_func->num_args;
-                    const au_value_t *args =
-                        &frame.arg_stack
-                             .data[frame.arg_stack.len - n_regs];
-                    const au_value_t callee_retval =
-                        lib_func->func(tl, p_data, args);
-                    MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-                    break;
-                }
-                case AU_FN_IMPORTER: {
-                    const struct au_imported_func *import_func =
-                        &call_fn->as.import_func;
-                    n_regs = import_func->num_args;
-                    const au_value_t *args =
-                        &frame.arg_stack
-                             .data[frame.arg_stack.len - n_regs];
-                    const au_value_t callee_retval =
-                        au_fn_call(call_fn, tl, p_data, args);
-                    MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-                    break;
-                }
-                }
+                int n_regs = au_fn_num_args(call_fn);
+                const au_value_t *args =
+                    &frame.arg_stack.data[frame.arg_stack.len - n_regs];
+                struct au_vm_frame_link link = (struct au_vm_frame_link){
+                    .frame = &frame,
+                    .data = p_data,
+                };
+                const au_value_t callee_retval =
+                    au_fn_call(call_fn, tl, p_data, args, link);
+                MOVE_VALUE(frame.regs[ret_reg], callee_retval);
                 for (size_t i = frame.arg_stack.len - n_regs;
                      i < frame.arg_stack.len; i++)
                     au_value_deref(frame.arg_stack.data[i]);
