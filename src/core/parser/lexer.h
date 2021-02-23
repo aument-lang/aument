@@ -5,21 +5,20 @@
 // See LICENSE.txt for license information
 #pragma once
 
+#include <stdint.h>
 #include <string.h>
 
-enum token_type {
-    TOK_EOF = 0,
-    TOK_INT,
-    TOK_DOUBLE,
-    TOK_IDENTIFIER,
-    TOK_STRING,
-    TOK_OPERATOR,
-};
+#define TOK_EOF 0
+#define TOK_INT 1
+#define TOK_DOUBLE 2
+#define TOK_IDENTIFIER 3
+#define TOK_STRING 4
+#define TOK_OPERATOR 5
 
 struct token {
-    enum token_type type;
+    uint32_t type;
+    uint32_t len;
     const char *src;
-    size_t len;
 };
 
 /// Checks if a token is a keyword of `str`
@@ -30,7 +29,7 @@ static inline int token_keyword_cmp(const struct token *t,
                                     const char *str) {
     if (t->type != TOK_IDENTIFIER)
         return 0;
-    if (t->len != strlen(str))
+    if (t->len != (uint32_t)strlen(str))
         return 0;
     return memcmp(t->src, str, t->len) == 0;
 }
@@ -48,9 +47,8 @@ struct lexer {
     const char *src;
     size_t len;
     size_t pos;
-
-    struct token_lookahead lh[LOOKAHEAD_MAX];
     int lh_read, lh_write;
+    struct token_lookahead lh[LOOKAHEAD_MAX];
 };
 
 /// Initializes a lexer instance

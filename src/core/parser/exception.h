@@ -20,7 +20,6 @@ enum au_parser_result_type {
 #undef X
 
 struct au_parser_result {
-    enum au_parser_result_type type;
     union {
         struct {
             struct token got_token;
@@ -37,4 +36,5 @@ struct au_parser_result {
             struct token name_token;
         } unknown_var;
     } data;
+    enum au_parser_result_type type;
 };

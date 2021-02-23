@@ -9,8 +9,8 @@
 
 struct au_cc_options {
     struct au_str_array cflags;
-    int use_stdlib;
     char *_stdlib_cache;
+    int use_stdlib;
 };
 
 void au_cc_options_default(struct au_cc_options *cc);
