@@ -382,7 +382,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 n_args = lib_func->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
                 if (n_args > 0) {
-                    comp_printf(state, "%s(0,0,&s_data[s_len-%d])",
+                    comp_printf(state,
+                                "%s(0,&s_data[s_len-%d],AU_FRAME_NONE)",
                                 lib_func->symbol, n_args);
                 } else {
                     comp_printf(state, "%s(0,0,0)", lib_func->symbol);

@@ -9,9 +9,10 @@
 #include "core/rt/au_struct.h"
 #include "core/rt/extern_fn.h"
 #include "core/rt/value.h"
+#include "core/vm/vm.h"
 
 AU_EXTERN_FUNC_DECL(au_std_len) {
-    const au_value_t value = args[0];
+    const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
     case VALUE_STRUCT: {
         struct au_struct *s = au_value_get_struct(value);

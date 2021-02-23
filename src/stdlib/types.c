@@ -8,9 +8,10 @@
 
 #include "core/rt/extern_fn.h"
 #include "core/rt/value.h"
+#include "core/vm/vm.h"
 
 AU_EXTERN_FUNC_DECL(au_std_int) {
-    const au_value_t value = args[0];
+    const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
     case VALUE_INT: {
         return value;
@@ -34,11 +35,11 @@ AU_EXTERN_FUNC_DECL(au_std_int) {
 }
 
 AU_EXTERN_FUNC_DECL(au_std_bool) {
-    return au_value_bool(au_value_is_truthy(args[0]));
+    return au_value_bool(au_value_is_truthy(_args[0]));
 }
 
 AU_EXTERN_FUNC_DECL(au_std_str) {
-    const au_value_t value = args[0];
+    const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
     case VALUE_STR: {
         au_string_ref(au_value_get_string(value));

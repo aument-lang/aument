@@ -9,17 +9,6 @@
 #include "stdlib/au_stdlib.h"
 #include "vm/vm.h"
 
-void au_imported_func_del(struct au_imported_func *fn) { free(fn->name); }
-
-void au_fn_del(struct au_fn *fn) {
-    if (fn->type == AU_FN_BC) {
-        au_bc_storage_del(&fn->as.bc_func);
-    } else if (fn->type == AU_FN_IMPORTER) {
-        au_imported_func_del(&fn->as.import_func);
-    }
-    memset(fn, 0, sizeof(struct au_fn));
-}
-
 void au_program_import_del(struct au_program_import *data) {
     free(data->path);
     memset(data, 0, sizeof(struct au_program_import));
@@ -88,35 +77,4 @@ void au_program_del(struct au_program *p) {
     au_bc_storage_del(&p->main);
     au_program_data_del(&p->data);
     memset(p, 0, sizeof(struct au_program));
-}
-
-void au_fn_fill_import_cache_unsafe(
-    const struct au_fn *fn, const struct au_fn *fn_cached,
-    const struct au_program_data *p_data_cached) {
-    *(const struct au_fn **)(&fn->as.import_func.fn_cached) = fn_cached;
-    *(const struct au_program_data **)(&fn->as.import_func.p_data_cached) =
-        p_data_cached;
-}
-
-au_value_t au_fn_call(const struct au_fn *fn,
-                      struct au_vm_thread_local *tl,
-                      const struct au_program_data *p_data,
-                      const au_value_t *args) {
-    switch (fn->type) {
-    case AU_FN_NATIVE: {
-        return fn->as.native_func.func(tl, p_data, args);
-    }
-    case AU_FN_BC: {
-        return au_vm_exec_unverified(tl, &fn->as.bc_func, p_data, args,
-                                     (struct au_vm_frame_link){0});
-    }
-    case AU_FN_IMPORTER: {
-        return au_fn_call(fn->as.import_func.fn_cached, tl,
-                          fn->as.import_func.p_data_cached, args);
-    }
-    default: {
-        _Unreachable;
-        return au_value_none();
-    }
-    }
 }

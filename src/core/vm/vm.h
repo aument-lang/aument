@@ -11,21 +11,8 @@
 #include "core/rt/value.h"
 #include "core/value_array.h"
 
+#include "frame_link.h"
 #include "tl.h"
-
-enum au_vm_frame_link_type {
-    AU_VM_FRAME_LINK_NONE = 0,
-    AU_VM_FRAME_LINK_IMPORTER = 1,
-    AU_VM_FRAME_LINK_FRAME = 2,
-};
-
-struct au_vm_frame_link {
-    union {
-        const struct au_vm_frame *frame;
-        const struct au_program_data *p_data;
-    } as;
-    enum au_vm_frame_link_type type;
-};
 
 struct au_vm_frame {
     au_value_t regs[AU_REGS];

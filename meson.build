@@ -69,6 +69,10 @@ sources = [
     'src/core/bc_dbg.c',
     'src/core/bit_array.h',
     'src/core/char_array.h',
+    'src/core/fn.h',
+    'src/core/fn/call.h',
+    'src/core/fn/main.c',
+    'src/core/fn/main.h',
     'src/core/hash.c',
     'src/core/hash.h',
     'src/core/hm_vars.c',
@@ -143,6 +147,7 @@ if has_compile_feature
         'src/core/rt/value/ref.h',
         'src/core/rt/au_array.h',
         'src/core/rt/extern_fn.h',
+        'src/core/vm/frame_link.h',
         'src/core/rt/includes/stdlib_end.h',
     )
     stdlib_begin_hdr = files('src/core/rt/includes/stdlib_begin.h')

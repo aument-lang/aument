@@ -61,7 +61,7 @@ enum au_opcode {
     PRINTABLE_OP_LEN,
 };
 
-extern const char *au_opcode_dbg[256];
+extern const char *au_opcode_dbg[AU_REGS];
 
 ARRAY_TYPE_COPY(uint8_t, au_bc_buf, 4)
 
