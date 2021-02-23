@@ -196,6 +196,16 @@ static struct token lexer_next_(struct lexer *l) {
                 .len = 2,
             };
         }
+    } else if (start_ch == '#') {
+        l->pos++;
+        if (!L_EOF() && l->src[l->pos] == '[') {
+            l->pos++;
+            return (struct token){
+                .type = TOK_OPERATOR,
+                .src = l->src + start,
+                .len = 2,
+            };
+        }
     }
 
     au_fatal("unexpected character %c", start_ch);

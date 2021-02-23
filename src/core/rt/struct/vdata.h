@@ -10,8 +10,8 @@
 #endif
 
 typedef void (*au_struct_del_fn_t)(void *self);
-typedef au_value_t (*au_struct_idx_get_fn_t)(struct au_struct *self,
-                                             au_value_t idx);
+typedef int (*au_struct_idx_get_fn_t)(struct au_struct *self,
+                                      au_value_t idx, au_value_t *value);
 typedef int (*au_struct_idx_set_fn_t)(struct au_struct *self,
                                       au_value_t idx, au_value_t value);
 typedef int32_t (*au_struct_len_fn_t)(struct au_struct *self);

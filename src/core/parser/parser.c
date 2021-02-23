@@ -166,7 +166,8 @@ static int parser_exec_muldiv(struct parser *p, struct lexer *l);
 static int parser_exec_unary_expr(struct parser *p, struct lexer *l);
 static int parser_exec_index_expr(struct parser *p, struct lexer *l);
 static int parser_exec_val(struct parser *p, struct lexer *l);
-static int parser_exec_array(struct parser *p, struct lexer *l);
+static int parser_exec_array_or_tuple(struct parser *p, struct lexer *l,
+                                      int is_tuple);
 
 static int parser_exec(struct parser *p, struct lexer *l) {
     while (1) {
@@ -450,7 +451,7 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
         return 0;
     }
 
-    if(expected_num_args != -1)
+    if (expected_num_args != -1)
         assert(bcs.num_args == expected_num_args);
     func_p.self_num_args = bcs.num_args;
     assert(parser_exec_block(&func_p, l) == 1);
@@ -1138,7 +1139,9 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 return 0;
             }
         } else if (t.len == 1 && t.src[0] == '[') {
-            return parser_exec_array(p, l);
+            return parser_exec_array_or_tuple(p, l, 0);
+        } else if (t.len == 2 && t.src[0] == '#' && t.src[1] == '[') {
+            return parser_exec_array_or_tuple(p, l, 1);
         } else {
             p->res = (struct au_parser_result){
                 .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
@@ -1149,6 +1152,22 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
         break;
     }
     case TOK_IDENTIFIER: {
+        if (token_keyword_cmp(&t, "true")) {
+            const uint8_t reg = parser_new_reg(p);
+            parser_emit_bc_u8(p, OP_MOV_BOOL);
+            parser_emit_bc_u8(p, 1);
+            parser_emit_bc_u8(p, reg);
+            parser_emit_pad8(p);
+            return 1;
+        } else if (token_keyword_cmp(&t, "false")) {
+            const uint8_t reg = parser_new_reg(p);
+            parser_emit_bc_u8(p, OP_MOV_BOOL);
+            parser_emit_bc_u8(p, 0);
+            parser_emit_bc_u8(p, reg);
+            parser_emit_pad8(p);
+            return 1;
+        }
+
         struct token peek = lexer_peek(l, 0);
 
         struct token module_tok = (struct token){.type = TOK_EOF};
@@ -1273,18 +1292,6 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             } else {
                 parser_replace_bc_u16(p, offset, func_idx);
             }
-        } else if (token_keyword_cmp(&t, "true")) {
-            const uint8_t reg = parser_new_reg(p);
-            parser_emit_bc_u8(p, OP_MOV_BOOL);
-            parser_emit_bc_u8(p, 1);
-            parser_emit_bc_u8(p, reg);
-            parser_emit_pad8(p);
-        } else if (token_keyword_cmp(&t, "false")) {
-            const uint8_t reg = parser_new_reg(p);
-            parser_emit_bc_u8(p, OP_MOV_BOOL);
-            parser_emit_bc_u8(p, 0);
-            parser_emit_bc_u8(p, reg);
-            parser_emit_pad8(p);
         } else {
             const struct au_hm_var_value *val =
                 au_hm_vars_get(&p->vars, t.src, t.len);
@@ -1356,10 +1363,16 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
     return 1;
 }
 
-static int parser_exec_array(struct parser *p, struct lexer *l) {
+static int parser_exec_array_or_tuple(struct parser *p, struct lexer *l,
+                                      int is_tuple) {
     const uint8_t array_reg = parser_new_reg(p);
-    parser_emit_bc_u8(p, OP_ARRAY_NEW);
-    parser_emit_bc_u8(p, array_reg);
+    if (is_tuple) {
+        parser_emit_bc_u8(p, OP_TUPLE_NEW);
+        parser_emit_bc_u8(p, array_reg);
+    } else {
+        parser_emit_bc_u8(p, OP_ARRAY_NEW);
+        parser_emit_bc_u8(p, array_reg);
+    }
     const size_t cap_offset = p->bc.len;
     parser_emit_bc_u16(p, 0);
 
@@ -1373,10 +1386,17 @@ static int parser_exec_array(struct parser *p, struct lexer *l) {
     if (!parser_exec_expr(p, l))
         return 0;
     const uint8_t value_reg = parser_pop_reg(p);
-    parser_emit_bc_u8(p, OP_ARRAY_PUSH);
-    parser_emit_bc_u8(p, array_reg);
-    parser_emit_bc_u8(p, value_reg);
-    parser_emit_pad8(p);
+    if (is_tuple) {
+        parser_emit_bc_u8(p, OP_IDX_SET_STATIC);
+        parser_emit_bc_u8(p, array_reg);
+        parser_emit_bc_u8(p, 0);
+        parser_emit_bc_u8(p, value_reg);
+    } else {
+        parser_emit_bc_u8(p, OP_ARRAY_PUSH);
+        parser_emit_bc_u8(p, array_reg);
+        parser_emit_bc_u8(p, value_reg);
+        parser_emit_pad8(p);
+    }
 
     while (1) {
         tok = lexer_peek(l, 0);
@@ -1396,12 +1416,22 @@ static int parser_exec_array(struct parser *p, struct lexer *l) {
             if (!parser_exec_expr(p, l))
                 return 0;
             const uint8_t value_reg = parser_pop_reg(p);
-            parser_emit_bc_u8(p, OP_ARRAY_PUSH);
-            parser_emit_bc_u8(p, array_reg);
-            parser_emit_bc_u8(p, value_reg);
-            parser_emit_pad8(p);
-            if (capacity < (AU_MAX_ARRAY - 1)) {
+
+            if (is_tuple) {
+                parser_emit_bc_u8(p, OP_IDX_SET_STATIC);
+                parser_emit_bc_u8(p, array_reg);
+                parser_emit_bc_u8(p, capacity);
+                parser_emit_bc_u8(p, value_reg);
                 capacity++;
+                assert(capacity < AU_MAX_STATIC_IDX);
+            } else {
+                parser_emit_bc_u8(p, OP_ARRAY_PUSH);
+                parser_emit_bc_u8(p, array_reg);
+                parser_emit_bc_u8(p, value_reg);
+                parser_emit_pad8(p);
+                if (capacity < (AU_MAX_ARRAY - 1)) {
+                    capacity++;
+                }
             }
         } else {
             assert(0);

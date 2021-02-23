@@ -27,6 +27,7 @@ c_src = """
 #include "core/program.h"
 #include "core/rt/exception.h"
 #include "core/rt/au_array.h"
+#include "core/rt/au_tuple.h"
 #include "core/vm/vm.h"
 """
 
@@ -88,9 +89,26 @@ static void test_{i}_check(au_value_t value) {{ switch(test_{i}_idx) {{
     assert(au_value_get_type(value) == VALUE_STRUCT && au_value_get_struct(value)->vdata == &au_obj_array_vdata);
     struct au_obj_array *array = (struct au_obj_array *)au_value_get_struct(value);
 """
+            for item_idx in range(len(array_contents)):
+                test_src += f"au_value_t _value{item_idx}; assert(au_obj_array_get(array, au_value_int({item_idx}), &_value{item_idx}));\n"
             for item_idx, item in enumerate(array_contents):
                 val_type, val_contents = item.split(',')
-                item = f"au_obj_array_get(array, au_value_int({item_idx}))"
+                item = f"_value{item_idx}"
+                test_src += f"    {gen_check_value(item, val_type, val_contents)}\n"
+            test_src += f"  }}\n"
+            continue
+        elif value.startswith("tuple;"):
+            array_contents = value.split(';')[1:]
+            test_src += f"  case {val_idx}: {{\n"
+            test_src += """\
+    assert(au_value_get_type(value) == VALUE_STRUCT && au_value_get_struct(value)->vdata == &au_obj_tuple_vdata);
+    struct au_obj_tuple *tuple = (struct au_obj_tuple *)au_value_get_struct(value);
+"""
+            for item_idx in range(len(array_contents)):
+                test_src += f"au_value_t _value{item_idx}; assert(au_obj_tuple_get(tuple, au_value_int({item_idx}), &_value{item_idx}));\n"
+            for item_idx, item in enumerate(array_contents):
+                val_type, val_contents = item.split(',')
+                item = f"_value{item_idx}"
                 test_src += f"    {gen_check_value(item, val_type, val_contents)}\n"
             test_src += f"  }}\n"
             continue

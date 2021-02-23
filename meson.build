@@ -92,22 +92,27 @@ sources = [
     'src/core/rt/au_string.c',
     'src/core/rt/au_string.h',
     'src/core/rt/au_struct.h',
+    'src/core/rt/au_tuple.c',
+    'src/core/rt/au_tuple.h',
     'src/core/rt/exception.c',
     'src/core/rt/exception.h',
     'src/core/rt/extern_fn.h',
     'src/core/rt/includes/stdlib_begin.h',
     'src/core/rt/includes/stdlib_end.h',
     'src/core/rt/struct/coerce.h',
+    'src/core/rt/struct/helper.c',
+    'src/core/rt/struct/helper.h',
     'src/core/rt/struct/main.h',
     'src/core/rt/struct/vdata.h',
     'src/core/rt/value.h',
     'src/core/rt/value/main.h',
-    'src/core/rt/value/ref.h',
     'src/core/rt/value/print.c',
+    'src/core/rt/value/ref.h',
     'src/core/str_array.h',
     'src/core/value_array.h',
     'src/core/vm/exception.c',
     'src/core/vm/exception.h',
+    'src/core/vm/frame_link.h',
     'src/core/vm/tl.c',
     'src/core/vm/tl.h',
     'src/core/vm/vm.c',
@@ -144,6 +149,7 @@ if has_compile_feature
         'src/core/rt/value/main.h',
         'src/core/rt/struct/vdata.h',
         'src/core/rt/struct/coerce.h',
+        'src/core/rt/struct/helper.h',
         'src/core/rt/value/ref.h',
         'src/core/rt/au_array.h',
         'src/core/rt/extern_fn.h',
@@ -168,6 +174,7 @@ if has_compile_feature
     rt_code_depends = files(
         'src/core/rt/au_string.c',
         'src/core/rt/au_array.c',
+        'src/core/rt/struct/helper.c',
     )
     if not is_testing
         rt_code_depends += files('src/core/rt/value/print.c')
@@ -205,6 +212,7 @@ au_runtime_sources = [
     'src/stdlib/io.c',
     'src/stdlib/types.c',
     'src/stdlib/array.c',
+    'src/core/rt/struct/helper.c',
 ]
 
 # Build types
