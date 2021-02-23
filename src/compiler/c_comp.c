@@ -406,6 +406,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 comp_printf(state, ");");
                 break;
             }
+            case AU_FN_NONE: {
+                au_fatal("generating none function");
+            }
             }
             if (n_args > 0) {
                 for (int i = 0; i < n_args; i++) {
@@ -731,6 +734,9 @@ void au_c_comp_module(struct au_c_comp_state *state,
                             module_idx, i);
             }
             break;
+        }
+        case AU_FN_NONE: {
+            au_fatal("generating none function");
         }
         }
     }

@@ -48,6 +48,9 @@ void au_program_data_del(struct au_program_data *data) {
     free(data->cwd);
     free(data->file);
     free(data->source_map.data);
+    for (size_t i = 0; i < data->fn_names.len; i++)
+        free(data->fn_names.data[i]);
+    free(data->fn_names.data);
     memset(data, 0, sizeof(struct au_program_data));
 }
 

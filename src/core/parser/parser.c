@@ -183,7 +183,8 @@ static int parser_exec(struct parser *p, struct lexer *l) {
 
 static int parser_exec_export_statement(struct parser *p, struct lexer *l);
 static int parser_exec_import_statement(struct parser *p, struct lexer *l);
-static int parser_exec_def_statement(struct parser *p, struct lexer *l);
+static int parser_exec_def_statement(struct parser *p, struct lexer *l,
+                                     int exported);
 static int parser_exec_while_statement(struct parser *p, struct lexer *l);
 static int parser_exec_if_statement(struct parser *p, struct lexer *l);
 static int parser_exec_print_statement(struct parser *p, struct lexer *l);
@@ -246,7 +247,7 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
     } else if (t.type == TOK_IDENTIFIER) {
         if (token_keyword_cmp(&t, "def")) {
             lexer_next(l);
-            retval = parser_exec_def_statement(p, l);
+            retval = parser_exec_def_statement(p, l, 0);
         } else if (token_keyword_cmp(&t, "if")) {
             lexer_next(l);
             retval = parser_exec_if_statement(p, l);
@@ -344,22 +345,7 @@ static int parser_exec_export_statement(struct parser *p,
 
     struct token tok = lexer_peek(l, 0);
     if (token_keyword_cmp(&tok, "def")) {
-        lexer_next(l);
-        const struct token name_tok = lexer_peek(l, 0);
-        if (name_tok.type != TOK_IDENTIFIER) {
-            p->res = (struct au_parser_result){
-                .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-                .data.unexpected_token.got_token = tok,
-            };
-            return 0;
-        }
-        if (!parser_exec_def_statement(p, l))
-            return 0;
-        size_t idx =
-            au_hm_vars_get(&p->p_data->fn_map, name_tok.src, name_tok.len)
-                ->idx;
-        struct au_fn *fn = &p->p_data->fns.data[idx];
-        fn->exported = 1;
+        return parser_exec_def_statement(p, l, 1);
     } else {
         // TODO: export locals
         assert(0);
@@ -368,11 +354,43 @@ static int parser_exec_export_statement(struct parser *p,
     return 1;
 }
 
-static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
+static int parser_exec_def_statement(struct parser *p, struct lexer *l,
+                                     int exported) {
     assert(p->block_level == 0);
 
     const struct token id_tok = lexer_next(l);
     assert(id_tok.type == TOK_IDENTIFIER);
+
+    int expected_num_args = -1;
+
+    struct au_hm_var_value func_value = (struct au_hm_var_value){
+        .idx = p->p_data->fns.len,
+    };
+    struct au_hm_var_value *old_value = au_hm_vars_add(
+        &p->p_data->fn_map, id_tok.src, id_tok.len, &func_value);
+    if (old_value) {
+        func_value.idx = old_value->idx;
+
+        struct au_fn *old =
+            au_fn_array_at_mut(&p->p_data->fns, func_value.idx);
+        expected_num_args = au_fn_num_args(old);
+        au_fn_del(old);
+
+        *old = (struct au_fn){
+            .type = AU_FN_NONE,
+            .as.none_func.num_args = 0,
+            .as.none_func.name_token.type = TOK_EOF,
+        };
+    } else {
+        struct au_fn none_func = (struct au_fn){
+            .type = AU_FN_NONE,
+            .as.none_func.num_args = 0,
+            .as.none_func.name_token.type = TOK_EOF,
+        };
+        au_fn_array_add(&p->p_data->fns, none_func);
+        au_str_array_add(&p->p_data->fn_names,
+                         strndup(id_tok.src, id_tok.len));
+    }
 
     struct parser func_p = {0};
     parser_init(&func_p, p->p_data);
@@ -415,7 +433,11 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
                 assert(func_p.locals_len < AU_MAX_LOCALS);
                 bcs.num_args++;
             } else {
-                assert(0);
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
+                    .data.unexpected_token.got_token = tok,
+                };
+                return 0;
             }
         }
     } else if (tok.len == 1 && tok.src[0] == ')') {
@@ -428,6 +450,8 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
         return 0;
     }
 
+    if(expected_num_args != -1)
+        assert(bcs.num_args == expected_num_args);
     func_p.self_num_args = bcs.num_args;
     assert(parser_exec_block(&func_p, l) == 1);
     parser_emit_bc_u8(&func_p, OP_RET_NULL);
@@ -437,26 +461,15 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l) {
     bcs.num_registers = func_p.max_register + 1;
     func_p.bc = (struct au_bc_buf){0};
 
-    struct au_hm_var_value var_value = (struct au_hm_var_value){
-        .idx = p->p_data->fns.len,
-    };
-    struct au_hm_var_value *old_value = au_hm_vars_add(
-        &p->p_data->fn_map, id_tok.src, id_tok.len, &var_value);
-    if (old_value) {
-        // Forward declaration
-        assert(0);
-    } else {
-        for (size_t i = 0; i < func_p.self_fill_call.len; i++) {
-            const size_t offset = func_p.self_fill_call.data[i];
-            replace_bc_u16(&bcs.bc, offset, var_value.idx);
-        }
-        struct au_fn fn = (struct au_fn){
-            .type = AU_FN_BC,
-            .exported = 0,
-            .as.bc_func = bcs,
-        };
-        au_fn_array_add(&p->p_data->fns, fn);
+    for (size_t i = 0; i < func_p.self_fill_call.len; i++) {
+        const size_t offset = func_p.self_fill_call.data[i];
+        replace_bc_u16(&bcs.bc, offset, func_value.idx);
     }
+    *au_fn_array_at_mut(&p->p_data->fns, func_value.idx) = (struct au_fn){
+        .type = AU_FN_BC,
+        .exported = exported,
+        .as.bc_func = bcs,
+    };
 
     parser_del(&func_p);
 
@@ -1209,11 +1222,21 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             }
 
             if (!func_idx_found) {
-                p->res = (struct au_parser_result){
-                    .type = AU_PARSER_RES_UNKNOWN_FUNCTION,
-                    .data.unknown_function.name_token = t,
+                struct au_hm_var_value func_value =
+                    (struct au_hm_var_value){
+                        .idx = p->p_data->fns.len,
+                    };
+                au_hm_vars_add(&p->p_data->fn_map, t.src, t.len,
+                               &func_value);
+                struct au_fn none_func = (struct au_fn){
+                    .type = AU_FN_NONE,
+                    .as.none_func.num_args = n_args,
+                    .as.none_func.name_token = t,
                 };
-                return 0;
+                au_fn_array_add(&p->p_data->fns, none_func);
+                au_str_array_add(&p->p_data->fn_names,
+                                 strndup(t.src, t.len));
+                func_idx = func_value.idx;
             }
 
             if (execute_self) {
@@ -1405,6 +1428,20 @@ struct au_parser_result au_parse(const char *src, size_t len,
         parser_del(&p);
         au_program_data_del(&p_data);
         return res;
+    }
+
+    for (size_t i = 0; i < p_data.fns.len; i++) {
+        if (p_data.fns.data[i].type == AU_FN_NONE) {
+            struct token name_token =
+                p_data.fns.data[i].as.none_func.name_token;
+            lexer_del(&l);
+            parser_del(&p);
+            au_program_data_del(&p_data);
+            return (struct au_parser_result){
+                .type = AU_PARSER_RES_UNKNOWN_FUNCTION,
+                .data.unknown_function.name_token = name_token,
+            };
+        }
     }
 
     struct au_bc_storage p_main;
