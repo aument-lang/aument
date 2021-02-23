@@ -152,7 +152,7 @@ export def random() {
 }
 ```
 
-Exported functions and variables are accessible under a **module**. You have to explicit import a file as a module in order to use it:
+Exported functions and variables are accessible under a **module**. You have to explicitly import a file as a module in order to use it:
 
 ```
 import "importee.au" as module;
