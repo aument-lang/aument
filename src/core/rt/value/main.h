@@ -46,9 +46,10 @@ typedef union {
 #define AU_REPR_OP_ERROR 0x7ff0ffffffffffff
 
 static _AlwaysInline enum au_vtype au_value_get_type(const au_value_t v) {
-    if (AU_REPR_FRACTION(v.raw) != AU_REPR_INF_FRACTION &&
-        AU_REPR_FRACTION(v.raw) != AU_REPR_NAN_FRACTION &&
-        AU_REPR_EXPONENT(v.raw) == AU_REPR_SPECIAL_EXPONENT) {
+    // Use bitwise AND to reduce unnecessary branching
+    if ((AU_REPR_FRACTION(v.raw) != AU_REPR_INF_FRACTION) &
+        (AU_REPR_FRACTION(v.raw) != AU_REPR_NAN_FRACTION) &
+        (AU_REPR_EXPONENT(v.raw) == AU_REPR_SPECIAL_EXPONENT)) {
         return (enum au_vtype)((v.raw >> 48) & 0xf);
     } else {
         return VALUE_DOUBLE;
@@ -260,7 +261,7 @@ static _AlwaysInline int au_value_is_truthy(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
                                              au_value_t rhs) {
-    if (au_value_get_type(lhs) != au_value_get_type(rhs))
+    if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))
         return au_value_op_error();
     switch (au_value_get_type(lhs)) {
     case VALUE_INT: {
@@ -283,7 +284,7 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
 #define _BIN_OP_GENERIC_NUMBER(NAME, OP)                                  \
     static _AlwaysInline au_value_t NAME(au_value_t lhs,                  \
                                          au_value_t rhs) {                \
-        if (au_value_get_type(lhs) != au_value_get_type(rhs))             \
+        if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))  \
             return au_value_op_error();                                   \
         switch (au_value_get_type(lhs)) {                                 \
         case VALUE_INT: {                                                 \
@@ -305,7 +306,7 @@ _BIN_OP_GENERIC_NUMBER(au_value_div, /)
 
 static _AlwaysInline au_value_t au_value_mod(au_value_t lhs,
                                              au_value_t rhs) {
-    if (au_value_get_type(lhs) != au_value_get_type(rhs))
+    if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))
         return au_value_op_error();
     switch (au_value_get_type(lhs)) {
     case VALUE_INT: {
@@ -320,7 +321,7 @@ static _AlwaysInline au_value_t au_value_mod(au_value_t lhs,
 #define _BIN_OP_BOOL_GENERIC(NAME, OP)                                    \
     static _AlwaysInline au_value_t NAME(au_value_t lhs,                  \
                                          au_value_t rhs) {                \
-        if (au_value_get_type(lhs) != au_value_get_type(rhs))             \
+        if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))  \
             return au_value_bool(0);                                      \
         switch (au_value_get_type(lhs)) {                                 \
         case VALUE_INT: {                                                 \
@@ -345,7 +346,7 @@ _BIN_OP_BOOL_GENERIC(au_value_geq, >=)
 
 static _AlwaysInline au_value_t au_value_eq(au_value_t lhs,
                                             au_value_t rhs) {
-    if (au_value_get_type(lhs) != au_value_get_type(lhs))
+    if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))
         return au_value_bool(0);
     switch (au_value_get_type(lhs)) {
     case VALUE_INT: {
@@ -367,7 +368,7 @@ static _AlwaysInline au_value_t au_value_eq(au_value_t lhs,
 }
 static _AlwaysInline au_value_t au_value_neq(au_value_t lhs,
                                              au_value_t rhs) {
-    if (au_value_get_type(lhs) != au_value_get_type(lhs))
+    if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))
         return au_value_bool(1);
     switch (au_value_get_type(lhs)) {
     case VALUE_INT: {

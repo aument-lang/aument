@@ -16,10 +16,10 @@
 
 struct au_vm_frame {
     au_value_t regs[AU_REGS];
-    au_value_t retval;
-    au_value_t *locals;
     const uint8_t *bc;
     size_t pc;
+    au_value_t *locals;
+    au_value_t retval;
     struct au_value_array arg_stack;
     struct au_vm_frame_link link;
 };

@@ -19,7 +19,6 @@ enum au_interpreter_result_type {
 #undef X
 
 struct au_interpreter_result {
-    enum au_interpreter_result_type type;
     union {
         struct {
             au_value_t left;
@@ -27,6 +26,7 @@ struct au_interpreter_result {
         } incompat_bin_op;
     } data;
     size_t pos;
+    enum au_interpreter_result_type type;
 };
 
 /// [func] Throws an interpreter error
