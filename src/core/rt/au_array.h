@@ -16,8 +16,8 @@ struct au_obj_array *au_obj_array_new(size_t capacity);
 void au_obj_array_del(struct au_obj_array *obj_array);
 
 void au_obj_array_push(struct au_obj_array *obj_array, au_value_t el);
-au_value_t au_obj_array_get(struct au_obj_array *obj_array,
-                            au_value_t idx);
+int au_obj_array_get(struct au_obj_array *obj_array, const au_value_t idx,
+                     au_value_t *result);
 int au_obj_array_set(struct au_obj_array *obj_array, au_value_t idx,
                      au_value_t value);
 int32_t au_obj_array_len(struct au_obj_array *obj_array);

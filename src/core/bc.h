@@ -12,6 +12,7 @@
 #define AU_REGS 256
 #define AU_MAX_LOCALS 65536
 #define AU_MAX_ARRAY 65536
+#define AU_MAX_STATIC_IDX 256
 
 enum au_opcode {
     OP_EXIT = 0,
@@ -58,6 +59,8 @@ enum au_opcode {
     OP_IDX_GET = 36,
     OP_IDX_SET = 37,
     OP_NOT = 38,
+    OP_TUPLE_NEW = 39,
+    OP_IDX_SET_STATIC = 40,
     PRINTABLE_OP_LEN,
 };
 

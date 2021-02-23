@@ -27,6 +27,10 @@ void au_value_print(au_value_t value) {
         printf("%.*s", str->len, str->data);
         break;
     }
+    case VALUE_STRUCT: {
+        printf("(struct)");
+        break;
+    }
     default: {
         printf("(unknown)");
         break;

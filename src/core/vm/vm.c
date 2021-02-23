@@ -8,11 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
-#else
-#include <libgen.h>
-#endif
-
 #include "platform/mmap.h"
 #include "platform/path.h"
 
@@ -25,6 +20,7 @@
 #include "core/rt/au_array.h"
 #include "core/rt/au_string.h"
 #include "core/rt/au_struct.h"
+#include "core/rt/au_tuple.h"
 #include "core/rt/exception.h"
 
 static void au_vm_frame_del(struct au_vm_frame *frame,
@@ -210,6 +206,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(OP_IDX_GET),
             &&CASE(OP_IDX_SET),
             &&CASE(OP_NOT),
+            &&CASE(OP_TUPLE_NEW),
+            &&CASE(OP_IDX_SET_STATIC),
         };
         goto *cb[frame.bc[0]];
 #endif
@@ -532,9 +530,12 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const uint8_t ret_reg = frame.bc[frame.pc + 3];
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
-                    COPY_VALUE(frame.regs[ret_reg],
-                               collection->vdata->idx_get_fn(collection,
-                                                             idx_val));
+                    au_value_t value;
+                    if (!collection->vdata->idx_get_fn(collection, idx_val,
+                                                       &value)) {
+                        au_fatal("invalid index");
+                    }
+                    COPY_VALUE(frame.regs[ret_reg], value);
                 }
                 DISPATCH;
             }
@@ -547,8 +548,10 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     frame.regs[frame.bc[frame.pc + 3]];
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
-                    collection->vdata->idx_set_fn(collection, idx_val,
-                                                  value_val);
+                    if (!collection->vdata->idx_set_fn(collection, idx_val,
+                                                       value_val)) {
+                        au_fatal("invalid index");
+                    }
                 }
                 DISPATCH;
             }
@@ -562,6 +565,32 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     MOVE_VALUE(frame.regs[reg],
                                au_value_bool(
                                    !au_value_is_truthy(frame.regs[reg])));
+                }
+                DISPATCH;
+            }
+            CASE(OP_TUPLE_NEW) : {
+                const uint8_t reg = frame.bc[frame.pc + 1];
+                const uint16_t length =
+                    *((uint16_t *)(&frame.bc[frame.pc + 2]));
+                MOVE_VALUE(
+                    frame.regs[reg],
+                    au_value_struct(
+                        (struct au_struct *)au_obj_tuple_new(length)));
+                DISPATCH;
+            }
+            CASE(OP_IDX_SET_STATIC) : {
+                const au_value_t col_val =
+                    frame.regs[frame.bc[frame.pc + 1]];
+                const au_value_t idx_val =
+                    au_value_int(frame.bc[frame.pc + 2]);
+                const au_value_t value_val =
+                    frame.regs[frame.bc[frame.pc + 3]];
+                struct au_struct *collection = au_struct_coerce(col_val);
+                if (_Likely(collection != 0)) {
+                    if (!collection->vdata->idx_set_fn(collection, idx_val,
+                                                       value_val)) {
+                        au_fatal("invalid index");
+                    }
                 }
                 DISPATCH;
             }

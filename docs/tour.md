@@ -24,7 +24,7 @@ You can also use boolean operators (logical and `&&` and logical or `||`):
 true && false; // false
 ```
 
-## Arrays
+## Arrays and tuples
 
 You can define arrays by using the literal syntax:
 
@@ -32,7 +32,13 @@ You can define arrays by using the literal syntax:
 a = [1,2,3];
 ```
 
-You can index and set an item in the array. Like C and Python, aulang's arrays begins with index 0.
+Tuples are like statically sized arrays:
+
+```
+a = #[1,2,3];
+```
+
+You can index and set an item in an array or a tuple. Like C and Python, aulang's collections begin at index 0.
 
 ```
 a[0]; // 1

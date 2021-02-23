@@ -10,14 +10,47 @@
 #include "program.h"
 #include "rt/exception.h"
 
-const char *au_opcode_dbg[256] = {
-    "(exit)",  "mov",     "mul",   "div",    "add",       "sub",
-    "mod",     "mov",     "mov",   "print",  "eq",        "neq",
-    "lt",      "gt",      "leq",   "geq",    "jif",       "jnif",
-    "jrel",    "jrelb",   "loadc", "mov",    "nop",       "mul",
-    "div",     "add",     "sub",   "mod",    "push_arg",  "call",
-    "ret",     "ret",     "ret",   "import", "array_new", "array_push",
-    "idx_get", "idx_set", "not"};
+const char *au_opcode_dbg[256] = {"(exit)",
+                                  "mov",
+                                  "mul",
+                                  "div",
+                                  "add",
+                                  "sub",
+                                  "mod",
+                                  "mov",
+                                  "mov",
+                                  "print",
+                                  "eq",
+                                  "neq",
+                                  "lt",
+                                  "gt",
+                                  "leq",
+                                  "geq",
+                                  "jif",
+                                  "jnif",
+                                  "jrel",
+                                  "jrelb",
+                                  "loadc",
+                                  "mov",
+                                  "nop",
+                                  "mul",
+                                  "div",
+                                  "add",
+                                  "sub",
+                                  "mod",
+                                  "push_arg",
+                                  "call",
+                                  "ret",
+                                  "ret",
+                                  "ret",
+                                  "import",
+                                  "array_new",
+                                  "array_push",
+                                  "idx_get",
+                                  "idx_set",
+                                  "not",
+                                  "tuple_new",
+                                  "idx_set_static"};
 
 void au_bc_dbg(const struct au_bc_storage *bcs,
                const struct au_program_data *data) {
@@ -205,6 +238,21 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         case OP_NOT: {
             uint8_t reg = bc(pos);
             printf(" r%d\n", reg);
+            pos += 3;
+            break;
+        }
+        case OP_TUPLE_NEW: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(len, 1)
+            printf(" %d [length %d]\n", reg, len);
+            pos += 3;
+            break;
+        }
+        case OP_IDX_SET_STATIC: {
+            uint8_t reg = bc(pos);
+            uint8_t idx = bc(pos + 1);
+            uint8_t ret = bc(pos + 2);
+            printf(" r%d [%d] <- r%d\n", reg, idx, ret);
             pos += 3;
             break;
         }
