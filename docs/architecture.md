@@ -244,7 +244,7 @@ The `OP_RET` operation returns the register `reg`.
 
 Returns a null value.
 
-#### Array-related opcodes
+#### Collection-related opcodes
 
 ##### `OP_ARRAY_NEW`
 
@@ -255,6 +255,16 @@ Returns a null value.
 ```
 
 Allocates an array of capacity specified by the 16-bit number (platform-specific-endianness) `n` into register `reg`.
+
+##### `OP_TUPLE_NEW`
+
+**Structure:**
+
+```
+[ code (1 byte) ] [ reg (1 byte) ] [ n (2 bytes) ]
+```
+
+Allocates a tuple of capacity specified by the 16-bit number (platform-specific-endianness) `n` into register `reg`.
 
 ##### `OP_ARRAY_PUSH`
 
@@ -285,6 +295,16 @@ Gets the value of the collection `col` specified by the index value in the regis
 ```
 
 Sets the value of the collection `col` specified by the index value in the register `idx` to the value in the register `value`.
+
+##### `OP_IDX_SET_STATIC`
+
+**Structure:**
+
+```
+[ code (1 byte) ] [ col (1 byte) ] [ idx (1 byte) ] [ value (1 byte) ]
+```
+
+Sets the value of the collection `col` specified by the literal index value `idx` to the value in the register `value`.
 
 ### Function calls
 
