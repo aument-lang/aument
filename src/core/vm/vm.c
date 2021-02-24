@@ -8,6 +8,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef USE_ALLOCA
+#include <alloca.h>
+#define ALLOCA_MAX_LOCALS 8
+#endif
+
 #include "platform/mmap.h"
 #include "platform/path.h"
 
@@ -31,7 +36,13 @@ static void au_vm_frame_del(struct au_vm_frame *frame,
     for (int i = 0; i < bcs->locals_len; i++) {
         au_value_deref(frame->locals[i]);
     }
+#ifdef USE_ALLOCA
+    if(bcs->locals_len > ALLOCA_MAX_LOCALS) {
+        free(frame->locals);
+    }
+#else
     free(frame->locals);
+#endif
     for (size_t i = 0; i < frame->arg_stack.len; i++) {
         au_value_deref(frame->arg_stack.data[i]);
     }
@@ -127,7 +138,16 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 
     au_value_clear(frame.regs, bcs->num_registers);
     frame.retval = au_value_none();
+#ifdef USE_ALLOCA
+    if(bcs->locals_len <= ALLOCA_MAX_LOCALS) {
+        frame.locals = alloca(sizeof(au_value_t) * bcs->locals_len);
+        au_value_clear(frame.locals, bcs->locals_len);
+    } else {
+        frame.locals = au_value_calloc(bcs->locals_len);
+    }
+#else
     frame.locals = au_value_calloc(bcs->locals_len);
+#endif
     if (args != 0) {
 #ifdef DEBUG_VM
         assert(bcs->locals_len >= bcs->num_args);
