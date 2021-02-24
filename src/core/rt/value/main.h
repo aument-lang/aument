@@ -16,14 +16,16 @@
 #endif
 
 enum au_vtype {
-    VALUE_INVALID = 0,
+    // VALUE_DOUBLE must be zero because the zero tag in
+    // our nan value representation represents actual
+    // floating-point infinities and nans
+    VALUE_DOUBLE = 0,
     VALUE_NONE = 1,
     VALUE_INT = 2,
     VALUE_BOOL = 3,
     VALUE_FN = 4,
     VALUE_STR = 5,
-    VALUE_DOUBLE = 6,
-    VALUE_STRUCT = 7,
+    VALUE_STRUCT = 6,
     // ...
     VALUE_OP_ERROR = 15,
 };
