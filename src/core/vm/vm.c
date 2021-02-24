@@ -116,11 +116,17 @@ static inline void bin_op_error(au_value_t left, au_value_t right,
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
                                  const struct au_program_data *p_data,
-                                 const au_value_t *args,
-                                 struct au_vm_frame_link link) {
+                                 const au_value_t *args) {
     struct au_vm_frame frame;
+
+    // We add the frame to the linked list first,
+    // because tl and frame are fresh in the stack/registers
+    frame.link = tl->current_frame;
+    tl->current_frame.data = p_data;
+    tl->current_frame.frame = &frame;
+
     au_value_clear(frame.regs, bcs->num_registers);
-    au_value_clear(&frame.retval, 1);
+    frame.retval = au_value_none();
     frame.locals = au_value_calloc(bcs->locals_len);
     if (args != 0) {
 #ifdef DEBUG_VM
@@ -131,7 +137,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     frame.bc = bcs->bc.data;
     frame.pc = 0;
     frame.arg_stack = (struct au_value_array){0};
-    frame.link = link;
+
     au_value_t retval;
 
     while (1) {
@@ -212,9 +218,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         goto *cb[frame.bc[0]];
 #endif
 
-/// Copies an au_value from src to dest.
-/// NOTE: for memory safety, please use this function instead of
-///     copying directly
+/// Copies an au_value from src to dest, this should only
+///     be used on locals/registers. For memory safety, please use
+//      this function instead of copying directly
 #define COPY_VALUE(dest, src)                                             \
     do {                                                                  \
         const au_value_t old = dest;                                      \
@@ -357,12 +363,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 int n_regs = au_fn_num_args(call_fn);
                 const au_value_t *args =
                     &frame.arg_stack.data[frame.arg_stack.len - n_regs];
-                struct au_vm_frame_link link = (struct au_vm_frame_link){
-                    .frame = &frame,
-                    .data = p_data,
-                };
                 const au_value_t callee_retval =
-                    au_fn_call(call_fn, tl, p_data, args, link);
+                    au_fn_call(call_fn, tl, p_data, args);
                 MOVE_VALUE(frame.regs[ret_reg], callee_retval);
                 for (size_t i = frame.arg_stack.len - n_regs;
                      i < frame.arg_stack.len; i++)

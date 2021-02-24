@@ -6,6 +6,17 @@
 #include "tl.h"
 #include "core/program.h"
 #include "core/rt/exception.h"
+#include "platform/platform.h"
+
+static _TLStorage struct au_vm_thread_local *current_tl = 0;
+
+struct au_vm_thread_local *au_vm_thread_local_get() {
+    return current_tl;
+}
+
+void au_vm_thread_local_set(struct au_vm_thread_local *tl) {
+    current_tl = tl;
+}
 
 void au_vm_thread_local_init(struct au_vm_thread_local *tl,
                              const struct au_program_data *p_data) {

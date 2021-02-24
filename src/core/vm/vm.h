@@ -37,8 +37,7 @@ struct au_vm_frame {
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
                                  const struct au_program_data *p_data,
-                                 const au_value_t *args,
-                                 struct au_vm_frame_link link);
+                                 const au_value_t *args);
 
 /// [func] Executes unverified bytecode in a au_program
 /// @param tl thread local storage
@@ -52,6 +51,5 @@ au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
 
 au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
                                       struct au_program *program) {
-    return au_vm_exec_unverified(tl, &program->main, &program->data, 0,
-                                 (struct au_vm_frame_link){0});
+    return au_vm_exec_unverified(tl, &program->main, &program->data, 0);
 }
