@@ -163,6 +163,7 @@ if has_compile_feature
         'src/core/rt/struct/helper.h',
         'src/core/rt/value/ref.h',
         'src/core/rt/au_array.h',
+        'src/core/rt/au_tuple.h',
         'src/core/rt/extern_fn.h',
         'src/core/vm/frame_link.h',
         'src/core/rt/includes/stdlib_end.h',
@@ -185,6 +186,7 @@ if has_compile_feature
     rt_code_depends = files(
         'src/core/rt/au_string.c',
         'src/core/rt/au_array.c',
+        'src/core/rt/au_tuple.c',
         'src/core/rt/struct/helper.c',
     )
     if not is_testing

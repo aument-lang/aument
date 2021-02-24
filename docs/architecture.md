@@ -80,9 +80,7 @@ Where the `code` byte tells the virtual machine what operation to do (add, subtr
 
 Like a real machine, aulang's VM has a program counter, it starts at zero and it points to the current instruction being processed. The program counter counts in **bytes**, not 32-bit values.
 
-#### `OP_EXIT`
-
-Causes the virtual machine to return none.
+aulang's bytecode is **unstable** and may change from version to version.
 
 #### `OP_NOP`
 

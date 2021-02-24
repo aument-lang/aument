@@ -252,11 +252,6 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         pos++;
 
         switch (opcode) {
-        case OP_EXIT: {
-            comp_cleanup(state, bcs, -1, -1);
-            comp_printf(state, "return au_value_none();\n");
-            break;
-        }
         case OP_MOV_U16: {
             uint8_t reg = bc(pos);
             DEF_BC16(n, 1)
@@ -383,7 +378,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
                 if (n_args > 0) {
                     comp_printf(state,
-                                "%s(0,&s_data[s_len-%d],AU_FRAME_NONE)",
+                                "%s(0,&s_data[s_len-%d])",
                                 lib_func->symbol, n_args);
                 } else {
                     comp_printf(state, "%s(0,0,0)", lib_func->symbol);
@@ -640,12 +635,32 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         ret, reg, idx, ret);
             break;
         }
+        case OP_IDX_SET_STATIC: {
+            uint8_t reg = bc(pos);
+            uint8_t idx = bc(pos + 1);
+            uint8_t ret = bc(pos + 2);
+            comp_printf(state,
+                        "au_value_ref(r%d);"
+                        "au_struct_idx_set(r%d,au_value_int(%d),r%d);\n",
+                        ret, reg, idx, ret);
+            break;
+        }
         case OP_NOT: {
             uint8_t reg = bc(pos);
             comp_printf(
                 state,
                 "MOVE_VALUE(r%d,au_value_bool(!au_value_is_truthy(r%d)));",
                 reg, reg);
+            break;
+        }
+        case OP_TUPLE_NEW: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(len, 1)
+            comp_printf(state,
+                        "MOVE_VALUE(r%d,"
+                        "au_value_struct("
+                        "(struct au_struct*)au_obj_tuple_new(%d)));\n",
+                        reg, len);
             break;
         }
         default: {

@@ -178,7 +178,7 @@ static int parser_exec(struct parser *p, struct lexer *l) {
             break;
         parser_flush_free_regs(p);
     }
-    parser_emit_bc_u8(p, OP_EXIT);
+    parser_emit_bc_u8(p, OP_RET_NULL);
     return 1;
 }
 
