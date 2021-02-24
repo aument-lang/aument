@@ -37,7 +37,7 @@ static void au_vm_frame_del(struct au_vm_frame *frame,
         au_value_deref(frame->locals[i]);
     }
 #ifdef USE_ALLOCA
-    if(bcs->locals_len > ALLOCA_MAX_LOCALS) {
+    if (bcs->locals_len > ALLOCA_MAX_LOCALS) {
         free(frame->locals);
     }
 #else
@@ -139,7 +139,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     au_value_clear(frame.regs, bcs->num_registers);
     frame.retval = au_value_none();
 #ifdef USE_ALLOCA
-    if(bcs->locals_len <= ALLOCA_MAX_LOCALS) {
+    if (bcs->locals_len <= ALLOCA_MAX_LOCALS) {
         frame.locals = alloca(sizeof(au_value_t) * bcs->locals_len);
         au_value_clear(frame.locals, bcs->locals_len);
     } else {
