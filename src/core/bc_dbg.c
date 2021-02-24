@@ -10,8 +10,7 @@
 #include "program.h"
 #include "rt/exception.h"
 
-const char *au_opcode_dbg[256] = {"(exit)",
-                                  "mov",
+const char *au_opcode_dbg[256] = {"mov",
                                   "mul",
                                   "div",
                                   "add",
@@ -60,11 +59,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         assert(pos % 4 == 0);
         uint8_t opcode = bc(pos);
         printf("%5ld: ", pos);
-
-        if (opcode == OP_EXIT) {
-            printf("(exit)\n");
-            break;
-        } else if (opcode >= PRINTABLE_OP_LEN) {
+        if (opcode >= PRINTABLE_OP_LEN) {
             au_fatal("unknown opcode %d", opcode);
         } else {
             printf("%s", au_opcode_dbg[opcode]);

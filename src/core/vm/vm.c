@@ -193,7 +193,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         goto *cb[op];                                                     \
     } while (0)
         static void *cb[] = {
-            &&CASE(OP_EXIT),
             &&CASE(OP_MOV_U16),
             &&CASE(OP_MUL),
             &&CASE(OP_DIV),
@@ -256,7 +255,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         au_value_deref(old);                                              \
     } while (0)
 
-            CASE(OP_EXIT) : { goto end; }
             CASE(OP_NOP) : { DISPATCH; }
             CASE(OP_MOV_U16) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
