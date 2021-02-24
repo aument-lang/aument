@@ -52,6 +52,17 @@ if result.stdout().strip() == '1'
     au_hdr_cflags += ['DUSE_NAN_TAGGING']
 endif
 
+code = '''#include<alloca.h>
+int main(int argc, char **argv) {
+    alloca(32);
+}
+'''
+result = compiler.links(code, name : 'alloca support')
+if result
+    add_project_arguments('-DUSE_ALLOCA', language : ['c'])
+    au_hdr_cflags += ['DUSE_ALLOCA']
+endif
+
 if compiler.has_argument('-Wextra')
     add_project_arguments('-Wextra', language : ['c'])
 endif
