@@ -15,26 +15,22 @@
 /// @param tl current thread-local object
 /// @param p_data the program data containing the function
 /// @param args the arguments passed to the function
-/// @param frame the caller's frame
 /// @return the return value of the function
 static _AlwaysInline au_value_t
 au_fn_call(const struct au_fn *fn, struct au_vm_thread_local *tl,
-           const struct au_program_data *p_data, const au_value_t *args,
-           const struct au_vm_frame_link frame);
+           const struct au_program_data *p_data, const au_value_t *args);
 
 au_value_t au_fn_call(const struct au_fn *fn,
                       struct au_vm_thread_local *tl,
                       const struct au_program_data *p_data,
-                      const au_value_t *args,
-                      const struct au_vm_frame_link frame) {
+                      const au_value_t *args) {
 self_call:
     switch (fn->type) {
     case AU_FN_NATIVE: {
-        return fn->as.native_func.func(tl, args, frame);
+        return fn->as.native_func.func(tl, args);
     }
     case AU_FN_BC: {
-        return au_vm_exec_unverified(tl, &fn->as.bc_func, p_data, args,
-                                     frame);
+        return au_vm_exec_unverified(tl, &fn->as.bc_func, p_data, args);
     }
     case AU_FN_IMPORTER: {
         const struct au_fn *old_fn = fn;

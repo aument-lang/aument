@@ -10,6 +10,7 @@
 #include "core/array.h"
 #include "core/hm_vars.h"
 #include "core/rt/value.h"
+#include "core/vm/frame_link.h"
 
 typedef void (*au_vm_print_fn_t)(au_value_t);
 struct au_program_data;
@@ -21,7 +22,18 @@ struct au_vm_thread_local {
     size_t const_len;
     struct au_hm_vars loaded_modules_map;
     struct au_program_data_array loaded_modules;
+    struct au_vm_frame_link current_frame;
 };
+
+/// [func] Gets the current thread's au_vm_thread_local instance
+/// @return the current thread's au_vm_thread_local instance
+struct au_vm_thread_local *au_vm_thread_local_get();
+
+/// [func] Sets the current thread's au_vm_thread_local instance.
+///     The caller must ensure that tl lasts for the lifetime
+///     of an executed aulang program.
+/// @param tl the current thread's au_vm_thread_local instance
+void au_vm_thread_local_set(struct au_vm_thread_local *tl);
 
 /// [func] Initializes an au_vm_thread_local instance
 /// @param tl instance to be initialized
