@@ -12,6 +12,7 @@
 #include "bc.h"
 #include "fn/main.h"
 #include "hm_vars.h"
+#include "rt/au_class.h"
 #include "rt/value.h"
 #include "str_array.h"
 
@@ -75,6 +76,8 @@ struct au_program_data {
     char *cwd;
     struct au_program_source_map_array source_map;
     struct au_str_array fn_names;
+    struct au_class_interface_array classes;
+    struct au_hm_vars class_map;
 };
 
 /// [func] Initializes an au_program_data instance
