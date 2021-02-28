@@ -53,6 +53,7 @@ void au_program_data_del(struct au_program_data *data) {
     free(data->fn_names.data);
     for (size_t i = 0; i < data->classes.len; i++)
         au_class_interface_del(&data->classes.data[i]);
+    free(data->classes.data);
     au_hm_vars_del(&data->class_map);
     memset(data, 0, sizeof(struct au_program_data));
 }

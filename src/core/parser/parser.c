@@ -275,6 +275,8 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
         } else {
             retval = WITH_SEMICOLON(parser_exec_expr);
         }
+    } else {
+        retval = WITH_SEMICOLON(parser_exec_expr);
     }
     if (retval) {
         const size_t bc_to = p->bc.len;
@@ -557,7 +559,12 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
     if (expected_num_args != -1)
         assert(bcs.num_args == expected_num_args);
     func_p.self_num_args = bcs.num_args;
-    assert(parser_exec_block(&func_p, l) == 1);
+    if(!parser_exec_block(&func_p, l)) {
+        p->res = func_p.res;
+        func_p.res = (struct au_parser_result){ 0 };
+        parser_del(&func_p);
+        return 0;
+    }
     parser_emit_bc_u8(&func_p, OP_RET_NULL);
 
     bcs.bc = func_p.bc;
@@ -1183,6 +1190,10 @@ static int parser_exec_index_expr(struct parser *p, struct lexer *l) {
 static int parser_exec_val(struct parser *p, struct lexer *l) {
     struct token t;
     if ((t = lexer_next(l)).type == TOK_EOF) {
+        p->res = (struct au_parser_result){
+            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
+            .data.unexpected_token.got_token = t,
+        };
         return 0;
     }
 
@@ -1560,6 +1571,7 @@ struct au_parser_result au_parse(const char *src, size_t len,
         lexer_del(&l);
         parser_del(&p);
         au_program_data_del(&p_data);
+        assert(res.type != AU_PARSER_RES_OK);
         return res;
     }
 
