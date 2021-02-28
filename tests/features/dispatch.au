@@ -1,0 +1,18 @@
+class A {
+}
+
+class B {
+}
+
+def (self: A) dispatch() {
+    print "A";
+}
+
+def (self: B) dispatch() {
+    print "B";
+}
+
+a = new A;
+b = new B;
+dispatch(a);
+dispatch(b);

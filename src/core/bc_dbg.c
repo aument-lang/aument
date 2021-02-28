@@ -11,14 +11,15 @@
 #include "rt/exception.h"
 
 const char *au_opcode_dbg[256] = {
-    "mov",     "mul",     "div",      "add",       "sub",
-    "mod",     "mov",     "mov",      "print",     "eq",
-    "neq",     "lt",      "gt",       "leq",       "geq",
-    "jif",     "jnif",    "jrel",     "jrelb",     "loadc",
-    "mov",     "nop",     "mul",      "div",       "add",
-    "sub",     "mod",     "push_arg", "call",      "ret",
-    "ret",     "ret",     "import",   "array_new", "array_push",
-    "idx_get", "idx_set", "not",      "tuple_new", "idx_set_static"};
+    "mov",       "mul",       "div",      "add",       "sub",
+    "mod",       "mov",       "mov",      "print",     "eq",
+    "neq",       "lt",        "gt",       "leq",       "geq",
+    "jif",       "jnif",      "jrel",     "jrelb",     "loadc",
+    "mov",       "nop",       "mul",      "div",       "add",
+    "sub",       "mod",       "push_arg", "call",      "ret",
+    "ret",       "ret",       "import",   "array_new", "array_push",
+    "idx_get",   "idx_set",   "not",      "tuple_new", "idx_set_static",
+    "mov_class", "mov_class", "class_new"};
 
 void au_bc_dbg(const struct au_bc_storage *bcs,
                const struct au_program_data *data) {
@@ -217,6 +218,27 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             uint8_t idx = bc(pos + 1);
             uint8_t ret = bc(pos + 2);
             printf(" r%d [%d] <- r%d\n", reg, idx, ret);
+            pos += 3;
+            break;
+        }
+        case OP_CLASS_SET_INNER: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1);
+            printf(" r%d -> @%d\n", reg, local);
+            pos += 3;
+            break;
+        }
+        case OP_CLASS_GET_INNER: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1);
+            printf(" @%d -> r%d\n", reg, local);
+            pos += 3;
+            break;
+        }
+        case OP_CLASS_NEW: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(class_id, 1);
+            printf(" (id %d) -> r%d\n", class_id, reg);
             pos += 3;
             break;
         }

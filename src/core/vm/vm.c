@@ -102,7 +102,7 @@ static void link_to_imported(const struct au_program_data *p_data,
         if (fn_idx == 0)
             au_fatal("unknown function %.*s", key_len, key);
         struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
-        if (!fn->exported)
+        if ((fn->flags & AU_FN_FLAG_EXPORTED) != 0)
             au_fatal("this function is not exported");
         if (au_fn_num_args(fn) != import_func->num_args)
             au_fatal("unexpected number of arguments");
@@ -111,14 +111,24 @@ static void link_to_imported(const struct au_program_data *p_data,
     })
 }
 
-static inline void bin_op_error(au_value_t left, au_value_t right,
-                                const struct au_program_data *p_data,
-                                struct au_vm_frame *frame) {
+static void bin_op_error(au_value_t left, au_value_t right,
+                         const struct au_program_data *p_data,
+                         struct au_vm_frame *frame) {
     au_vm_error(
         (struct au_interpreter_result){
             .type = AU_INT_ERR_INCOMPAT_BIN_OP,
             .data.incompat_bin_op.left = left,
             .data.incompat_bin_op.right = right,
+            .pos = 0,
+        },
+        p_data, frame);
+}
+
+static void call_error(const struct au_program_data *p_data,
+                       struct au_vm_frame *frame) {
+    au_vm_error(
+        (struct au_interpreter_result){
+            .type = AU_INT_ERR_INCOMPAT_CALL,
             .pos = 0,
         },
         p_data, frame);
@@ -233,13 +243,15 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(OP_NOT),
             &&CASE(OP_TUPLE_NEW),
             &&CASE(OP_IDX_SET_STATIC),
+            &&CASE(OP_CLASS_GET_INNER),
+            &&CASE(OP_CLASS_SET_INNER),
+            &&CASE(OP_CLASS_NEW),
         };
         goto *cb[frame.bc[0]];
 #endif
 
-/// Copies an au_value from src to dest, this should only
-///     be used on locals/registers. For memory safety, please use
-//      this function instead of copying directly
+/// Copies an au_value from src to dest. For memory safety, please use this
+/// function instead of copying directly
 #define COPY_VALUE(dest, src)                                             \
     do {                                                                  \
         const au_value_t old = dest;                                      \
@@ -287,13 +299,15 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #undef BIN_OP
             CASE(OP_MOV_REG_LOCAL) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
-                const uint8_t local = frame.bc[frame.pc + 2];
+                const uint16_t local =
+                    *(uint16_t *)(&frame.bc[frame.pc + 2]);
                 COPY_VALUE(frame.locals[local], frame.regs[reg]);
                 DISPATCH;
             }
             CASE(OP_MOV_LOCAL_REG) : {
                 const uint8_t reg = frame.bc[frame.pc + 1];
-                const uint8_t local = frame.bc[frame.pc + 2];
+                const uint16_t local =
+                    *(uint16_t *)(&frame.bc[frame.pc + 2]);
                 COPY_VALUE(frame.regs[reg], frame.locals[local]);
                 DISPATCH;
             }
@@ -383,10 +397,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     &frame.arg_stack.data[frame.arg_stack.len - n_regs];
                 const au_value_t callee_retval =
                     au_fn_call(call_fn, tl, p_data, args);
+                if (_Unlikely(au_value_is_op_error(callee_retval)))
+                    call_error(p_data, &frame);
                 MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-                for (size_t i = frame.arg_stack.len - n_regs;
-                     i < frame.arg_stack.len; i++)
-                    au_value_deref(frame.arg_stack.data[i]);
                 frame.arg_stack.len -= n_regs;
                 DISPATCH;
             }
@@ -612,6 +625,35 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                         au_fatal("invalid index");
                     }
                 }
+                DISPATCH;
+            }
+            CASE(OP_CLASS_GET_INNER) : {
+                const uint8_t reg = frame.bc[frame.pc + 1];
+                const uint16_t inner =
+                    *(uint16_t *)(&frame.bc[frame.pc + 2]);
+                struct au_obj_class *self =
+                    au_obj_class_coerce(frame.locals[0]);
+                COPY_VALUE(frame.regs[reg], self->data[inner]);
+                DISPATCH;
+            }
+            CASE(OP_CLASS_SET_INNER) : {
+                const uint8_t reg = frame.bc[frame.pc + 1];
+                const uint16_t inner =
+                    *(uint16_t *)(&frame.bc[frame.pc + 2]);
+                struct au_obj_class *self =
+                    au_obj_class_coerce(frame.locals[0]);
+                COPY_VALUE(self->data[inner], frame.regs[reg]);
+                DISPATCH;
+            }
+            CASE(OP_CLASS_NEW) : {
+                const uint8_t reg = frame.bc[frame.pc + 1];
+                const uint16_t class_id =
+                    *(uint16_t *)(&frame.bc[frame.pc + 2]);
+                struct au_struct *obj_class =
+                    (struct au_struct *)au_obj_class_new(
+                        &p_data->classes.data[class_id]);
+                const au_value_t new_value = au_value_struct(obj_class);
+                MOVE_VALUE(frame.regs[reg], new_value);
                 DISPATCH;
             }
 #undef COPY_VALUE

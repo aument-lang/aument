@@ -359,6 +359,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 au_fn_array_at_ptr(&p_data->fns, func_id);
             int n_args;
             switch (fn->type) {
+            case AU_FN_DISPATCH:
             case AU_FN_BC: {
                 const struct au_bc_storage *bcs = &fn->as.bc_func;
                 n_args = bcs->num_args;
@@ -566,7 +567,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                      key);
                         struct au_fn *fn =
                             &loaded_module->fns.data[fn_idx->idx];
-                        if (!fn->exported)
+                        if ((fn->flags & AU_FN_FLAG_EXPORTED) != 0)
                             au_fatal("this function is not exported");
                         if (au_fn_num_args(fn) != import_func->num_args)
                             au_fatal("unexpected number of arguments");
@@ -714,7 +715,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
         const struct au_fn *fn = &program->data.fns.data[i];
         switch (fn->type) {
         case AU_FN_BC: {
-            if (!fn->exported) {
+            if ((fn->flags & AU_FN_FLAG_EXPORTED) != 0) {
                 comp_printf(state, "static ");
             }
             if (fn->as.bc_func.num_args > 0) {
@@ -745,6 +746,9 @@ void au_c_comp_module(struct au_c_comp_state *state,
                             module_idx, i);
             }
             break;
+        }
+        case AU_FN_DISPATCH: {
+            au_fatal("generating none function");
         }
         case AU_FN_NONE: {
             au_fatal("generating none function");
