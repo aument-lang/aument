@@ -109,6 +109,10 @@ void au_print_interpreter_error(struct au_interpreter_result res,
         au_value_print(res.data.incompat_bin_op.right);
         break;
     }
+    case AU_INT_ERR_INCOMPAT_CALL: {
+        printf("incompatible call");
+        break;
+    }
     default:
         break;
     }

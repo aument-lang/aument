@@ -15,6 +15,7 @@ struct au_vm_frame;
 enum au_interpreter_result_type {
     X(OK),
     X(INCOMPAT_BIN_OP),
+    X(INCOMPAT_CALL),
 };
 #undef X
 

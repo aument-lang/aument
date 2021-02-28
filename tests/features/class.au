@@ -3,15 +3,11 @@ class Class {
     val b;
 }
 
-def (self: Class) Class_init() {
+def (self: Class) init() {
     @a = 1;
     @b = 2;
-}
-
-def (self: Class) Class_add() {
-    return @a + @b;
+    print @a + @b;
 }
 
 my_class = new Class;
-Class_init(my_class);
-print do_add(my_class);
+init(my_class);

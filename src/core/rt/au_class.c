@@ -11,7 +11,8 @@
 #endif
 
 void au_class_interface_init(struct au_class_interface *interface,
-                             char *name) {
+                             size_t type_id, char *name) {
+    interface->type_id = type_id;
     interface->name = name;
     au_hm_vars_init(&interface->map);
 }
@@ -20,12 +21,6 @@ void au_class_interface_del(struct au_class_interface *interface) {
     free(interface->name);
     au_hm_vars_del(&interface->map);
 }
-
-struct au_obj_class {
-    struct au_struct header;
-    const struct au_class_interface *interface;
-    au_value_t data[];
-};
 
 struct au_struct_vdata au_obj_class_vdata;
 static int au_obj_class_vdata_inited = 0;

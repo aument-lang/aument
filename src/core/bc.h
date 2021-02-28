@@ -55,6 +55,9 @@ enum au_opcode {
     OP_NOT = 37,
     OP_TUPLE_NEW = 38,
     OP_IDX_SET_STATIC = 39,
+    OP_CLASS_GET_INNER = 40,
+    OP_CLASS_SET_INNER = 41,
+    OP_CLASS_NEW = 42,
     PRINTABLE_OP_LEN,
 };
 
@@ -65,6 +68,7 @@ ARRAY_TYPE_COPY(uint8_t, au_bc_buf, 4)
 struct au_bc_storage {
     int num_args;
     int locals_len;
+    size_t class_id;
     struct au_bc_buf bc;
     int num_registers;
 };

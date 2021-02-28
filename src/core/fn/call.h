@@ -30,6 +30,14 @@ self_call:
         return fn->as.native_func.func(tl, args);
     }
     case AU_FN_BC: {
+        if ((fn->flags & AU_FN_FLAG_HAS_CLASS) != 0) {
+            struct au_obj_class *obj_class = au_obj_class_coerce(args[0]);
+            if (_Unlikely(obj_class == 0 ||
+                          (fn->as.bc_func.class_id !=
+                           obj_class->interface->type_id))) {
+                return au_value_op_error();
+            }
+        }
         return au_vm_exec_unverified(tl, &fn->as.bc_func, p_data, args);
     }
     case AU_FN_IMPORTER: {
@@ -37,6 +45,28 @@ self_call:
         fn = old_fn->as.import_func.fn_cached;
         p_data = old_fn->as.import_func.p_data_cached;
         goto self_call;
+    }
+    case AU_FN_DISPATCH: {
+        struct au_obj_class *obj_class = au_obj_class_coerce(args[0]);
+        if (_Unlikely(obj_class == 0)) {
+            return au_value_op_error();
+        }
+        const size_t type_id = obj_class->interface->type_id;
+        for (size_t i = 0; i < fn->as.dispatch_func.data.len; i++) {
+            const struct au_dispatch_func_instance *inst =
+                &fn->as.dispatch_func.data.data[i];
+            if (inst->type_id == type_id) {
+                fn = &p_data->fns.data[inst->function_idx];
+                goto self_call;
+            }
+        }
+        const size_t fallback_fn = fn->as.dispatch_func.fallback_fn;
+        if (fallback_fn == AU_DISPATCH_FUNC_NO_FALLBACK) {
+            return au_value_op_error();
+        } else {
+            fn = &p_data->fns.data[fallback_fn];
+            goto self_call;
+        }
     }
     default: {
         _Unreachable;

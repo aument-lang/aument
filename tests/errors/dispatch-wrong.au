@@ -1,0 +1,7 @@
+class Class {
+}
+
+def (self: Class) init() {
+}
+
+init("A");

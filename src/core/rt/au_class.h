@@ -12,14 +12,21 @@
 #endif
 
 struct au_class_interface {
-    struct au_hm_vars map;
+    size_t type_id;
     char *name;
+    struct au_hm_vars map;
+};
+
+struct au_obj_class {
+    struct au_struct header;
+    const struct au_class_interface *interface;
+    au_value_t data[];
 };
 
 ARRAY_TYPE_STRUCT(struct au_class_interface, au_class_interface_array, 1)
 
 void au_class_interface_init(struct au_class_interface *interface,
-                             char *name);
+                             size_t type_id, char *name);
 void au_class_interface_del(struct au_class_interface *interface);
 
 struct au_obj_class;
