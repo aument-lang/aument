@@ -14,6 +14,7 @@
 #define TOK_IDENTIFIER 3
 #define TOK_STRING 4
 #define TOK_OPERATOR 5
+#define TOK_AT_IDENTIFIER 6
 
 struct token {
     uint32_t type;

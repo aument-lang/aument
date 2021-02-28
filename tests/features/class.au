@@ -1,0 +1,17 @@
+class Class {
+    val a;
+    val b;
+}
+
+def (self: Class) Class_init() {
+    @a = 1;
+    @b = 2;
+}
+
+def (self: Class) Class_add() {
+    return @a + @b;
+}
+
+my_class = new Class;
+Class_init(my_class);
+print do_add(my_class);

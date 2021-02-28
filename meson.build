@@ -100,6 +100,8 @@ sources = [
     'src/core/program.h',
     'src/core/rt/au_array.c',
     'src/core/rt/au_array.h',
+    'src/core/rt/au_class.c',
+    'src/core/rt/au_class.h',
     'src/core/rt/au_string.c',
     'src/core/rt/au_string.h',
     'src/core/rt/au_struct.h',
