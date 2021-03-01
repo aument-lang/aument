@@ -70,7 +70,11 @@ print y; // 0
 
 This includes the top-level scope as well. In the example above, the function `local` cannot access the variable `x`.
 
-**Note:** for thread-safety reasons, global variables don't exist. When it is implemented, you'll be able to pass values through channels or share thread-safe values.
+### Dynamic types, static names
+
+Identifiers, function names and class names in aulang are static: they are fixed and pre-determined at parsing time. As such, the concept of global variables do not exist in aulang.
+
+In order to share states through function calls, you'll have to pass variables directly or wrap them in a class.
 
 ## Control Flow
 
@@ -157,4 +161,60 @@ Exported functions and variables are accessible under a **module**. You have to 
 ```
 import "importee.au" as module;
 print module::random(); // => 4
+```
+
+## Classes
+
+You can define a compound data-type, a *class* using the `class` keyword:
+
+```
+class Human {
+    val name;
+}
+```
+
+Here, we define a class named `Human`, that holds a private variable `name`.
+
+Classes are like any other value. You can create an empty one using the `new` keyword:
+
+```
+alice = new Human;
+```
+
+### Class functions
+
+To modify or access a private variable in a class instance, you'll need to declare a special *class function*, a function that can only be called where the first argument's type matches that of the class:
+
+```
+def (self: Human) init(name) {
+    @name = name;
+}
+```
+
+Here, we declare the function `init`, that takes 2 arguments, `self` (a `Human` class instance), and `name` (any dynamically typed variable). You can call `init` like any other function:
+
+```
+init(alice, "Alice");
+```
+
+Class functions can also be dynamically dispatched:
+
+```
+def (self: Human) say() {
+    print "I'm ", @name, "\n";
+}
+class Cat {}
+def (self: Cat) say() {
+    print "meow!\n";
+}
+cat = new Cat;
+say(alice);
+say(cat);
+```
+
+Prints out:
+
+```
+I'm Alice
+meow!
 ```
