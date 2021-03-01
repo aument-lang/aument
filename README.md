@@ -1,12 +1,10 @@
 # aulang
 
-What if we had a scripting language with...
+Welcome to **aulang** (name subject to change), a work-in-progress scripting language with
 
-  * **minimal dependencies**
-  * **fast development time:** like Python and Javascript, you can simply write code and run it directly.
-  * **fast run time:** once finished, you can compile your code into a lightweight executable. You don't even need any external runtime to run it!
-
-Welcome to **aulang** (currently in pre-alpha).
+  * **dynamic typing** and **functional programming**
+  * **fast development time:** like Python and Javascript, you can write code and run it directly.
+  * **fast deployment:** once finished, you can compile your code into a native, lightweight executable. You don't even need any external runtime to run it!
 
 ## Syntax
 
