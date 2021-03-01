@@ -48,8 +48,9 @@ struct au_none_func {
 };
 
 struct au_dispatch_func_instance {
-    size_t type_id;
+    size_t class_id;
     size_t function_idx;
+    struct au_class_interface *class_interface_cache;
 };
 
 ARRAY_TYPE_COPY(struct au_dispatch_func_instance,

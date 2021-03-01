@@ -1,0 +1,10 @@
+class B {
+}
+import "./class-import.au" as A;
+A::make();
+
+def (self: B) thing() {
+  print("B");
+}
+b = new B;
+thing(b);

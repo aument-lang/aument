@@ -102,7 +102,7 @@ static void link_to_imported(const struct au_program_data *p_data,
         if (fn_idx == 0)
             au_fatal("unknown function %.*s", key_len, key);
         struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
-        if ((fn->flags & AU_FN_FLAG_EXPORTED) != 0)
+        if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
             au_fatal("this function is not exported");
         if (au_fn_num_args(fn) != import_func->num_args)
             au_fatal("unexpected number of arguments");
@@ -370,7 +370,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                             (const char
                                  *)(&p_data->data_buf[data_val->buf_idx]),
                             data_val->buf_len));
-                        // Transfer ownership of v to the cache
                         tl->const_cache[abs_c] = v;
                         break;
                     }
@@ -507,10 +506,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 au_split_path(abspath, &program.data.file,
                               &program.data.cwd);
                 free(abspath);
-
-                program.data.tl_constant_start = tl->const_len;
-                au_vm_thread_local_add_const_cache(
-                    tl, program.data.data_val.len);
 
                 if (rmod_retval != AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
                     au_vm_exec_unverified_main(tl, &program);
@@ -651,7 +646,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     *(uint16_t *)(&frame.bc[frame.pc + 2]);
                 struct au_struct *obj_class =
                     (struct au_struct *)au_obj_class_new(
-                        &p_data->classes.data[class_id]);
+                        p_data->classes.data[class_id]);
                 const au_value_t new_value = au_value_struct(obj_class);
                 MOVE_VALUE(frame.regs[reg], new_value);
                 DISPATCH;

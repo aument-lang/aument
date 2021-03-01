@@ -1,0 +1,6 @@
+class A {
+}
+
+export def make() {
+  return new A;
+}

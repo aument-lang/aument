@@ -35,6 +35,12 @@
         if (idx > array->len)                                             \
             au_fatal_index((void *)array, idx, array->len);               \
         return array->data[idx];                                          \
+    } \
+    static _Unused void NAME##_set(const struct NAME *array,              \
+                                   size_t idx, INNER thing) {                          \
+        if (idx > array->len)                                             \
+            au_fatal_index((void *)array, idx, array->len);               \
+        array->data[idx] = thing;                                          \
     }
 
 #define ARRAY_TYPE_STRUCT(INNER, NAME, IN_CAP)                            \

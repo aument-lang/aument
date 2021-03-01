@@ -1,0 +1,12 @@
+class A{}
+
+def (self: A) func() {
+  print true;
+}
+
+def (self: A) func1() {
+  func(self);
+}
+
+a = new A;
+func1(a);

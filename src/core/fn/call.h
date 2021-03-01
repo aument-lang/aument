@@ -33,8 +33,8 @@ self_call:
         if ((fn->flags & AU_FN_FLAG_HAS_CLASS) != 0) {
             struct au_obj_class *obj_class = au_obj_class_coerce(args[0]);
             if (_Unlikely(obj_class == 0 ||
-                          (fn->as.bc_func.class_id !=
-                           obj_class->interface->type_id))) {
+                          (fn->as.bc_func.class_interface_cache !=
+                           obj_class->interface))) {
                 return au_value_op_error();
             }
         }
@@ -51,11 +51,11 @@ self_call:
         if (_Unlikely(obj_class == 0)) {
             return au_value_op_error();
         }
-        const size_t type_id = obj_class->interface->type_id;
+        const struct au_class_interface *class_interface = obj_class->interface;
         for (size_t i = 0; i < fn->as.dispatch_func.data.len; i++) {
             const struct au_dispatch_func_instance *inst =
                 &fn->as.dispatch_func.data.data[i];
-            if (inst->type_id == type_id) {
+            if (inst->class_interface_cache == class_interface) {
                 fn = &p_data->fns.data[inst->function_idx];
                 goto self_call;
             }
