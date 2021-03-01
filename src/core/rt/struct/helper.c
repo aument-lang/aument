@@ -3,9 +3,11 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+#ifdef AU_IS_INTERPRETER
 #include "helper.h"
 #include "core/rt/exception.h"
 #include "vdata.h"
+#endif
 
 au_value_t au_struct_idx_get(au_value_t value, au_value_t idx) {
     au_value_t retval;

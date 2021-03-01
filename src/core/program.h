@@ -76,7 +76,7 @@ struct au_program_data {
     char *cwd;
     struct au_program_source_map_array source_map;
     struct au_str_array fn_names;
-    struct au_class_interface_array classes;
+    struct au_class_interface_ptr_array classes;
     struct au_hm_vars class_map;
 };
 

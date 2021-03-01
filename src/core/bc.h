@@ -69,6 +69,7 @@ struct au_bc_storage {
     int num_args;
     int locals_len;
     size_t class_id;
+    struct au_class_interface *class_interface_cache;
     struct au_bc_buf bc;
     int num_registers;
 };

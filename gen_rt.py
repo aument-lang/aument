@@ -34,9 +34,9 @@ cpp_args = [
 if args.cpp:
     for i in args.cpp:
         cpp_args.append('-' + i)
-cpp_output = subprocess.run(cpp_args, input=total.encode('utf-8'), capture_output=True)
 
-total = cpp_output.stdout.decode('utf-8')
+cpp_output = subprocess.check_output(cpp_args, input=total.encode('utf-8'))
+total = cpp_output.decode('utf-8')
 total = re.sub(r'^\s+', '', total)
 total = re.sub(r'\s+', ' ', total)
 if global_file:
