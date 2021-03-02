@@ -23,10 +23,10 @@
 ARRAY_TYPE_COPY(size_t, size_t_array, 1)
 
 static char *copy_string(const char *str, size_t len) {
-	char *output = malloc(len + 1);
-	memcpy(output, str, len);
-	output[len] = 0;
-	return output;
+    char *output = malloc(len + 1);
+    memcpy(output, str, len);
+    output[len] = 0;
+    return output;
 }
 
 struct parser {
@@ -410,7 +410,8 @@ static int parser_exec_class_statement(struct parser *p, struct lexer *l,
 
     struct au_class_interface *interface =
         malloc(sizeof(struct au_class_interface));
-    au_class_interface_init(interface, copy_string(id_tok.src, id_tok.len));
+    au_class_interface_init(interface,
+                            copy_string(id_tok.src, id_tok.len));
     interface->flags = class_flags;
 
     struct token t = lexer_next(l);
