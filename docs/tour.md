@@ -133,36 +133,6 @@ print y(1); // 3
 
 aulang's standard library provides some useful built-in functions. See the [stdlib reference manual](./au-stdlib.md) for more details.
 
-## Modules
-
-You can import files using the `import` statement. Note that all files are executed separately and you cannot directly use an imported file's variables/functions (unless exported).
-
-```
-// importee.au
-print "Hello World\n";
-```
-
-```
-// importer.au
-import "./importee.au"; // prints out Hello World
-```
-
-To export a function, use the `export` statement:
-
-```
-// importee.au
-export def random() {
-    return 4;
-}
-```
-
-Exported functions and variables are accessible under a **module**. You have to explicitly import a file as a module in order to use it:
-
-```
-import "importee.au" as module;
-print module::random(); // => 4
-```
-
 ## Classes
 
 You can define a compound data-type, a *class* using the `class` keyword:
@@ -181,15 +151,17 @@ Classes are like any other value. You can create an empty one using the `new` ke
 alice = new Human;
 ```
 
-### Class functions
+### Method
 
-To modify or access a private variable in a class instance, you'll need to declare a special *class function*, a function that can only be called where the first argument's type matches that of the class:
+To modify or access a private variable in a class instance, you'll need to declare a *method*, a function that can only be called if the first argument's type matches that of the class:
 
 ```
 def (self: Human) init(name) {
     @name = name;
 }
 ```
+
+Note that you can't access private variables of imported classes.
 
 Here, we declare the function `init`, that takes 2 arguments, `self` (a `Human` class instance), and `name` (any dynamically typed variable). You can call `init` like any other function:
 
@@ -217,4 +189,42 @@ Prints out:
 ```
 I'm Alice
 meow!
+```
+
+## Modules
+
+You can import files using the `import` statement. Note that all files are executed separately and you cannot directly use an imported file's variables/functions (unless exported).
+
+```
+// importee.au
+print "Hello World\n";
+```
+
+```
+// importer.au
+import "./importee.au"; // prints out Hello World
+```
+
+To export a function, use the `export` statement:
+
+```
+// importee.au
+export def random() {
+    return 4;
+}
+```
+
+You can also export a class:
+
+```
+export class Human {
+    val name;
+}
+```
+
+Exported functions and classes are accessible under a **module**. You have to explicitly import a file as a module in order to use it:
+
+```
+import "importee.au" as module;
+print module::random(); // => 4
 ```

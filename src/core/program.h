@@ -49,7 +49,7 @@ ARRAY_TYPE_STRUCT(struct au_program_import, au_program_import_array, 1)
 struct au_program_data;
 struct au_imported_module {
     struct au_hm_vars fn_map;
-    struct au_hm_vars vars_map;
+    struct au_hm_vars class_map;
 };
 
 ARRAY_TYPE_STRUCT(struct au_imported_module, au_imported_module_array, 1)

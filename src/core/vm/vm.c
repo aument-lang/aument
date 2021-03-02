@@ -23,6 +23,7 @@
 #include "vm.h"
 
 #include "core/rt/au_array.h"
+#include "core/rt/au_class.h"
 #include "core/rt/au_string.h"
 #include "core/rt/au_struct.h"
 #include "core/rt/au_tuple.h"
@@ -109,6 +110,24 @@ static void link_to_imported(const struct au_program_data *p_data,
         au_fn_fill_import_cache_unsafe(&p_data->fns.data[entry->idx], fn,
                                        loaded_module);
     })
+    AU_HM_VARS_FOREACH_PAIR(&relative_module->class_map, key, entry, {
+        assert(p_data->classes.data[entry->idx] == 0);
+        const struct au_hm_var_value *class_idx =
+            au_hm_vars_get(&loaded_module->class_map, key, key_len);
+        if (class_idx == 0)
+            au_fatal("unknown class %.*s", key_len, key);
+        struct au_class_interface *class_interface =
+            loaded_module->classes.data[class_idx->idx];
+        if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0)
+            au_fatal("this class is not exported");
+        p_data->classes.data[entry->idx] = class_interface;
+        au_class_interface_ref(class_interface);
+    })
+    if (relative_module->class_map.entries_occ > 0) {
+        for (size_t i = 0; i < p_data->fns.len; i++) {
+            au_fn_fill_class_cache_unsafe(&p_data->fns.data[i], p_data);
+        }
+    }
 }
 
 static void bin_op_error(au_value_t left, au_value_t right,

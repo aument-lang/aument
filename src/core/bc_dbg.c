@@ -237,8 +237,8 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         }
         case OP_CLASS_NEW: {
             uint8_t reg = bc(pos);
-            DEF_BC16(class_id, 1);
-            printf(" (id %d) -> r%d\n", class_id, reg);
+            DEF_BC16(class_idx, 1);
+            printf(" (id %d) -> r%d\n", class_idx, reg);
             pos += 3;
             break;
         }
