@@ -2,7 +2,8 @@
 
 Welcome to **aulang** (name subject to change), a work-in-progress scripting language with
 
-  * **dynamic typing** and **functional programming**
+  * **dynamic typing**
+  * **performance first:** this scripting language is designed with performance in mind.
   * **fast development time:** like Python and Javascript, you can write code and run it directly.
   * **fast deployment:** once finished, you can compile your code into a native, lightweight executable. You don't even need any external runtime to run it!
 
