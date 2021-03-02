@@ -68,7 +68,7 @@ ARRAY_TYPE_COPY(uint8_t, au_bc_buf, 4)
 struct au_bc_storage {
     int num_args;
     int locals_len;
-    size_t class_id;
+    size_t class_idx;
     struct au_class_interface *class_interface_cache;
     struct au_bc_buf bc;
     int num_registers;

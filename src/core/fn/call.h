@@ -51,7 +51,8 @@ self_call:
         if (_Unlikely(obj_class == 0)) {
             return au_value_op_error();
         }
-        const struct au_class_interface *class_interface = obj_class->interface;
+        const struct au_class_interface *class_interface =
+            obj_class->interface;
         for (size_t i = 0; i < fn->as.dispatch_func.data.len; i++) {
             const struct au_dispatch_func_instance *inst =
                 &fn->as.dispatch_func.data.data[i];

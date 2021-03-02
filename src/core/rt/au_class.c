@@ -11,15 +11,24 @@
 #endif
 
 void au_class_interface_init(struct au_class_interface *interface,
-                             size_t type_id, char *name) {
-    interface->type_id = type_id;
+                             char *name) {
     interface->name = name;
+    interface->flags = 0;
+    interface->rc = 1;
     au_hm_vars_init(&interface->map);
 }
 
-void au_class_interface_del(struct au_class_interface *interface) {
-    free(interface->name);
-    au_hm_vars_del(&interface->map);
+void au_class_interface_ref(struct au_class_interface *interface) {
+    interface->rc++;
+}
+
+void au_class_interface_deref(struct au_class_interface *interface) {
+    interface->rc--;
+    if (interface->rc == 0) {
+        free(interface->name);
+        au_hm_vars_del(&interface->map);
+        free(interface);
+    }
 }
 
 struct au_struct_vdata au_obj_class_vdata;

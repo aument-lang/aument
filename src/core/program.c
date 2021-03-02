@@ -17,12 +17,12 @@ void au_program_import_del(struct au_program_import *data) {
 void au_imported_module_init(struct au_imported_module *data) {
     memset(data, 0, sizeof(struct au_imported_module));
     au_hm_vars_init(&data->fn_map);
-    au_hm_vars_init(&data->vars_map);
+    au_hm_vars_init(&data->class_map);
 }
 
 void au_imported_module_del(struct au_imported_module *data) {
     au_hm_vars_del(&data->fn_map);
-    au_hm_vars_del(&data->vars_map);
+    au_hm_vars_del(&data->class_map);
 }
 
 void au_program_data_init(struct au_program_data *data) {
@@ -52,10 +52,9 @@ void au_program_data_del(struct au_program_data *data) {
         free(data->fn_names.data[i]);
     free(data->fn_names.data);
     for (size_t i = 0; i < data->classes.len; i++) {
-        if(data->classes.data[i] == 0)
+        if (data->classes.data[i] == 0)
             continue;
-        au_class_interface_del(data->classes.data[i]);
-        free(data->classes.data[i]);
+        au_class_interface_deref(data->classes.data[i]);
     }
     free(data->classes.data);
     au_hm_vars_del(&data->class_map);

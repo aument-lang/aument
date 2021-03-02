@@ -1,10 +1,14 @@
 class B {
 }
-import "./class-import.au" as A;
-A::make();
+import "./class-import.au" as import;
 
-def (self: B) thing() {
-  print("B");
+def (self: import::A) func() {
+    print "A";
 }
+def (self: B) func() {
+    print "B";
+}
+a = import::make();
 b = new B;
-thing(b);
+func(a);
+func(b);

@@ -11,9 +11,12 @@
 #include <stdlib.h>
 #endif
 
+#define AU_CLASS_FLAG_EXPORTED (1 << 0)
+
 struct au_class_interface {
-    size_t type_id;
     char *name;
+    uint32_t flags;
+    uint32_t rc;
     struct au_hm_vars map;
 };
 
@@ -23,11 +26,23 @@ struct au_obj_class {
     au_value_t data[];
 };
 
-ARRAY_TYPE_COPY(struct au_class_interface *, au_class_interface_ptr_array, 1)
+ARRAY_TYPE_COPY(struct au_class_interface *, au_class_interface_ptr_array,
+                1)
 
 void au_class_interface_init(struct au_class_interface *interface,
-                             size_t type_id, char *name);
-void au_class_interface_del(struct au_class_interface *interface);
+                             char *name);
+
+/// [func] Increases reference count of an au_class_interface instance.
+/// This struct is owned by a au_class_interface_ptr_array and should
+/// only be called when initializing it inside a
+/// au_class_interface_ptr_array.
+void au_class_interface_ref(struct au_class_interface *interface);
+
+/// [func] Decreases reference count of an au_class_interface instance.
+/// This struct is owned by a au_class_interface_ptr_array and should
+/// only be called when destroying it inside a
+/// au_class_interface_ptr_array.
+void au_class_interface_deref(struct au_class_interface *interface);
 
 struct au_obj_class;
 extern struct au_struct_vdata au_obj_class_vdata;

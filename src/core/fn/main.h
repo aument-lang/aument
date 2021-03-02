@@ -48,9 +48,9 @@ struct au_none_func {
 };
 
 struct au_dispatch_func_instance {
-    size_t class_id;
     size_t function_idx;
     struct au_class_interface *class_interface_cache;
+    size_t class_idx;
 };
 
 ARRAY_TYPE_COPY(struct au_dispatch_func_instance,
@@ -64,12 +64,16 @@ struct au_dispatch_func {
     size_t fallback_fn;
 };
 
+/// [func] Deinitializes an au_dispatch_func instance
+/// @param fn instance to be initialized
+void au_dispatch_func_del(struct au_dispatch_func *fn);
+
 #define AU_FN_FLAG_EXPORTED (1 << 0)
 #define AU_FN_FLAG_HAS_CLASS (1 << 1)
 
 struct au_fn {
     enum au_fn_type type;
-    int flags;
+    uint32_t flags;
     union {
         struct au_lib_func native_func;
         struct au_bc_storage bc_func;
@@ -110,5 +114,8 @@ void au_fn_del(struct au_fn *fn);
 void au_fn_fill_import_cache_unsafe(
     const struct au_fn *fn, const struct au_fn *fn_cached,
     const struct au_program_data *p_data_cached);
+
+void au_fn_fill_class_cache_unsafe(
+    const struct au_fn *fn, const struct au_program_data *current_p_data);
 
 ARRAY_TYPE_STRUCT(struct au_fn, au_fn_array, 1)
