@@ -39,23 +39,22 @@ typedef union {
 #define AU_REPR_FRACTION(x) ((x)&0xfffffffffffffUL)
 #define AU_REPR_EXPONENT(x) ((x) >> 52 & 0x7ff)
 #define AU_REPR_SPECIAL_EXPONENT 0x7ff
-#define AU_REPR_INF_FRACTION 0x0
-#define AU_REPR_NAN_FRACTION 0x1
 #define AU_REPR_BOXED(TAG, POINTER)                                       \
     (0x7ff0000000000000UL |                                               \
      ((((uint64_t)TAG) << 48) | ((POINTER)&0xffffffffffffUL)))
 #define AU_REPR_GET_POINTER(x) ((x)&0x0000ffffffffffffUL)
 #define AU_REPR_OP_ERROR 0x7ff0ffffffffffff
 
+#define AU_REPR_MAGIC_BITMASK (0x7fffffffffffffffUL)
+#define AU_REPR_MAGIC_THRESHOLD (0x7ff0000000000002UL)
+
 static _AlwaysInline enum au_vtype au_value_get_type(const au_value_t v) {
-    // Use bitwise AND to reduce unnecessary branching
-    if ((AU_REPR_FRACTION(v.raw) != AU_REPR_INF_FRACTION) &
-        (AU_REPR_FRACTION(v.raw) != AU_REPR_NAN_FRACTION) &
-        (AU_REPR_EXPONENT(v.raw) == AU_REPR_SPECIAL_EXPONENT)) {
-        return (enum au_vtype)((v.raw >> 48) & 0xf);
-    } else {
-        return VALUE_DOUBLE;
-    }
+    // OPTIMIZE: this function checks if the value is a not a regular
+    // float, nor a special value (the infinity and canonical nan value) by
+    // doing some bitwise magic
+    const uint64_t magic = v.raw & AU_REPR_MAGIC_BITMASK;
+    const int is_not_float = !!(magic >= AU_REPR_MAGIC_THRESHOLD);
+    return (enum au_vtype)((magic >> 48) & (0xf * is_not_float));
 }
 
 static _AlwaysInline au_value_t au_value_op_error() {
