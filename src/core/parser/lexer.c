@@ -232,7 +232,7 @@ static struct token lexer_next_(struct lexer *l) {
                 .len = 2,
             };
         }
-    } else if(start_ch == 0) {
+    } else if (start_ch == 0) {
         l->pos = l->len;
         return (struct token){
             .type = TOK_EOF,

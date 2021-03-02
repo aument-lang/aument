@@ -21,10 +21,11 @@ static void error_loc(const struct au_program_data *p_data,
 
 static size_t resolve_pos(struct au_vm_frame *frame,
                           const struct au_program_data *p_data) {
+    const size_t pc = frame->bc - frame->bc_start;
     for (size_t i = 0; i < p_data->source_map.len; i++) {
         const struct au_program_source_map map =
             p_data->source_map.data[i];
-        if (map.bc_from <= frame->pc && frame->pc <= map.bc_to) {
+        if (map.bc_from <= pc && pc <= map.bc_to) {
             return map.source_start;
         }
     }
