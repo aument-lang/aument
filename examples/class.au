@@ -1,0 +1,27 @@
+class Human {
+	val name;
+}
+
+def (self: Human) init(name) {
+	@name = name;
+}
+
+class Cat {}
+
+def (self: Human) say() {
+	print "I'm ", @name, "\n";
+}
+
+def (self: Cat) say() {
+	print "meow!";
+}
+
+alice = new Human;
+init(alice, "Alice");
+bob = new Human;
+init(bob, "Bob");
+cat = new Cat;
+
+say(alice);
+say(bob);
+say(cat);

@@ -22,6 +22,13 @@
 
 ARRAY_TYPE_COPY(size_t, size_t_array, 1)
 
+static char *copy_string(const char *str, size_t len) {
+	char *output = malloc(len + 1);
+	memcpy(output, str, len);
+	output[len] = 0;
+	return output;
+}
+
 struct parser {
     /// Bytecode buffer that the parser is outputting to
     struct au_bc_buf bc;
@@ -403,7 +410,7 @@ static int parser_exec_class_statement(struct parser *p, struct lexer *l,
 
     struct au_class_interface *interface =
         malloc(sizeof(struct au_class_interface));
-    au_class_interface_init(interface, strndup(id_tok.src, id_tok.len));
+    au_class_interface_init(interface, copy_string(id_tok.src, id_tok.len));
     interface->flags = class_flags;
 
     struct token t = lexer_next(l);
@@ -605,7 +612,7 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
                 };
                 au_fn_array_add(&p->p_data->fns, none_func);
                 au_str_array_add(&p->p_data->fn_names,
-                                 strndup(id_tok.src, id_tok.len));
+                                 copy_string(id_tok.src, id_tok.len));
             }
         }
         // If the old function is already a multi-dispatch function,
@@ -630,7 +637,7 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
             };
             au_fn_array_add(&p->p_data->fns, none_func);
             au_str_array_add(&p->p_data->fn_names,
-                             strndup(id_tok.src, id_tok.len));
+                             copy_string(id_tok.src, id_tok.len));
         } else {
             func_value.idx = old_value->idx;
             au_fn_del(old);
@@ -648,7 +655,7 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
         };
         au_fn_array_add(&p->p_data->fns, none_func);
         au_str_array_add(&p->p_data->fn_names,
-                         strndup(id_tok.src, id_tok.len));
+                         copy_string(id_tok.src, id_tok.len));
     }
 
     struct parser func_p = {0};
@@ -1554,7 +1561,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 };
                 au_fn_array_add(&p->p_data->fns, none_func);
                 au_str_array_add(&p->p_data->fn_names,
-                                 strndup(t.src, t.len));
+                                 copy_string(t.src, t.len));
                 func_idx = func_value.idx;
             }
 

@@ -1,3 +1,7 @@
+# Version 0.2 [pre-α]
+
+*Changelog to be added*
+
 # Version 0.1 [pre-α]
 
   * Floating point support

@@ -5,10 +5,12 @@
 # Licensed under Apache License v2.0 with Runtime Library Exception
 # See LICENSE.txt for license information
 
+buildtype=""
+
 for i in "$@"
 do
 case $i in
-    -D*)
+    -Wc,D*)
         CCFLAGS="$CCFLAGS $i"
         shift
     ;;
@@ -24,12 +26,26 @@ case $i in
         MESONARG="$MESONARG -Db_sanitize=address"
         shift
     ;;
+    --cross-win64)
+    	MESONARG="$MESONARG --cross-file=cross/win64.txt"
+    	shift
+    ;;
     *)
-        MESONARG="$MESONARG --buildtype=$i"
+        if [[ "$buildtype" = "" ]]; then
+        	buildtype="$i"
+        else
+        	MESONARG="$MESONARG $i"
+        fi
         shift
     ;;
 esac
 done
+
+if [[ "$buildtype" = "" ]]; then
+	buildtype = "debug"
+fi
+
+MESONARG="$MESONARG --buildtype=$buildtype"
 
 echo "MESONARG: $MESONARG"
 echo "CCFLAGS: $CCFLAGS"

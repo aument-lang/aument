@@ -31,7 +31,7 @@
 #define _Unreachable __builtin_unreachable()
 #endif
 
-#define _Likely(x) __builtin_expect((x), 1)
-#define _Unlikely(x) __builtin_expect((x), 0)
+#define _Likely(x) __builtin_expect(!!(x), 1)
+#define _Unlikely(x) __builtin_expect(!!(x), 0)
 
 #define _TLStorage _Thread_local
