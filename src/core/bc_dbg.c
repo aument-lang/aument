@@ -5,6 +5,7 @@
 // See LICENSE.txt for license information
 #include <assert.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "bc.h"
 #include "program.h"
@@ -28,7 +29,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
     while (pos < bcs->bc.len) {
         assert(pos % 4 == 0);
         uint8_t opcode = bc(pos);
-        printf("%5ld: ", pos);
+        printf("%5" PRIdPTR ": ", pos);
         if (opcode >= PRINTABLE_OP_LEN) {
             au_fatal("unknown opcode %d", opcode);
         } else {
@@ -98,7 +99,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             DEF_BC16(x, 1)
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
-            printf(" r%d, &%ld\n", reg, abs_offset);
+            printf(" r%d, &%" PRIdPTR "\n", reg, abs_offset);
             pos += 3;
             break;
         }
@@ -106,7 +107,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             DEF_BC16(x, 1)
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
-            printf(" &%ld\n", abs_offset);
+            printf(" &%" PRIdPTR "\n", abs_offset);
             pos += 3;
             break;
         }
@@ -114,7 +115,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             DEF_BC16(x, 1)
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 - offset;
-            printf(" &%ld\n", abs_offset);
+            printf(" &%" PRIdPTR "\n", abs_offset);
             pos += 3;
             break;
         }
@@ -255,7 +256,7 @@ void au_program_dbg(const struct au_program *p) {
     au_bc_dbg(&p->main, &p->data);
     for (size_t i = 0; i < p->data.fns.len; i++) {
         if (p->data.fns.data[i].type == AU_FN_BC) {
-            printf("(%ld):\n", i);
+            printf("(%" PRIdPTR "):\n", i);
             au_bc_dbg(&p->data.fns.data[i].as.bc_func, &p->data);
         }
     }

@@ -70,9 +70,17 @@ An executable `aulang` will appear in the `build` directory.
 
 ### Windows
 
+If your build machine is Windows, install [Python](https://www.python.org/downloads/) and [Meson](https://mesonbuild.com/SimpleStart.html#windows1).
+
 **For Cygwin users,** install gcc on Cygwin, open a Cygwin shell in the current directory and follow Linux instructions.
 
 **For MSVC users,** run `build.bat` (for release mode). Note that aulang's compiler feature is disabled because MSVC doesn't support some Unix functions.
+
+If you're cross-compiling for Windows (64-bit), use the command:
+
+```
+./build.sh --cross-win64
+```
 
 ## Documentation
 

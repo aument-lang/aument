@@ -163,7 +163,7 @@ static _AlwaysInline au_value_t au_value_op_error() {
 }
 
 static _AlwaysInline int au_value_is_op_error(au_value_t v) {
-    return v._type = VALUE_OP_ERROR;
+    return v._type == VALUE_OP_ERROR;
 }
 
 static _AlwaysInline au_value_t au_value_int(int32_t n) {
