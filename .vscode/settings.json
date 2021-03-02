@@ -1,8 +1,0 @@
-{
-    "telemetry.enableTelemetry": false,
-    "telemetry.enableCrashReporter": false,
-    "files.associations": {
-        "*.tcc": "c",
-        "fstream": "c"
-    }
-}
