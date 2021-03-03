@@ -187,7 +187,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     assert(pos + OFFSET + 2 <= bcs->bc.len);                              \
     uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));
 
-    bit_array labelled_lines = calloc(1, BA_LEN(bcs->bc.len / 4));
+    au_bit_array labelled_lines = calloc(1, AU_BA_LEN(bcs->bc.len / 4));
 
     int arg_stack_max = 0;
     int arg_stack_len = 0;
@@ -203,14 +203,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(x, 1)
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
-            SET_BIT(labelled_lines, (abs_offset / 4));
+            AU_BA_SET_BIT(labelled_lines, (abs_offset / 4));
             break;
         }
         case OP_JRELB: {
             DEF_BC16(x, 1)
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 - offset;
-            SET_BIT(labelled_lines, (abs_offset / 4));
+            AU_BA_SET_BIT(labelled_lines, (abs_offset / 4));
             break;
         }
         case OP_PUSH_ARG: {
@@ -239,7 +239,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     }
 
     for (size_t pos = 0; pos < bcs->bc.len;) {
-        if (GET_BIT(labelled_lines, pos / 4)) {
+        if (AU_BA_GET_BIT(labelled_lines, pos / 4)) {
             comp_printf(state, INDENT "L%ld: ", pos);
         } else {
             comp_printf(state, INDENT);

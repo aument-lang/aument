@@ -15,7 +15,11 @@
 #include "tl.h"
 
 struct au_vm_frame {
+#ifdef USE_ALLOCA
+    au_value_t *regs;
+#else
     au_value_t regs[AU_REGS];
+#endif
     au_value_t *locals;
     const uint8_t *bc;
     const uint8_t *bc_start;
