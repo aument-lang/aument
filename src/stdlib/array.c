@@ -17,8 +17,12 @@ AU_EXTERN_FUNC_DECL(au_std_len) {
     case VALUE_STRUCT: {
         struct au_struct *s = au_value_get_struct(value);
         const struct au_struct_vdata *vdata = s->vdata;
-        if (vdata->len_fn != 0)
-            return au_value_int(vdata->len_fn(s));
+        if (vdata->len_fn != 0) {
+            au_value_t retval = au_value_int(vdata->len_fn(s));
+            au_value_deref(value);
+            return retval;
+        }
+        au_value_deref(value);
         return au_value_int(0);
     }
     case VALUE_STR: {
@@ -40,9 +44,11 @@ AU_EXTERN_FUNC_DECL(au_std_len) {
                 i++;
             }
         }
+        au_value_deref(value);
         return au_value_int(utf8_len);
     }
     default: {
+        au_value_deref(value);
         return au_value_int(0);
     }
     }

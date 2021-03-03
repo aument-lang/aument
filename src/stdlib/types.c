@@ -26,9 +26,11 @@ AU_EXTERN_FUNC_DECL(au_std_int) {
                 break;
             }
         }
+        au_value_deref(value);
         return au_value_int(num);
     }
     default: {
+        au_value_deref(value);
         return au_value_int(0);
     }
     }
@@ -86,6 +88,7 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
         return au_value_string(header);
     }
     default: {
+        au_value_deref(value);
         return au_value_string(au_string_from_const("", 0));
     }
     }
