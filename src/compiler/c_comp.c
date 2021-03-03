@@ -252,6 +252,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         pos++;
 
         switch (opcode) {
+        // Move instructions
         case OP_MOV_U16: {
             uint8_t reg = bc(pos);
             DEF_BC16(n, 1)
@@ -259,6 +260,32 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         n);
             break;
         }
+        case OP_MOV_REG_LOCAL: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1)
+            comp_printf(state, "COPY_VALUE(l%d,r%d);\n", local, reg);
+            break;
+        }
+        case OP_MOV_LOCAL_REG: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1)
+            comp_printf(state, "COPY_VALUE(r%d,l%d);\n", reg, local);
+            break;
+        }
+        case OP_MOV_BOOL: {
+            uint8_t n = bc(pos), reg = bc(pos + 1);
+            comp_printf(state, "MOVE_VALUE(r%d,au_value_bool(%d));\n", reg,
+                        n);
+            break;
+        }
+        case OP_LOAD_CONST: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(c, 1)
+            comp_printf(state, "MOVE_VALUE(r%d,_M%ld_c%d());\n", reg,
+                        module_idx, c);
+            break;
+        }
+        // Binary operations
 #define BIN_OP(NAME)                                                      \
     {                                                                     \
         uint8_t lhs = bc(pos);                                            \
@@ -292,11 +319,37 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case OP_GEQ:
             BIN_OP("geq")
 #undef BIN_OP
-        case OP_PRINT: {
-            uint8_t lhs = bc(pos);
-            comp_printf(state, "au_value_print(r%d);\n", lhs);
+        // Binary operations on local variables
+#define BIN_OP_ASG(NAME)                                                  \
+    {                                                                     \
+        uint8_t reg = bc(pos);                                            \
+        DEF_BC16(local, 1)                                                \
+        comp_printf(state,                                                \
+                    "MOVE_VALUE(l%d,au_value_" NAME "(l%d,r%d));\n",      \
+                    local, local, reg);                                   \
+        break;                                                            \
+    }
+        case OP_MUL_ASG:
+            BIN_OP_ASG("mul")
+        case OP_DIV_ASG:
+            BIN_OP_ASG("div")
+        case OP_ADD_ASG:
+            BIN_OP_ASG("add")
+        case OP_SUB_ASG:
+            BIN_OP_ASG("sub")
+        case OP_MOD_ASG:
+            BIN_OP_ASG("mod")
+#undef BIN_OP_ASG
+        // Unary instructions
+        case OP_NOT: {
+            uint8_t reg = bc(pos);
+            comp_printf(
+                state,
+                "MOVE_VALUE(r%d,au_value_bool(!au_value_is_truthy(r%d)));",
+                reg, reg);
             break;
         }
+        // Jump instructions
         case OP_JIF:
         case OP_JNIF: {
             uint8_t reg = bc(pos);
@@ -327,29 +380,13 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             comp_printf(state, "goto L%ld;\n", abs_offset);
             break;
         }
-        case OP_MOV_REG_LOCAL: {
+        // Call instructions
+        case OP_PUSH_ARG: {
             uint8_t reg = bc(pos);
-            DEF_BC16(local, 1)
-            comp_printf(state, "COPY_VALUE(l%d,r%d);\n", local, reg);
-            break;
-        }
-        case OP_MOV_LOCAL_REG: {
-            uint8_t reg = bc(pos);
-            DEF_BC16(local, 1)
-            comp_printf(state, "COPY_VALUE(r%d,l%d);\n", reg, local);
-            break;
-        }
-        case OP_LOAD_CONST: {
-            uint8_t reg = bc(pos);
-            DEF_BC16(c, 1)
-            comp_printf(state, "MOVE_VALUE(r%d,_M%ld_c%d());\n", reg,
-                        module_idx, c);
-            break;
-        }
-        case OP_MOV_BOOL: {
-            uint8_t n = bc(pos), reg = bc(pos + 1);
-            comp_printf(state, "MOVE_VALUE(r%d,au_value_bool(%d));\n", reg,
-                        n);
+            comp_printf(state,
+                        "au_value_ref(r%d);"
+                        "s_data[s_len++]=r%d;\n",
+                        reg, reg);
             break;
         }
         case OP_CALL: {
@@ -406,35 +443,48 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             }
             }
             if (n_args > 0) {
-                for (int i = 0; i < n_args; i++) {
-                    comp_printf(state, "au_value_deref(s_data[s_len-%d]);",
-                                i + 1);
-                }
                 comp_printf(state, "s_len-=%d;", n_args);
             }
             comp_printf(state, "\n");
             break;
         }
-#define BIN_OP_ASG(NAME)                                                  \
-    {                                                                     \
-        uint8_t reg = bc(pos);                                            \
-        DEF_BC16(local, 1)                                                \
-        comp_printf(state,                                                \
-                    "MOVE_VALUE(l%d,au_value_" NAME "(l%d,r%d));\n",      \
-                    local, local, reg);                                   \
-        break;                                                            \
-    }
-        case OP_MUL_ASG:
-            BIN_OP_ASG("mul")
-        case OP_DIV_ASG:
-            BIN_OP_ASG("div")
-        case OP_ADD_ASG:
-            BIN_OP_ASG("add")
-        case OP_SUB_ASG:
-            BIN_OP_ASG("sub")
-        case OP_MOD_ASG:
-            BIN_OP_ASG("mod")
-#undef BIN_OP_ASG
+        case OP_CALL1: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(func_id, 1)
+            const struct au_fn *fn =
+                au_fn_array_at_ptr(&p_data->fns, func_id);
+            switch (fn->type) {
+            case AU_FN_DISPATCH:
+            case AU_FN_BC: {
+                comp_printf(state, "r%d=", reg);
+                comp_printf(state, "_M%ld_f%d(&r%d)",
+                            module_idx, func_id, reg);
+                comp_printf(state, ";");
+                break;
+            }
+            case AU_FN_NATIVE: {
+                const struct au_lib_func *lib_func = &fn->as.native_func;
+                comp_printf(state, "r%d=", reg);
+                comp_printf(state, "%s(0,&r%d)",
+                            lib_func->symbol, reg);
+                comp_printf(state, ");");
+                break;
+            }
+            case AU_FN_IMPORTER: {
+                comp_printf(state, "r%d=", reg);
+                comp_printf(state, "(*_M%ld_f%d)(&r%d)",
+                            module_idx, func_id, reg);
+                comp_printf(state, ";");
+                break;
+            }
+            case AU_FN_NONE: {
+                au_fatal("generating none function");
+            }
+            }
+            comp_printf(state, "\n");
+            break;
+        }
+        // Return instructions
         case OP_RET: {
             uint8_t reg = bc(pos);
             comp_cleanup(state, bcs, reg, -1);
@@ -452,14 +502,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             comp_printf(state, "return au_value_none();\n");
             break;
         }
-        case OP_PUSH_ARG: {
-            uint8_t reg = bc(pos);
-            comp_printf(state,
-                        "au_value_ref(r%d);"
-                        "s_data[s_len++]=r%d;\n",
-                        reg, reg);
-            break;
-        }
+        // Modules
         case OP_IMPORT: {
             DEF_BC16(idx, 1)
             const struct au_program_import *import =
@@ -598,6 +641,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 
             break;
         }
+        // Array instructions
         case OP_ARRAY_NEW: {
             uint8_t reg = bc(pos);
             DEF_BC16(capacity, 1)
@@ -637,6 +681,17 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         ret, reg, idx, ret);
             break;
         }
+        // Tuple instructions
+        case OP_TUPLE_NEW: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(len, 1)
+            comp_printf(state,
+                        "MOVE_VALUE(r%d,"
+                        "au_value_struct("
+                        "(struct au_struct*)au_obj_tuple_new(%d)));\n",
+                        reg, len);
+            break;
+        }
         case OP_IDX_SET_STATIC: {
             uint8_t reg = bc(pos);
             uint8_t idx = bc(pos + 1);
@@ -647,22 +702,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         ret, reg, idx, ret);
             break;
         }
-        case OP_NOT: {
-            uint8_t reg = bc(pos);
-            comp_printf(
-                state,
-                "MOVE_VALUE(r%d,au_value_bool(!au_value_is_truthy(r%d)));",
-                reg, reg);
-            break;
-        }
-        case OP_TUPLE_NEW: {
-            uint8_t reg = bc(pos);
-            DEF_BC16(len, 1)
-            comp_printf(state,
-                        "MOVE_VALUE(r%d,"
-                        "au_value_struct("
-                        "(struct au_struct*)au_obj_tuple_new(%d)));\n",
-                        reg, len);
+        // Other
+        case OP_NOP: break;
+        case OP_PRINT: {
+            uint8_t lhs = bc(pos);
+            comp_printf(state, "au_value_print(r%d);\n", lhs);
             break;
         }
         default: {
