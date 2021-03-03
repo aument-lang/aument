@@ -58,6 +58,7 @@ enum au_opcode {
     OP_CLASS_GET_INNER = 40,
     OP_CLASS_SET_INNER = 41,
     OP_CLASS_NEW = 42,
+    OP_CALL1 = 43,
     PRINTABLE_OP_LEN,
 };
 

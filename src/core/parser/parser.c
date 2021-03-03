@@ -8,12 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "platform/mmap.h"
-
 #include "core/array.h"
+#include "core/bit_array.h"
 #include "core/program.h"
 #include "core/rt/au_class.h"
 #include "core/rt/exception.h"
+#include "platform/mmap.h"
 
 #include "lexer.h"
 #include "parser.h"
@@ -36,12 +36,10 @@ struct parser {
     /// Stack of used register
     uint8_t rstack[AU_REGS];
     /// Length of rstack
-    size_t rstack_len;
+    int rstack_len;
 
-    /// Stack of unused "free" registers
-    uint8_t free_regs[AU_REGS];
-    // Length of free_regs
-    size_t free_regs_len;
+    /// Bitmap of used registers
+    char used_regs[AU_BA_LEN(AU_REGS)];
 
     /// Hash table of local variables
     struct au_hm_vars vars;
@@ -86,10 +84,9 @@ static inline int is_return_op(uint8_t op) {
 
 static void parser_flush_free_regs(struct parser *p) {
     p->rstack_len = 0;
-    for (int i = 0; i < AU_REGS; i++) {
-        p->free_regs[i] = AU_REGS - i - 1;
+    for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
+        p->used_regs[i] = 0;
     }
-    p->free_regs_len = AU_REGS;
 }
 
 static void parser_init(struct parser *p, struct au_program_data *p_data) {
@@ -121,8 +118,19 @@ static void parser_del(struct parser *p) {
 
 static uint8_t parser_new_reg(struct parser *p) {
     assert(p->rstack_len + 1 <= AU_REGS);
-    assert(p->free_regs_len > 0);
-    uint8_t reg = p->free_regs[--p->free_regs_len];
+
+    uint8_t reg = 0;
+    int found = 0;
+    for (int i = 0; i < AU_REGS; i++) {
+        if (!AU_BA_GET_BIT(p->used_regs, i)) {
+            found = 1;
+            reg = i;
+            AU_BA_SET_BIT(p->used_regs, i);
+            break;
+        }
+    }
+    assert(found);
+
     p->rstack[p->rstack_len++] = reg;
     if (reg > p->max_register)
         p->max_register = reg;
@@ -141,11 +149,20 @@ static void parser_swap_top_regs(struct parser *p) {
     p->rstack[p->rstack_len - 1] = top2;
 }
 
+static void parser_push_reg(struct parser *p, uint8_t reg) {
+    assert(!AU_BA_GET_BIT(p->used_regs, reg));
+    AU_BA_SET_BIT(p->used_regs, reg);
+
+    assert(p->rstack_len + 1 <= AU_REGS);
+    p->rstack[p->rstack_len++] = reg;
+    if (reg > p->max_register)
+        p->max_register = reg;
+}
+
 static uint8_t parser_pop_reg(struct parser *p) {
     assert(p->rstack_len != 0);
     uint8_t reg = p->rstack[--p->rstack_len];
-    assert(p->free_regs_len + 1 <= AU_REGS);
-    p->free_regs[p->free_regs_len++] = reg;
+    AU_BA_RESET_BIT(p->used_regs, reg);
     return reg;
 }
 
@@ -973,8 +990,9 @@ static int parser_exec_return_statement(struct parser *p,
     if (!parser_exec_expr(p, l))
         return 0;
     const uint8_t reg = parser_pop_reg(p);
-    if (p->bc.data[p->bc.len - 4] == OP_MOV_LOCAL_REG &&
-        p->bc.data[p->bc.len - 3] == reg) {
+    if (p->bc.len > 4 && (p->bc.data[p->bc.len - 4] == OP_MOV_LOCAL_REG &&
+                          p->bc.data[p->bc.len - 3] == reg)) {
+        // OPTIMIZE: peephole optimization for local returns
         p->bc.data[p->bc.len - 4] = OP_RET_LOCAL;
     } else {
         parser_emit_bc_u8(p, OP_RET);
@@ -1136,17 +1154,16 @@ static int parser_exec_logical(struct parser *p, struct lexer *l) {
             parser_replace_bc_u16(p, right_replace_idx,
                                   (end_label - right_len) / 4);
 
-            /*
-            register = 0
-            eval left
-            jnif end
-            eval right
-            jnif end
-            body:
-                register = 1
-            end:
-                ...
-            */
+            // Our final bytecode should look like this:
+            //   register = 0
+            //   (eval left)
+            //   jnif end
+            //   (eval right)
+            //   jnif end
+            //   body:
+            //       register = 1
+            //   end:
+            //       ...
         } else if (t.src[0] == '|' && t.src[1] == '|') {
             const uint8_t reg = parser_new_reg(p);
             parser_swap_top_regs(p);
@@ -1192,19 +1209,18 @@ static int parser_exec_logical(struct parser *p, struct lexer *l) {
             parser_replace_bc_u16(p, right_replace_idx,
                                   (truth_len - right_len) / 4);
 
-            /*
-            eval left
-            jif end
-            eval right
-            jif end
-            body:
-                register = 0
-                jmp end1
-            end:
-                register = 1
-            end1:
-                ...
-            */
+            // Our final bytecode should look like this:
+            //   (eval left)
+            //   jif end
+            //   (eval right)
+            //   jif end
+            //   body:
+            //       register = 0
+            //       jmp end1
+            //   end:
+            //       register = 1
+            //   end1:
+            //       ...
         }
     } else {
         l->pos = len;
@@ -1347,8 +1363,7 @@ static int parser_exec_index_expr(struct parser *p, struct lexer *l) {
             parser_emit_bc_u8(p, right_reg);
             // Right now, the free register stack is:
             // ... [array reg (-3)] [idx reg (-2)] [right reg (-1)]
-            // We want to remove array and idx regs because
-            // they aren't used
+            // Remove array and idx regs because they aren't used
             p->rstack[p->rstack_len - 3] = p->rstack[p->rstack_len - 1];
             p->rstack_len -= 2;
         } else {
@@ -1358,7 +1373,7 @@ static int parser_exec_index_expr(struct parser *p, struct lexer *l) {
             parser_emit_bc_u8(p, idx_reg);
             parser_emit_bc_u8(p, result_reg);
             // ... [array reg (-3)] [idx reg (-2)] [array value reg (-1)]
-            // We also want to remove array/idx regs here, too
+            // We also want to remove array/idx regs here
             p->rstack[p->rstack_len - 3] = p->rstack[p->rstack_len - 1];
             p->rstack_len -= 2;
         }
@@ -1565,15 +1580,25 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
                 }
             }
 
-            parser_emit_bc_u8(p, OP_CALL);
-            parser_emit_bc_u8(p, parser_new_reg(p));
-            const size_t offset = p->bc.len;
-            parser_emit_pad8(p);
-            parser_emit_pad8(p);
-            if (execute_self) {
-                size_t_array_add(&p->self_fill_call, offset);
+            size_t call_fn_offset = 0;
+            if (n_args == 1 && p->bc.len > 4 &&
+                p->bc.data[p->bc.len - 4] == OP_PUSH_ARG) {
+                // OPTIMIZE: peephole optimization for function calls with
+                // 1 argument
+                p->bc.data[p->bc.len - 4] = OP_CALL1;
+                parser_push_reg(p, p->bc.data[p->bc.len - 3]);
+                call_fn_offset = p->bc.len - 2;
             } else {
-                parser_replace_bc_u16(p, offset, func_idx);
+                parser_emit_bc_u8(p, OP_CALL);
+                parser_emit_bc_u8(p, parser_new_reg(p));
+                call_fn_offset = p->bc.len;
+                parser_emit_pad8(p);
+                parser_emit_pad8(p);
+            }
+            if (execute_self) {
+                size_t_array_add(&p->self_fill_call, call_fn_offset);
+            } else {
+                parser_replace_bc_u16(p, call_fn_offset, func_idx);
             }
         } else {
             const struct au_hm_var_value *val =

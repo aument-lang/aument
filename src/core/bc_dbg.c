@@ -12,15 +12,15 @@
 #include "rt/exception.h"
 
 const char *au_opcode_dbg[256] = {
-    "mov",       "mul",       "div",      "add",       "sub",
-    "mod",       "mov",       "mov",      "print",     "eq",
-    "neq",       "lt",        "gt",       "leq",       "geq",
-    "jif",       "jnif",      "jrel",     "jrelb",     "loadc",
-    "mov",       "nop",       "mul",      "div",       "add",
-    "sub",       "mod",       "push_arg", "call",      "ret",
-    "ret",       "ret",       "import",   "array_new", "array_push",
-    "idx_get",   "idx_set",   "not",      "tuple_new", "idx_set_static",
-    "mov_class", "mov_class", "class_new"};
+    "mov",       "mul",       "div",       "add",       "sub",
+    "mod",       "mov",       "mov",       "print",     "eq",
+    "neq",       "lt",        "gt",        "leq",       "geq",
+    "jif",       "jnif",      "jrel",      "jrelb",     "loadc",
+    "mov",       "nop",       "mul",       "div",       "add",
+    "sub",       "mod",       "push_arg",  "call",      "ret",
+    "ret",       "ret",       "import",    "array_new", "array_push",
+    "idx_get",   "idx_set",   "not",       "tuple_new", "idx_set_static",
+    "mov_class", "mov_class", "class_new", "call_1"};
 
 void au_bc_dbg(const struct au_bc_storage *bcs,
                const struct au_program_data *data) {
@@ -139,6 +139,13 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             break;
         }
         case OP_CALL: {
+            uint8_t retval = bc(pos);
+            DEF_BC16(x, 1)
+            printf(" (%d) -> r%d\n", x, retval);
+            pos += 3;
+            break;
+        }
+        case OP_CALL1: {
             uint8_t retval = bc(pos);
             DEF_BC16(x, 1)
             printf(" (%d) -> r%d\n", x, retval);
