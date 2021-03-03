@@ -70,6 +70,10 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
             abs_num /= 10;
         }
         if (is_neg) {
+            if (pos == cap) {
+                cap *= 2;
+                header = realloc(header, sizeof(struct au_string) + cap);
+            }
             header->data[pos] = '-';
             pos++;
         }
