@@ -239,7 +239,11 @@ static struct token lexer_next_(struct lexer *l) {
         };
     }
 
-    au_fatal("unexpected character '%c'", start_ch);
+    return (struct token){
+        .type = TOK_UNKNOWN,
+        .src = l->src + start,
+        .len = 1,
+    };
 #undef L_EOF
 }
 

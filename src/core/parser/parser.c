@@ -175,6 +175,29 @@ static void parser_emit_bc_u16(struct parser *p, uint16_t val) {
 
 static void parser_emit_pad8(struct parser *p) { parser_emit_bc_u8(p, 0); }
 
+#define EXPECT_TOKEN(CONDITION, TOKEN, EXPECTED)                          \
+    do {                                                                  \
+        if (!(CONDITION)) {                                               \
+            p->res = (struct au_parser_result){                           \
+                .type = AU_PARSER_RES_UNEXPECTED_TOKEN,                   \
+                .data.unexpected_token.got_token = TOKEN,                 \
+                .data.unexpected_token.expected = EXPECTED,               \
+            };                                                            \
+            return 0;                                                     \
+        }                                                                 \
+    } while (0)
+
+#define EXPECT_GLOBAL_SCOPE(TOKEN)                                        \
+    do {                                                                  \
+        if (p->block_level != 0) {                                        \
+            p->res = (struct au_parser_result){                           \
+                .type = AU_PARSER_RES_EXPECT_GLOBAL_SCOPE,                \
+                .data.expect_global.at_token = TOKEN,                     \
+            };                                                            \
+            return 0;                                                     \
+        }                                                                 \
+    } while (0)
+
 static int parser_exec_statement(struct parser *p, struct lexer *l);
 
 static int parser_exec_expr(struct parser *p, struct lexer *l);
@@ -222,13 +245,8 @@ static int parser_exec_with_semicolon(struct parser *p, struct lexer *l,
     struct token t = lexer_next(l);
     if (t.type == TOK_EOF)
         return 1;
-    if (!(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ';')) {
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-            .data.unexpected_token.got_token = t,
-        };
-        return 0;
-    }
+    EXPECT_TOKEN(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == ';',
+                 t, "')'");
     return 1;
 }
 
@@ -236,18 +254,15 @@ static int parser_exec_with_semicolon(struct parser *p, struct lexer *l,
 static int parser_exec_block(struct parser *p, struct lexer *l) {
     p->block_level++;
 
-    {
-        struct token t = lexer_next(l);
-        assert(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == '{');
-    }
+    struct token t = lexer_next(l);
+    EXPECT_TOKEN(t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == '{',
+                 t, "'{'");
 
     while (1) {
-        {
-            struct token t = lexer_peek(l, 0);
-            if (t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == '}') {
-                lexer_next(l);
-                break;
-            }
+        t = lexer_peek(l, 0);
+        if (t.type == TOK_OPERATOR && t.len == 1 && t.src[0] == '}') {
+            lexer_next(l);
+            break;
         }
 
         int retval = parser_exec_statement(p, l);
@@ -271,9 +286,11 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
         return -1;
     } else if (t.type == TOK_IDENTIFIER) {
         if (token_keyword_cmp(&t, "class")) {
+            EXPECT_GLOBAL_SCOPE(t);
             lexer_next(l);
             retval = parser_exec_class_statement(p, l, 0);
         } else if (token_keyword_cmp(&t, "def")) {
+            EXPECT_GLOBAL_SCOPE(t);
             lexer_next(l);
             retval = parser_exec_def_statement(p, l, 0);
         } else if (token_keyword_cmp(&t, "if")) {
@@ -289,9 +306,11 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
             lexer_next(l);
             retval = WITH_SEMICOLON(parser_exec_return_statement);
         } else if (token_keyword_cmp(&t, "import")) {
+            EXPECT_GLOBAL_SCOPE(t);
             lexer_next(l);
             retval = WITH_SEMICOLON(parser_exec_import_statement);
         } else if (token_keyword_cmp(&t, "export")) {
+            EXPECT_GLOBAL_SCOPE(t);
             lexer_next(l);
             retval = parser_exec_export_statement(p, l);
         } else {
@@ -315,16 +334,8 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
 
 static int parser_exec_import_statement(struct parser *p,
                                         struct lexer *l) {
-    assert(p->block_level == 0);
-
     const struct token path_tok = lexer_next(l);
-    if (path_tok.type != TOK_STRING) {
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-            .data.unexpected_token.got_token = path_tok,
-        };
-        return 0;
-    }
+    EXPECT_TOKEN(path_tok.type != TOK_STRING, path_tok, "string");
 
     char *path_dup = malloc(path_tok.len + 1);
     memcpy(path_dup, path_tok.src, path_tok.len);
@@ -371,19 +382,13 @@ static int parser_exec_import_statement(struct parser *p,
 
 static int parser_exec_export_statement(struct parser *p,
                                         struct lexer *l) {
-    assert(p->block_level == 0);
-
     struct token tok = lexer_next(l);
     if (token_keyword_cmp(&tok, "def")) {
         return parser_exec_def_statement(p, l, 1);
     } else if (token_keyword_cmp(&tok, "class")) {
         return parser_exec_class_statement(p, l, 1);
     } else {
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-            .data.unexpected_token.got_token = tok,
-        };
-        return 0;
+        EXPECT_TOKEN(0, tok, "'class', 'def'");
     }
 
     return 1;
@@ -391,14 +396,12 @@ static int parser_exec_export_statement(struct parser *p,
 
 static int parser_exec_class_statement(struct parser *p, struct lexer *l,
                                        int exported) {
-    assert(p->block_level == 0);
-
     uint32_t class_flags = 0;
     if (exported)
         class_flags |= AU_CLASS_FLAG_EXPORTED;
 
     const struct token id_tok = lexer_next(l);
-    assert(id_tok.type == TOK_IDENTIFIER);
+    EXPECT_TOKEN(id_tok.type == TOK_IDENTIFIER, id_tok, "identifier");
 
     struct au_hm_var_value class_value = (struct au_hm_var_value){
         .idx = p->p_data->classes.len,
@@ -422,18 +425,15 @@ static int parser_exec_class_statement(struct parser *p, struct lexer *l,
     } else if (!(t.type == TOK_OPERATOR && t.len == 1 &&
                  t.src[0] == '{')) {
         au_class_interface_deref(interface);
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-            .data.unexpected_token.got_token = t,
-        };
-        return 0;
+        EXPECT_TOKEN(0, t, "'}'");
     }
 
     while (1) {
         t = lexer_next(l);
         if (token_keyword_cmp(&t, "val")) {
             const struct token name_tok = lexer_next(l);
-            assert(name_tok.type == TOK_IDENTIFIER);
+            EXPECT_TOKEN(name_tok.type == TOK_IDENTIFIER, name_tok,
+                         "identifier");
             struct au_hm_var_value prop_value = (struct au_hm_var_value){
                 .idx = interface->map.entries_occ,
             };
@@ -454,10 +454,7 @@ static int parser_exec_class_statement(struct parser *p, struct lexer *l,
             break;
         }
         au_class_interface_deref(interface);
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-            .data.unexpected_token.got_token = t,
-        };
+        EXPECT_TOKEN(0, t, "'}'");
         return 0;
     }
 
@@ -468,8 +465,6 @@ static int parser_exec_class_statement(struct parser *p, struct lexer *l,
 
 static int parser_exec_def_statement(struct parser *p, struct lexer *l,
                                      int exported) {
-    assert(p->block_level == 0);
-
     uint32_t fn_flags = 0;
     if (exported)
         fn_flags |= AU_FN_FLAG_EXPORTED;
@@ -483,14 +478,17 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
         fn_flags |= AU_FN_FLAG_HAS_CLASS;
 
         self_tok = lexer_next(l);
-        assert(self_tok.type == TOK_IDENTIFIER);
+        EXPECT_TOKEN(self_tok.type == TOK_IDENTIFIER, self_tok,
+                     "identifier");
 
         tok = lexer_next(l);
-        assert(tok.type == TOK_OPERATOR && tok.len == 1 &&
-               tok.src[0] == ':');
+        EXPECT_TOKEN(tok.type == TOK_OPERATOR && tok.len == 1 &&
+                         tok.src[0] == ':',
+                     tok, "':'");
 
         struct token name_tok = lexer_next(l);
-        assert(name_tok.type == TOK_IDENTIFIER);
+        EXPECT_TOKEN(name_tok.type == TOK_IDENTIFIER, name_tok,
+                     "identifier");
 
         struct token module_tok = (struct token){.type = TOK_EOF};
         tok = lexer_peek(l, 0);
@@ -527,18 +525,13 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
         }
 
         tok = lexer_next(l);
-        assert(tok.type == TOK_OPERATOR && tok.len == 1 &&
-               tok.src[0] == ')');
+        EXPECT_TOKEN(tok.type == TOK_OPERATOR && tok.len == 1 &&
+                         tok.src[0] == ')',
+                     tok, "')'");
     }
 
     const struct token id_tok = lexer_next(l);
-    if (id_tok.type != TOK_IDENTIFIER) {
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-            .data.unexpected_token.got_token = id_tok,
-        };
-        return 0;
-    }
+    EXPECT_TOKEN(id_tok.type == TOK_IDENTIFIER, id_tok, "identifier");
 
     int expected_num_args = -1;
 
@@ -680,7 +673,9 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
     }
 
     tok = lexer_next(l);
-    assert(tok.type == TOK_OPERATOR && tok.len == 1 && tok.src[0] == '(');
+    EXPECT_TOKEN(tok.type == TOK_OPERATOR && tok.len == 1 &&
+                     tok.src[0] == '(',
+                 tok, "'('");
 
     tok = lexer_peek(l, 0);
     if (tok.type == TOK_IDENTIFIER) {
@@ -704,7 +699,8 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
                        tok.src[0] == ',') {
                 lexer_next(l);
                 tok = lexer_next(l);
-                assert(tok.type == TOK_IDENTIFIER);
+                EXPECT_TOKEN(tok.type == TOK_IDENTIFIER, tok,
+                             "identifier");
                 const struct au_hm_var_value v = (struct au_hm_var_value){
                     .idx = bcs.num_args,
                 };
@@ -715,21 +711,13 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
                 assert(func_p.locals_len < AU_MAX_LOCALS);
                 bcs.num_args++;
             } else {
-                p->res = (struct au_parser_result){
-                    .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-                    .data.unexpected_token.got_token = tok,
-                };
-                return 0;
+                EXPECT_TOKEN(0, tok, "arguments");
             }
         }
     } else if (tok.len == 1 && tok.src[0] == ')') {
         lexer_next(l);
     } else {
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-            .data.unexpected_token.got_token = tok,
-        };
-        return 0;
+        EXPECT_TOKEN(0, tok, "arguments");
     }
 
     if (expected_num_args != -1)
@@ -1343,9 +1331,9 @@ static int parser_exec_index_expr(struct parser *p, struct lexer *l) {
             return 0;
         const uint8_t idx_reg = parser_last_reg(p);
         tok = lexer_next(l);
-        if (!(tok.type == TOK_OPERATOR && tok.len == 1 &&
-              tok.src[0] == ']'))
-            assert(0);
+        EXPECT_TOKEN(tok.type == TOK_OPERATOR && tok.len == 1 &&
+                         tok.src[0] == ']',
+                     tok, "']'");
         tok = lexer_peek(l, 0);
         if (tok.type == TOK_OPERATOR && tok.len == 1 &&
             tok.src[0] == '=') {
@@ -1380,14 +1368,7 @@ static int parser_exec_index_expr(struct parser *p, struct lexer *l) {
 }
 
 static int parser_exec_val(struct parser *p, struct lexer *l) {
-    struct token t;
-    if ((t = lexer_next(l)).type == TOK_EOF) {
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-            .data.unexpected_token.got_token = t,
-        };
-        return 0;
-    }
+    struct token t = lexer_next(l);
 
     switch (t.type) {
     case TOK_INT: {
@@ -1437,13 +1418,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             if (!parser_exec_expr(p, l))
                 return 0;
             t = lexer_next(l);
-            if (!(t.len == 1 && t.src[0] == ')')) {
-                p->res = (struct au_parser_result){
-                    .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-                    .data.unexpected_token.got_token = t,
-                };
-                return 0;
-            }
+            EXPECT_TOKEN(t.len == 1 && t.src[0] == ')', t, "')'");
         } else if (t.len == 1 && t.src[0] == '[') {
             return parser_exec_array_or_tuple(p, l, 0);
         } else if (t.len == 2 && t.src[0] == '#' && t.src[1] == '[') {
@@ -1484,7 +1459,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
             module_tok = t;
             lexer_next(l);
             t = lexer_next(l);
-            assert(t.type == TOK_IDENTIFIER);
+            EXPECT_TOKEN(t.type == TOK_IDENTIFIER, t, "identifier");
             peek = lexer_peek(l, 0);
         }
 
@@ -1671,11 +1646,7 @@ static int parser_exec_val(struct parser *p, struct lexer *l) {
         break;
     }
     default: {
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
-            .data.unexpected_token.got_token = t,
-        };
-        return 0;
+        EXPECT_TOKEN(0, t, "value");
     }
     }
 
@@ -1763,7 +1734,7 @@ static int parser_exec_array_or_tuple(struct parser *p, struct lexer *l,
 
 static int parser_exec_new_expr(struct parser *p, struct lexer *l) {
     const struct token id_tok = lexer_next(l);
-    assert(id_tok.type == TOK_IDENTIFIER);
+    EXPECT_TOKEN(id_tok.type == TOK_IDENTIFIER, id_tok, "identifier");
 
     const struct au_hm_var_value *class_value =
         au_hm_vars_get(&p->p_data->class_map, id_tok.src, id_tok.len);

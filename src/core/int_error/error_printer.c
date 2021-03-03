@@ -61,6 +61,9 @@ void au_print_parser_error(struct au_parser_result res,
         printf("unexpected token '%.*s'",
                (int)res.data.unexpected_token.got_token.len,
                res.data.unexpected_token.got_token.src);
+        if (res.data.unexpected_token.expected != 0) {
+            printf(", expected %s", res.data.unexpected_token.expected);
+        }
         errored_token = res.data.unexpected_token.got_token;
         break;
     }
@@ -87,6 +90,11 @@ void au_print_parser_error(struct au_parser_result res,
                (int)res.data.unknown_var.name_token.len,
                res.data.unknown_var.name_token.src);
         errored_token = res.data.unknown_var.name_token;
+        break;
+    }
+    case X(EXPECT_GLOBAL_SCOPE): {
+        printf("this statement must be used in the global scope");
+        errored_token = res.data.expect_global.at_token;
         break;
     }
     }

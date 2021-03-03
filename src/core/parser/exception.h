@@ -16,6 +16,7 @@ enum au_parser_result_type {
     X(UNKNOWN_FUNCTION) = 3,
     X(WRONG_ARGS) = 4,
     X(UNKNOWN_VAR) = 5,
+    X(EXPECT_GLOBAL_SCOPE) = 6,
 };
 #undef X
 
@@ -23,6 +24,7 @@ struct au_parser_result {
     union {
         struct {
             struct token got_token;
+            const char *expected;
         } unexpected_token;
         struct {
             struct token name_token;
@@ -35,6 +37,9 @@ struct au_parser_result {
         struct {
             struct token name_token;
         } unknown_var;
+        struct {
+            struct token at_token;
+        } expect_global;
     } data;
     enum au_parser_result_type type;
 };
