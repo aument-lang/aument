@@ -132,6 +132,8 @@ int main(int argc, char **argv) {
     }
     au_mmap_del(&mmap);
 
+    program.data.file = 0;
+    program.data.cwd = 0;
     if (!au_split_path(input_file, &program.data.file, &program.data.cwd))
         au_perror("au_split_path");
 

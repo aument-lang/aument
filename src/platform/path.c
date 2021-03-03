@@ -41,7 +41,7 @@ int au_split_path(const char *path, char **file, char **wd) {
 #else
     char *abs_path_proc = realpath(path, 0);
     if (abs_path_proc == 0)
-        return 0;
+        goto fail;
     *file = strdup(abs_path_proc);
     *wd = dirname(abs_path_proc);
 #endif

@@ -509,6 +509,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                        AU_PARSER_RES_OK);
                 au_mmap_del(&mmap);
 
+                program.data.file = 0;
+                program.data.cwd = 0;
                 au_split_path(abspath, &program.data.file,
                               &program.data.cwd);
                 free(abspath);
