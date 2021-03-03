@@ -4,14 +4,22 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/wait.h>
+#endif
 
 #include "spawn.h"
 
 int au_spawn(struct au_str_array *array) {
     au_str_array_add(array, 0);
-
+#ifdef _WIN32
+    return (int)_spawnvp(P_WAIT, au_str_array_at(array, 0),
+                         (const char *const *)array->data);
+#else
     pid_t pid = fork();
     if (pid == -1) {
         au_perror("fork");
@@ -26,4 +34,5 @@ int au_spawn(struct au_str_array *array) {
         execvp(au_str_array_at(array, 0), array->data);
         exit(1);
     }
+#endif
 }

@@ -74,7 +74,7 @@ If your build machine is Windows, install [Python](https://www.python.org/downlo
 
 **For Cygwin users,** install gcc on Cygwin, open a Cygwin shell in the current directory and follow Linux instructions.
 
-**For MSVC users,** run `build.bat` (for release mode). Note that aulang's compiler feature is disabled because MSVC doesn't support some Unix functions.
+**For MSVC users,** run `build.bat` (for release mode).
 
 If you're cross-compiling for Windows (64-bit), use the command:
 

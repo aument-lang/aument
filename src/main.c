@@ -22,17 +22,11 @@
 #include "core/vm/vm.h"
 
 #ifdef FEAT_COMPILER
-#include <libgen.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
 #include "compiler/c_comp.h"
 #include "platform/cc.h"
 #endif
 
-#ifdef _WIN32
-#else
+#ifndef _WIN32
 #include <libgen.h>
 #include <signal.h>
 #include <unistd.h>
@@ -138,7 +132,8 @@ int main(int argc, char **argv) {
     }
     au_mmap_del(&mmap);
 
-    au_split_path(input_file, &program.data.file, &program.data.cwd);
+    if (!au_split_path(input_file, &program.data.file, &program.data.cwd))
+        au_perror("au_split_path");
 
     if (has_flag(flags, FLAG_DUMP_BYTECODE))
         au_program_dbg(&program);
@@ -167,7 +162,7 @@ int main(int argc, char **argv) {
         } else {
             struct au_tmpfile tmp;
             if (!au_tmpfile_new(&tmp))
-                au_perror("unable to create tmpfile\n");
+                au_perror("unable to create tmpfile");
             struct au_c_comp_state c_state = {
                 .as.f = tmp.f,
                 .type = AU_C_COMP_FILE,
@@ -184,6 +179,9 @@ int main(int argc, char **argv) {
             au_str_array_add(&cc.cflags, "-O2");
 
             int retval = au_spawn_cc(&cc, output_file, tmp.path);
+            if (retval != 0) {
+                printf("c compiler returned with exit code %d\n", retval);
+            }
             au_tmpfile_del(&tmp);
             au_cc_options_del(&cc);
             return retval;
