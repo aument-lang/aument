@@ -518,8 +518,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                        AU_PARSER_RES_OK);
                 au_mmap_del(&mmap);
 
-                au_split_path(abspath, &program.data.file,
-                              &program.data.cwd);
+                if (!au_split_path(abspath, &program.data.file,
+                                   &program.data.cwd))
+                    au_perror("au_split_path");
                 free(abspath);
 
                 if (rmod_retval != AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {

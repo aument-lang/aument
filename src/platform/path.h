@@ -5,4 +5,4 @@
 // See LICENSE.txt for license information
 #pragma once
 
-void au_split_path(const char *path, char **file, char **wd);
+int au_split_path(const char *path, char **file, char **wd);

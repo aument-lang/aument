@@ -8,8 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/wait.h>
+#endif
 
 #include "cc.h"
 #include "spawn.h"
@@ -51,13 +56,35 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
 
     if (cc->use_stdlib) {
         if (!cc->_stdlib_cache) {
-            // TODO: look up standard library file
-            char buffer[BUFSIZ];
-            if (readlink("/proc/self/exe", buffer, BUFSIZ) < 0) {
-                free(args.data);
-                return -1;
+#ifdef _WIN32
+            char buffer[PATH_MAX];
+            if (GetModuleFileNameA(0, buffer, PATH_MAX) == 0) {
+                goto fail;
             }
+            char my_path[PATH_MAX];
+            size_t size = GetFullPathNameA(buffer, PATH_MAX, my_path, 0);
+            if (size == 0) {
+                goto fail;
+            }
+            char my_drive[16] = {0};
+            if (_splitpath_s(my_path, my_drive, sizeof(my_drive), my_path,
+                             PATH_MAX, 0, 0, 0, 0) != 0) {
+                goto fail;
+            }
+            const size_t my_path_len = strlen(my_path);
+            const size_t my_drive_len = strlen(my_drive);
+            if (my_path_len + my_drive_len > PATH_MAX) {
+                goto fail;
+            }
+            memmove(&my_path[my_drive_len], my_path, my_path_len);
+            memcpy(my_path, my_drive, strlen(my_drive));
+            my_path[my_path_len + my_drive_len] = 0;
+#else
+            char buffer[BUFSIZ];
+            if (readlink("/proc/self/exe", buffer, BUFSIZ) < 0)
+                goto fail;
             char *my_path = dirname(buffer);
+#endif
             size_t my_len = strlen(my_path);
             size_t stdlib_cache_len = my_len + sizeof(au_lib_file);
             cc->_stdlib_cache = malloc(stdlib_cache_len + 1);
@@ -71,4 +98,8 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
     int retval = au_spawn(&args);
     free(args.data);
     return retval;
+
+fail:
+    free(args.data);
+    return 1;
 }
