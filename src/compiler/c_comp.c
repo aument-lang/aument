@@ -910,8 +910,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case OP_CLASS_SET_INNER: {
             uint8_t reg = bc(pos);
             DEF_BC16(inner, 1);
-            comp_printf(state, "COPY_VALUE(self->v[%d],r%d);\n", reg,
-                        inner);
+            comp_printf(state, "COPY_VALUE(self->v[%d],r%d);\n", inner,
+                        reg);
             break;
         }
         // Other
