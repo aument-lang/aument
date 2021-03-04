@@ -32,13 +32,13 @@
     }                                                                     \
     static _Unused INNER NAME##_at(const struct NAME *array,              \
                                    size_t idx) {                          \
-        if (idx > array->len)                                             \
+        if (idx >= array->len)                                            \
             au_fatal_index((void *)array, idx, array->len);               \
         return array->data[idx];                                          \
     }                                                                     \
     static _Unused void NAME##_set(const struct NAME *array, size_t idx,  \
                                    INNER thing) {                         \
-        if (idx > array->len)                                             \
+        if (idx >= array->len)                                            \
             au_fatal_index((void *)array, idx, array->len);               \
         array->data[idx] = thing;                                         \
     }
@@ -47,12 +47,12 @@
     ARRAY_TYPE_COPY(INNER, NAME, IN_CAP)                                  \
     static _Unused const INNER *NAME##_at_ptr(const struct NAME *array,   \
                                               size_t idx) {               \
-        if (idx > array->len)                                             \
+        if (idx >= array->len)                                            \
             au_fatal_index((void *)array, idx, array->len);               \
         return &array->data[idx];                                         \
     }                                                                     \
     static _Unused INNER *NAME##_at_mut(struct NAME *array, size_t idx) { \
-        if (idx > array->len)                                             \
+        if (idx >= array->len)                                            \
             au_fatal_index((void *)array, idx, array->len);               \
         return &array->data[idx];                                         \
     }
