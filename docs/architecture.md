@@ -56,6 +56,30 @@ Once finished, the C source is written to a temporary file, and aulang invokes t
 
 Everything that can be represented in the aulang language is a **value**. In the implementation, a value is a structure which holds type and data information. On platforms that support it, values are represented as 64-bit floating point numbers, with non-float values represented as *not-a-number* through NaN tagging.
 
+#### NaN tagging
+
+NaN tagging is a technique that uses the NaN value space to store tagged, non-floating-point values (i.e. pointers, etc.) in a single IEEE754 double-precision floating-point value.
+
+To put it simply, each `double` has the following memory format. Each bit is represented by a character and there are 64-bits in total.
+
+```
+s eeeeeeeeeee ffffffffffffffffffffffffffffffffffffffffffffffffffff
+```
+
+Where `s` is the sign bit, `e` are the exponent bits and `f` is the fraction bit.
+
+In the IEEE754 format, the exponent `0x7ff` (where all the exponent bits are set) has a special meaning. If the fraction bits are all zeroes, the value is infinity. If it's non-zero, it's a NaN.
+
+Notice how you can store additional information in a NaN value. aulang uses this additional 51 fractional bits in a NaN value to store data about integers, booleans and even pointers. Inside the 51 fraction bits of a NaN value, 4 bits are used for tagging values and 48 bits are used for storing value data:
+
+```
+tttt dddddddddddddddddddddddddddddddddddddddddddddddd
+```
+
+Where `t` are the *tag bits* and `d` are the *data bits*. `t = 0` is reserved, and the value `t = 0, d = 0` is reserved for infinity; `t = 0, d = 1` is reserved for the canonical NaN, the actual floating-point NaN value aulang uses.
+
+NaN tagging also uses the fact that most 64-bit kernels on x86-64 store userland memory in the lower 48-bit address space, which fits perfectly in our *data bits*.
+
 ## Virtual machine details
 
 This section describes the various components of the virtual machine.
@@ -329,3 +353,5 @@ On the VM runtime, when the virtual machine imports the module, it will store a 
 **Invariant:** a pointer to an external module's data (`au_program_data`) must not be moved or freed, which is why imported modules are stored as pointers in an array in the `au_vm_thread_local` object.
 
 ## C compiler details
+
+The *C compiler* refers to the system which translates VM bytecode into C.
