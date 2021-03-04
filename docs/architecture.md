@@ -80,6 +80,12 @@ Where `t` are the *tag bits* and `d` are the *data bits*. `t = 0` is reserved, a
 
 NaN tagging also uses the fact that most 64-bit kernels on x86-64 store userland memory in the lower 48-bit address space, which fits perfectly in our *data bits*.
 
+### Classes
+
+Instances of a class in the aulang language are simply flat value arrays.
+
+A method that is bound to a class instance can access its internal variables. Setting and accessing internal variables is the same as reading and writing to a specific offset in the class instance.
+
 ## Virtual machine details
 
 This section describes the various components of the virtual machine.
