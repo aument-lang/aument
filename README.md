@@ -4,7 +4,7 @@ Welcome to **aulang** (name subject to change), a work-in-progress dynamically-t
 
   * **performance first:** this scripting language is designed with performance in mind.
   * **fast development time:** like Python and Javascript, you can write code and run it directly.
-  * **fast deployment:** once finished, you can compile your code into a native, lightweight executable. You don't even need any external runtime to run it!
+  * **fast deployment:** once finished, you can compile your code into a native, lightweight executable. You don't even need any *external* runtime to run it!
 
 ## Syntax
 
@@ -40,6 +40,8 @@ You can also build the program as an executable with `aulang build [file] [outpu
 $ ./aulang build hello.au /tmp/hello && /tmp/hello
 Hello World
 ```
+
+The file `libau_runtime.a` must be in the same directory as `aulang`. This will be statically linked to your executable.
 
 The build command requires a C compiler in the environment's `PATH` (default is `gcc`). If the environment variable `CC` is specified, it will use that instead.
 
