@@ -28,7 +28,12 @@ void au_c_comp_state_del(struct au_c_comp_state *state);
 
 struct au_program;
 
+struct au_c_comp_options {
+    int with_debug;
+};
+
 /// [func] Compiles a program into file specified by
 /// an au_c_comp_state instance
 void au_c_comp(struct au_c_comp_state *state,
-               const struct au_program *program);
+               const struct au_program *program,
+               struct au_c_comp_options options);

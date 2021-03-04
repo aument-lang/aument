@@ -19,7 +19,8 @@ static const char *AU_HELP_BUILD =
     "arguments:\n\n```\n-flto -O2\n```\n\nPassing `-b` will make aulang "
     "output bytecode before it is compiled to C.\n\nPassing `-c` will "
     "make aulang write C code into *output-file* instead\nof outputting a "
-    "compiled binary.\n";
+    "compiled binary.\n\nPassing `-g` will add the `-g` flag to the C "
+    "compiler call.\n";
 static const char *AU_HELP_HELP =
     "Usage:\n    aulang help [command] [command]\n\nSummary:\n    Shows "
     "the documentation for a specified command if given.\nElse, a general "
