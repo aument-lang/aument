@@ -1,8 +1,7 @@
 # aulang
 
-Welcome to **aulang** (name subject to change), a work-in-progress scripting language with
+Welcome to **aulang** (name subject to change), a work-in-progress dynamically-typed scripting language with
 
-  * **dynamic typing**
   * **performance first:** this scripting language is designed with performance in mind.
   * **fast development time:** like Python and Javascript, you can write code and run it directly.
   * **fast deployment:** once finished, you can compile your code into a native, lightweight executable. You don't even need any external runtime to run it!
@@ -50,7 +49,7 @@ The build command requires a C compiler in the environment's `PATH` (default is 
 
   * A C compiler (tested with GCC v9.3.0)
   * Meson (tested with 0.53.2)
-  * Python
+  * Python 3
 
 ### Linux
 
