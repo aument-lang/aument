@@ -24,14 +24,17 @@ struct au_program_data_val {
 
 ARRAY_TYPE_COPY(struct au_program_data_val, au_program_data_vals, 1)
 
+#define AU_SM_FUNC_ID_MAIN ((size_t)-1)
+
 struct au_program_source_map {
     size_t bc_from;
     size_t bc_to;
     size_t source_start;
+    size_t func_idx;
 };
 
-ARRAY_TYPE_COPY(struct au_program_source_map, au_program_source_map_array,
-                1)
+ARRAY_TYPE_STRUCT(struct au_program_source_map,
+                  au_program_source_map_array, 1)
 
 #define AU_PROGRAM_IMPORT_NO_MODULE ((size_t)-1)
 

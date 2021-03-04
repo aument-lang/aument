@@ -72,6 +72,7 @@ struct au_bc_storage {
     size_t class_idx;
     struct au_class_interface *class_interface_cache;
     struct au_bc_buf bc;
+    size_t source_map_start;
     int num_registers;
 };
 

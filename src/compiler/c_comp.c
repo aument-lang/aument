@@ -20,17 +20,43 @@
 
 #include "c_comp.h"
 
-struct au_c_comp_module {
-    struct au_hm_vars fn_map;
-    struct au_fn_array fns;
-    char *source;
+struct line_info {
+    size_t source_start;
+    int line;
 };
 
-ARRAY_TYPE_STRUCT(struct au_c_comp_module, au_c_comp_module_array, 1)
+ARRAY_TYPE_STRUCT(struct line_info, line_info_array, 1)
+
+static void create_line_info_array(struct line_info_array *array,
+                                   const char *source, size_t source_len) {
+    int line = 1;
+    size_t line_start = 0;
+    for (size_t source_idx = 0; source_idx < source_len; source_idx++) {
+        if (source[source_idx] == '\n') {
+            // printf("line %d, from %ld\n", line, line_start);
+            line_info_array_add(array, (struct line_info){
+                                           .line = line,
+                                           .source_start = line_start,
+                                       });
+            line++;
+            line_start = source_idx;
+        }
+    }
+}
+
+struct c_comp_module {
+    struct au_hm_vars fn_map;
+    struct au_fn_array fns;
+    struct line_info_array line_info;
+    char *c_source;
+};
+
+ARRAY_TYPE_STRUCT(struct c_comp_module, c_comp_module_array, 1)
 
 struct au_c_comp_global_state {
     struct au_hm_vars modules_map;
-    struct au_c_comp_module_array modules;
+    struct c_comp_module_array modules;
+    struct line_info_array main_line_info;
 };
 
 static void au_c_comp_module(struct au_c_comp_state *state,
@@ -158,7 +184,7 @@ static void comp_cleanup(struct au_c_comp_state *state,
 static void au_c_comp_func(struct au_c_comp_state *state,
                            const struct au_bc_storage *bcs,
                            const struct au_program_data *p_data,
-                           const size_t module_idx,
+                           const size_t module_idx, const size_t func_idx,
                            struct au_c_comp_global_state *g_state) {
     comp_printf(state, INDENT "au_value_t t;\n");
     if (bcs->num_registers > 0) {
@@ -238,18 +264,129 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                     arg_stack_max);
     }
 
+    const struct au_program_source_map *current_source_map = 0;
+    size_t current_source_map_idx = bcs->source_map_start;
+    const struct line_info_array *line_info_array = 0;
+    const struct line_info *current_line_info = 0;
+    size_t current_line_info_idx = 0;
+
+    // printf("func_id %ld\n", func_idx);
+
+    if (p_data->source_map.len >= current_source_map_idx) {
+        if (func_idx == AU_SM_FUNC_ID_MAIN) {
+            while (current_source_map_idx < p_data->source_map.len) {
+                if (p_data->source_map.data[current_source_map_idx]
+                        .func_idx == AU_SM_FUNC_ID_MAIN) {
+                    current_source_map =
+                        &p_data->source_map.data[current_source_map_idx];
+                    break;
+                }
+                current_source_map_idx++;
+            }
+        } else {
+            current_source_map =
+                &p_data->source_map.data[current_source_map_idx];
+            assert(current_source_map->func_idx == func_idx);
+            current_source_map_idx++;
+        }
+        // printf("start from sm %ld\n", current_source_map_idx);
+    }
+
+    if (module_idx == 0) {
+        line_info_array = &g_state->main_line_info;
+    } else {
+        line_info_array =
+            &c_comp_module_array_at_ptr(&g_state->modules, module_idx - 1)
+                 ->line_info;
+    }
+
+    if (current_source_map) {
+        for (size_t i = 0; i < line_info_array->len; i++) {
+            if (line_info_array->data[i].source_start >=
+                current_source_map->source_start) {
+                if (line_info_array->data[i].source_start >
+                    current_source_map->source_start) {
+                    i--;
+                }
+                current_line_info_idx = i;
+                current_line_info =
+                    line_info_array_at_ptr(line_info_array, i);
+                // printf("start from # %ld\n", i);
+                break;
+            }
+        }
+        if (!current_line_info && line_info_array->len > 0) {
+            current_line_info =
+                &line_info_array->data[line_info_array->len - 1];
+        }
+    }
+
     for (size_t pos = 0; pos < bcs->bc.len;) {
+        if (current_source_map && current_line_info) {
+            // printf("(l %d) sourcemap #%ld [bc %ld; %ld] from %ld;
+            // current bc %ld\n",
+            //        current_line_info->line, current_source_map_idx,
+            //        current_source_map->bc_from,
+            //        current_source_map->bc_to,
+            //        current_source_map->source_start, pos);
+            if (pos == current_source_map->bc_to - 4) {
+                comp_printf(state, INDENT "#line %d \"%s\"\n",
+                            current_line_info->line, p_data->file);
+            } else if (pos > current_source_map->bc_to) {
+                // printf("# %ld %ld\n", current_source_map_idx,
+                // p_data->source_map.len);
+                if (current_source_map_idx == p_data->source_map.len) {
+                    current_source_map = 0;
+                } else {
+                    current_source_map =
+                        au_program_source_map_array_at_ptr(
+                            &p_data->source_map, current_source_map_idx++);
+                    if (module_idx == AU_SM_FUNC_ID_MAIN &&
+                        current_source_map->func_idx !=
+                            AU_SM_FUNC_ID_MAIN) {
+                        while (current_source_map_idx <
+                               p_data->source_map.len) {
+                            if (p_data->source_map
+                                    .data[current_source_map_idx]
+                                    .func_idx == AU_SM_FUNC_ID_MAIN) {
+                                break;
+                            }
+                            current_source_map_idx++;
+                        }
+                    }
+                    if (current_line_info) {
+                        while (current_source_map->source_start <
+                               current_line_info->source_start) {
+                            if (current_line_info->source_start >
+                                current_source_map->source_start) {
+                                int old_line = current_line_info->line;
+                                current_line_info = line_info_array_at_ptr(
+                                    line_info_array,
+                                    ++current_line_info_idx);
+                                assert(current_line_info->line >=
+                                       old_line);
+                                break;
+                            }
+                            if (current_line_info_idx ==
+                                line_info_array->len) {
+                                current_source_map = 0;
+                                break;
+                            }
+                            current_line_info = line_info_array_at_ptr(
+                                line_info_array, current_line_info_idx++);
+                        }
+                    }
+                }
+            }
+        }
+
         if (AU_BA_GET_BIT(labelled_lines, pos / 4)) {
             comp_printf(state, INDENT "L%ld: ", pos);
         } else {
             comp_printf(state, INDENT);
         }
 
-        uint8_t opcode = bc(pos);
-        if (opcode >= PRINTABLE_OP_LEN) {
-            au_fatal("unknown opcode %d", opcode);
-        }
-        pos++;
+        const uint8_t opcode = bc(pos++);
 
         switch (opcode) {
         // Move instructions
@@ -319,7 +456,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case OP_GEQ:
             BIN_OP("geq")
 #undef BIN_OP
-        // Binary operations on local variables
+            // Binary operations on local variables
 #define BIN_OP_ASG(NAME)                                                  \
     {                                                                     \
         uint8_t reg = bc(pos);                                            \
@@ -457,23 +594,22 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             case AU_FN_DISPATCH:
             case AU_FN_BC: {
                 comp_printf(state, "r%d=", reg);
-                comp_printf(state, "_M%ld_f%d(&r%d)",
-                            module_idx, func_id, reg);
+                comp_printf(state, "_M%ld_f%d(&r%d)", module_idx, func_id,
+                            reg);
                 comp_printf(state, ";");
                 break;
             }
             case AU_FN_NATIVE: {
                 const struct au_lib_func *lib_func = &fn->as.native_func;
                 comp_printf(state, "r%d=", reg);
-                comp_printf(state, "%s(0,&r%d)",
-                            lib_func->symbol, reg);
+                comp_printf(state, "%s(0,&r%d)", lib_func->symbol, reg);
                 comp_printf(state, ");");
                 break;
             }
             case AU_FN_IMPORTER: {
                 comp_printf(state, "r%d=", reg);
-                comp_printf(state, "(*_M%ld_f%d)(&r%d)",
-                            module_idx, func_id, reg);
+                comp_printf(state, "(*_M%ld_f%d)(&r%d)", module_idx,
+                            func_id, reg);
                 comp_printf(state, ";");
                 break;
             }
@@ -529,6 +665,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 
             if (!au_mmap_read(abspath, &mmap))
                 au_perror("mmap");
+
+            struct line_info_array line_info_array = {0};
+            create_line_info_array(&line_info_array, mmap.bytes,
+                                   mmap.size);
+
             {
                 struct au_hm_var_value value = (struct au_hm_var_value){
                     .idx = imported_module_idx,
@@ -565,8 +706,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 au_c_comp_module(&mod_state, &program,
                                  imported_module_idx_in_source, g_state);
 
-                struct au_c_comp_module comp_module =
-                    (struct au_c_comp_module){0};
+                struct c_comp_module comp_module =
+                    (struct c_comp_module){0};
                 comp_module.fns = program.data.fns;
                 comp_module.fn_map = program.data.fn_map;
                 program.data.fns = (struct au_fn_array){0};
@@ -574,11 +715,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 au_program_del(&program);
 
                 au_char_array_add(&mod_state.as.str, 0);
-                comp_module.source = mod_state.as.str.data;
+                comp_module.c_source = mod_state.as.str.data;
                 mod_state.as.str.data = 0;
                 mod_state.as.str.len = 0;
 
-                au_c_comp_module_array_add(&g_state->modules, comp_module);
+                comp_module.line_info = line_info_array;
+                line_info_array = (struct line_info_array){0};
+
+                c_comp_module_array_add(&g_state->modules, comp_module);
             }
 
             comp_printf(state,
@@ -590,15 +734,15 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 const struct au_imported_module *relative_module =
                     au_imported_module_array_at_ptr(
                         &p_data->imported_modules, relative_module_idx);
-                const struct au_c_comp_module *loaded_module =
-                    au_c_comp_module_array_at_ptr(&g_state->modules,
-                                                  imported_module_idx);
+                const struct c_comp_module *loaded_module =
+                    c_comp_module_array_at_ptr(&g_state->modules,
+                                               imported_module_idx);
 
+                // TODO: this is ripped straight outta
+                // link_to_imported from core/vm/vm.c. It might be
+                // better to unify these two sections
                 AU_HM_VARS_FOREACH_PAIR(
                     &relative_module->fn_map, key, entry, {
-                        // TODO: this is ripped straight outta
-                        // link_to_imported from core/vm/vm.c. It might be
-                        // better to unify these two sections
                         const struct au_fn *relative_fn =
                             au_fn_array_at_ptr(&p_data->fns, entry->idx);
                         assert(relative_fn->type == AU_FN_IMPORTER);
@@ -703,7 +847,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         }
         // Other
-        case OP_NOP: break;
+        case OP_NOP:
+            break;
         case OP_PRINT: {
             uint8_t lhs = bc(pos);
             comp_printf(state, "au_value_print(r%d);\n", lhs);
@@ -794,7 +939,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
             break;
         }
         case AU_FN_DISPATCH: {
-            au_fatal("generating none function");
+            au_fatal("generating dispatch function");
         }
         case AU_FN_NONE: {
             au_fatal("generating none function");
@@ -814,7 +959,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
                 comp_printf(state, "au_value_t _M%ld_f%ld() {\n",
                             module_idx, i);
             }
-            au_c_comp_func(state, bcs, &program->data, module_idx,
+            au_c_comp_func(state, bcs, &program->data, module_idx, i,
                            g_state);
             comp_printf(state, "}\n");
         }
@@ -826,7 +971,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
                 module_idx);
     comp_printf(state, INDENT "_M%ld_main_init=1;\n", module_idx);
     au_c_comp_func(state, &program->main, &program->data, module_idx,
-                   g_state);
+                   AU_SM_FUNC_ID_MAIN, g_state);
     comp_printf(state, "}\n");
 }
 
@@ -849,6 +994,14 @@ void au_c_comp(struct au_c_comp_state *state,
     struct au_c_comp_global_state g_state =
         (struct au_c_comp_global_state){0};
 
+    {
+        struct au_mmap_info mmap;
+        assert(au_mmap_read(program->data.file, &mmap));
+        create_line_info_array(&g_state.main_line_info, mmap.bytes,
+                               mmap.size);
+        au_mmap_del(&mmap);
+    }
+
     struct au_c_comp_state main_mod_state = {
         .as.str = (struct au_char_array){0},
         .type = AU_C_COMP_STR,
@@ -860,7 +1013,7 @@ void au_c_comp(struct au_c_comp_state *state,
     comp_printf(state, "int main() { _M0_main(); return 0; }\n");
 
     for (size_t i = 0; i < g_state.modules.len; i++) {
-        comp_printf(state, "%s\n", g_state.modules.data[i].source);
+        comp_printf(state, "%s\n", g_state.modules.data[i].c_source);
     }
 
     comp_write(state, AU_RT_CODE, AU_RT_CODE_LEN);
@@ -871,14 +1024,16 @@ void au_c_comp(struct au_c_comp_state *state,
 
     // Cleanup
     for (size_t i = 0; i < g_state.modules.len; i++) {
-        struct au_c_comp_module *module = &g_state.modules.data[i];
+        struct c_comp_module *module = &g_state.modules.data[i];
         au_hm_vars_del(&module->fn_map);
         for (size_t i = 0; i < module->fns.len; i++) {
             au_fn_del(&module->fns.data[i]);
         }
         free(module->fns.data);
-        free(module->source);
+        free(module->c_source);
+        free(module->line_info.data);
     }
     free(g_state.modules.data);
     au_hm_vars_del(&g_state.modules_map);
+    free(g_state.main_line_info.data);
 }

@@ -74,6 +74,8 @@ struct parser {
     /// Bytesize of self_keyword
     size_t self_keyword_len;
 
+    size_t func_id;
+
     /// Result of the parser
     struct au_parser_result res;
 };
@@ -103,6 +105,7 @@ static void parser_init(struct parser *p, struct au_program_data *p_data) {
     p->self_len = 0;
     p->self_fill_call = (struct size_t_array){0};
     p->self_num_args = 0;
+    p->func_id = AU_SM_FUNC_ID_MAIN;
 
     p->class_interface = 0;
     p->self_keyword = 0;
@@ -339,12 +342,16 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
     if (retval) {
         const size_t bc_to = p->bc.len;
         const size_t source_start = t.src - l->src;
-        struct au_program_source_map map = (struct au_program_source_map){
-            .bc_from = bc_from,
-            .bc_to = bc_to,
-            .source_start = source_start,
-        };
-        au_program_source_map_array_add(&p->p_data->source_map, map);
+        if (bc_from != bc_to) {
+            struct au_program_source_map map =
+                (struct au_program_source_map){
+                    .bc_from = bc_from,
+                    .bc_to = bc_to,
+                    .source_start = source_start,
+                    .func_idx = p->func_id,
+                };
+            au_program_source_map_array_add(&p->p_data->source_map, map);
+        }
     }
     return retval;
 }
@@ -673,6 +680,7 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
     parser_init(&func_p, p->p_data);
     func_p.self_name = id_tok.src;
     func_p.self_len = id_tok.len;
+    func_p.func_id = func_value.idx;
     func_p.class_interface = class_interface;
     struct au_bc_storage bcs = {0};
 
@@ -740,6 +748,8 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
     if (expected_num_args != -1)
         assert(bcs.num_args == expected_num_args);
     func_p.self_num_args = bcs.num_args;
+
+    const size_t source_map_start = p->p_data->source_map.len;
     if (!parser_exec_block(&func_p, l)) {
         p->res = func_p.res;
         func_p.res = (struct au_parser_result){0};
@@ -753,6 +763,7 @@ static int parser_exec_def_statement(struct parser *p, struct lexer *l,
     bcs.num_registers = func_p.max_register + 1;
     bcs.class_idx = class_idx;
     bcs.class_interface_cache = class_interface;
+    bcs.source_map_start = source_map_start;
     func_p.bc = (struct au_bc_buf){0};
 
     for (size_t i = 0; i < func_p.self_fill_call.len; i++) {
