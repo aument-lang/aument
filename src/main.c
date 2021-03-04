@@ -34,6 +34,7 @@
 
 #define FLAG_GENERATE_C (1 << 0)
 #define FLAG_DUMP_BYTECODE (1 << 1)
+#define FLAG_GENERATE_DEBUG (1 << 2)
 #define has_flag(FLAG, MASK) (((FLAG) & (MASK)) != 0)
 
 #include "core/int_error/error_printer.h"
@@ -44,7 +45,7 @@
 enum au_action { ACTION_BUILD, ACTION_RUN };
 
 int main(int argc, char **argv) {
-    int flags = 0;
+    uint32_t flags = 0;
 
     char *action = NULL;
     char *input_file = NULL;
@@ -58,6 +59,10 @@ int main(int argc, char **argv) {
             }
             case 'b': {
                 flags |= FLAG_DUMP_BYTECODE;
+                break;
+            }
+            case 'g': {
+                flags |= FLAG_GENERATE_DEBUG;
                 break;
             }
             default:
@@ -153,12 +158,14 @@ int main(int argc, char **argv) {
     }
 #ifdef FEAT_COMPILER
     else if (action_id == ACTION_BUILD) {
+        struct au_c_comp_options options = {0};
+        options.with_debug = has_flag(flags, FLAG_GENERATE_DEBUG);
         if (has_flag(flags, FLAG_GENERATE_C)) {
             struct au_c_comp_state c_state = {
                 .as.f = fopen(output_file, "w"),
                 .type = AU_C_COMP_FILE,
             };
-            au_c_comp(&c_state, &program);
+            au_c_comp(&c_state, &program, options);
             au_c_comp_state_del(&c_state);
             au_program_del(&program);
         } else {
@@ -170,7 +177,7 @@ int main(int argc, char **argv) {
                 .type = AU_C_COMP_FILE,
             };
             tmp.f = 0;
-            au_c_comp(&c_state, &program);
+            au_c_comp(&c_state, &program, options);
             au_c_comp_state_del(&c_state);
             au_program_del(&program);
 

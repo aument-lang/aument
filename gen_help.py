@@ -27,7 +27,9 @@ aulang invokes the C compiler with the following arguments:
 Passing `-b` will make aulang output bytecode before it is compiled to C.
 
 Passing `-c` will make aulang write C code into *output-file* instead
-of outputting a compiled binary.\
+of outputting a compiled binary.
+
+Passing `-g` will add the `-g` flag to the C compiler call.\
 """,
     ),
     (

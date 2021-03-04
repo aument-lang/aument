@@ -44,25 +44,26 @@ static void create_line_info_array(struct line_info_array *array,
     }
 }
 
-struct c_comp_module {
+struct au_c_comp_module {
     struct au_hm_vars fn_map;
     struct au_fn_array fns;
     struct line_info_array line_info;
     char *c_source;
 };
 
-ARRAY_TYPE_STRUCT(struct c_comp_module, c_comp_module_array, 1)
+ARRAY_TYPE_STRUCT(struct au_c_comp_module, au_c_comp_module_array, 1)
 
 struct au_c_comp_global_state {
     struct au_hm_vars modules_map;
-    struct c_comp_module_array modules;
+    struct au_c_comp_module_array modules;
     struct line_info_array main_line_info;
+    struct au_c_comp_options options;
 };
 
-static void au_c_comp_module(struct au_c_comp_state *state,
-                             const struct au_program *program,
-                             const size_t module_idx,
-                             struct au_c_comp_global_state *g_state);
+static void au_au_c_comp_module(struct au_c_comp_state *state,
+                                const struct au_program *program,
+                                const size_t module_idx,
+                                struct au_c_comp_global_state *g_state);
 
 void au_c_comp_state_del(struct au_c_comp_state *state) {
     switch (state->type) {
@@ -270,71 +271,63 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     const struct line_info *current_line_info = 0;
     size_t current_line_info_idx = 0;
 
-    // printf("func_id %ld\n", func_idx);
-
-    if (p_data->source_map.len >= current_source_map_idx) {
-        if (func_idx == AU_SM_FUNC_ID_MAIN) {
-            while (current_source_map_idx < p_data->source_map.len) {
-                if (p_data->source_map.data[current_source_map_idx]
-                        .func_idx == AU_SM_FUNC_ID_MAIN) {
-                    current_source_map =
-                        &p_data->source_map.data[current_source_map_idx];
-                    break;
+    if (g_state->options.with_debug) {
+        if (p_data->source_map.len >= current_source_map_idx) {
+            if (func_idx == AU_SM_FUNC_ID_MAIN) {
+                while (current_source_map_idx < p_data->source_map.len) {
+                    if (p_data->source_map.data[current_source_map_idx]
+                            .func_idx == AU_SM_FUNC_ID_MAIN) {
+                        current_source_map =
+                            &p_data->source_map
+                                 .data[current_source_map_idx];
+                        break;
+                    }
+                    current_source_map_idx++;
                 }
+            } else {
+                current_source_map =
+                    &p_data->source_map.data[current_source_map_idx];
+                assert(current_source_map->func_idx == func_idx);
                 current_source_map_idx++;
             }
+        }
+
+        if (module_idx == 0) {
+            line_info_array = &g_state->main_line_info;
         } else {
-            current_source_map =
-                &p_data->source_map.data[current_source_map_idx];
-            assert(current_source_map->func_idx == func_idx);
-            current_source_map_idx++;
+            line_info_array = &au_c_comp_module_array_at_ptr(
+                                   &g_state->modules, module_idx - 1)
+                                   ->line_info;
         }
-        // printf("start from sm %ld\n", current_source_map_idx);
-    }
 
-    if (module_idx == 0) {
-        line_info_array = &g_state->main_line_info;
-    } else {
-        line_info_array =
-            &c_comp_module_array_at_ptr(&g_state->modules, module_idx - 1)
-                 ->line_info;
-    }
-
-    if (current_source_map) {
-        for (size_t i = 0; i < line_info_array->len; i++) {
-            if (line_info_array->data[i].source_start >=
-                current_source_map->source_start) {
-                if (line_info_array->data[i].source_start >
+        if (current_source_map) {
+            for (size_t i = 0; i < line_info_array->len; i++) {
+                if (line_info_array->data[i].source_start >=
                     current_source_map->source_start) {
-                    i--;
+                    if (line_info_array->data[i].source_start >
+                        current_source_map->source_start) {
+                        i--;
+                    }
+                    current_line_info_idx = i;
+                    current_line_info =
+                        line_info_array_at_ptr(line_info_array, i);
+                    // printf("start from # %ld\n", i);
+                    break;
                 }
-                current_line_info_idx = i;
-                current_line_info =
-                    line_info_array_at_ptr(line_info_array, i);
-                // printf("start from # %ld\n", i);
-                break;
             }
-        }
-        if (!current_line_info && line_info_array->len > 0) {
-            current_line_info =
-                &line_info_array->data[line_info_array->len - 1];
+            if (!current_line_info && line_info_array->len > 0) {
+                current_line_info =
+                    &line_info_array->data[line_info_array->len - 1];
+            }
         }
     }
 
     for (size_t pos = 0; pos < bcs->bc.len;) {
         if (current_source_map && current_line_info) {
-            // printf("(l %d) sourcemap #%ld [bc %ld; %ld] from %ld;
-            // current bc %ld\n",
-            //        current_line_info->line, current_source_map_idx,
-            //        current_source_map->bc_from,
-            //        current_source_map->bc_to,
-            //        current_source_map->source_start, pos);
             if (pos == current_source_map->bc_to - 4) {
                 comp_printf(state, INDENT "#line %d \"%s\"\n",
                             current_line_info->line, p_data->file);
             } else if (pos > current_source_map->bc_to) {
-                // printf("# %ld %ld\n", current_source_map_idx,
-                // p_data->source_map.len);
                 if (current_source_map_idx == p_data->source_map.len) {
                     current_source_map = 0;
                 } else {
@@ -703,11 +696,12 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                     .as.str = (struct au_char_array){0},
                     .type = AU_C_COMP_STR,
                 };
-                au_c_comp_module(&mod_state, &program,
-                                 imported_module_idx_in_source, g_state);
+                au_au_c_comp_module(&mod_state, &program,
+                                    imported_module_idx_in_source,
+                                    g_state);
 
-                struct c_comp_module comp_module =
-                    (struct c_comp_module){0};
+                struct au_c_comp_module comp_module =
+                    (struct au_c_comp_module){0};
                 comp_module.fns = program.data.fns;
                 comp_module.fn_map = program.data.fn_map;
                 program.data.fns = (struct au_fn_array){0};
@@ -722,7 +716,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 comp_module.line_info = line_info_array;
                 line_info_array = (struct line_info_array){0};
 
-                c_comp_module_array_add(&g_state->modules, comp_module);
+                au_c_comp_module_array_add(&g_state->modules, comp_module);
             }
 
             comp_printf(state,
@@ -734,9 +728,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 const struct au_imported_module *relative_module =
                     au_imported_module_array_at_ptr(
                         &p_data->imported_modules, relative_module_idx);
-                const struct c_comp_module *loaded_module =
-                    c_comp_module_array_at_ptr(&g_state->modules,
-                                               imported_module_idx);
+                const struct au_c_comp_module *loaded_module =
+                    au_c_comp_module_array_at_ptr(&g_state->modules,
+                                                  imported_module_idx);
 
                 // TODO: this is ripped straight outta
                 // link_to_imported from core/vm/vm.c. It might be
@@ -865,10 +859,10 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     free(labelled_lines);
 }
 
-void au_c_comp_module(struct au_c_comp_state *state,
-                      const struct au_program *program,
-                      const size_t module_idx,
-                      struct au_c_comp_global_state *g_state) {
+void au_au_c_comp_module(struct au_c_comp_state *state,
+                         const struct au_program *program,
+                         const size_t module_idx,
+                         struct au_c_comp_global_state *g_state) {
     for (size_t i = 0; i < program->data.data_val.len; i++) {
         const struct au_program_data_val *val =
             &program->data.data_val.data[i];
@@ -987,14 +981,16 @@ size_t TEST_RT_CODE_LEN;
 #endif
 
 void au_c_comp(struct au_c_comp_state *state,
-               const struct au_program *program) {
+               const struct au_program *program,
+               struct au_c_comp_options options) {
     comp_write(state, AU_RT_HDR, AU_RT_HDR_LEN);
     comp_printf(state, "\n" AU_C_COMP_EXTERN_FUNC_DECL "\n");
 
     struct au_c_comp_global_state g_state =
         (struct au_c_comp_global_state){0};
+    g_state.options = options;
 
-    {
+    if (g_state.options.with_debug) {
         struct au_mmap_info mmap;
         assert(au_mmap_read(program->data.file, &mmap));
         create_line_info_array(&g_state.main_line_info, mmap.bytes,
@@ -1006,7 +1002,7 @@ void au_c_comp(struct au_c_comp_state *state,
         .as.str = (struct au_char_array){0},
         .type = AU_C_COMP_STR,
     };
-    au_c_comp_module(&main_mod_state, program, 0, &g_state);
+    au_au_c_comp_module(&main_mod_state, program, 0, &g_state);
     au_char_array_add(&main_mod_state.as.str, 0);
     comp_printf(state, "%s\n", main_mod_state.as.str.data);
     au_c_comp_state_del(&main_mod_state);
@@ -1024,7 +1020,7 @@ void au_c_comp(struct au_c_comp_state *state,
 
     // Cleanup
     for (size_t i = 0; i < g_state.modules.len; i++) {
-        struct c_comp_module *module = &g_state.modules.data[i];
+        struct au_c_comp_module *module = &g_state.modules.data[i];
         au_hm_vars_del(&module->fn_map);
         for (size_t i = 0; i < module->fns.len; i++) {
             au_fn_del(&module->fns.data[i]);

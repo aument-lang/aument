@@ -188,7 +188,7 @@ void run_gcc(const char *source, const size_t source_len) {{
     c_file.f = 0;
     struct au_program program;
     assert(au_parse(source, source_len, &program).type == AU_PARSER_RES_OK);
-    au_c_comp(&c_state, &program);
+    au_c_comp(&c_state, &program, (struct au_c_comp_options){{0}});
     au_c_comp_state_del(&c_state);
     au_program_del(&program);
     
