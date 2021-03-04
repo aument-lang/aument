@@ -638,8 +638,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             case AU_FN_NATIVE: {
                 const struct au_lib_func *lib_func = &fn->as.native_func;
                 comp_printf(state, "r%d=", reg);
-                comp_printf(state, "%s(0,&r%d)", lib_func->symbol, reg);
-                comp_printf(state, ");");
+                comp_printf(state, "%s(0,&r%d);", lib_func->symbol, reg);
                 break;
             }
             case AU_FN_IMPORTER: {
