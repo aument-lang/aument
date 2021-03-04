@@ -359,7 +359,7 @@ static int parser_exec_statement(struct parser *p, struct lexer *l) {
 static int parser_exec_import_statement(struct parser *p,
                                         struct lexer *l) {
     const struct token path_tok = lexer_next(l);
-    EXPECT_TOKEN(path_tok.type != TOK_STRING, path_tok, "string");
+    EXPECT_TOKEN(path_tok.type == TOK_STRING, path_tok, "string");
 
     char *path_dup = malloc(path_tok.len + 1);
     memcpy(path_dup, path_tok.src, path_tok.len);
