@@ -227,6 +227,7 @@ static int parser_exec_statement(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_expr(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_assign(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_logical(struct au_parser *p, struct au_lexer *l);
+static void parser_emit_bc_binary_expr(struct au_parser *p);
 static int parser_exec_eq(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_cmp(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_addsub(struct au_parser *p, struct au_lexer *l);
@@ -1083,12 +1084,35 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                 const struct au_class_interface *interface =
                     p->class_interface;
                 assert(interface != 0);
-                parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
-                parser_emit_bc_u8(p, parser_last_reg(p));
                 const struct au_hm_var_value *value =
                     au_hm_vars_get(&interface->map, &t.src[1], t.len - 1);
                 assert(value != 0);
+
+                if (!(op.len == 1 && op.src[0] == '=')) {
+                    const uint8_t reg = parser_new_reg(p);
+                    parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
+                    parser_emit_bc_u8(p, reg);
+                    parser_emit_bc_u16(p, value->idx);
+                    switch (op.src[0]) {
+#define BIN_OP_ASG(OP, OPCODE)                                            \
+    case OP: {                                                            \
+        parser_emit_bc_u8(p, OPCODE);                                     \
+        break;                                                            \
+    }
+                        BIN_OP_ASG('*', AU_OP_MUL)
+                        BIN_OP_ASG('/', AU_OP_DIV)
+                        BIN_OP_ASG('+', AU_OP_ADD)
+                        BIN_OP_ASG('-', AU_OP_SUB)
+                        BIN_OP_ASG('%', AU_OP_MOD)
+#undef BIN_OP_ASG
+                    }
+                    parser_emit_bc_binary_expr(p);
+                }
+
+                parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
+                parser_emit_bc_u8(p, parser_last_reg(p));
                 parser_emit_bc_u16(p, value->idx);
+
                 return 1;
             }
 
@@ -1098,16 +1122,17 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
 
             if (!(op.len == 1 && op.src[0] == '=')) {
                 switch (op.src[0]) {
-#define BIN_AU_OP_ASG(OP, OPCODE)                                         \
+#define BIN_OP_ASG(OP, OPCODE)                                            \
     case OP: {                                                            \
         parser_emit_bc_u8(p, OPCODE);                                     \
         break;                                                            \
     }
-                    BIN_AU_OP_ASG('*', AU_OP_MUL_ASG)
-                    BIN_AU_OP_ASG('/', AU_OP_DIV_ASG)
-                    BIN_AU_OP_ASG('+', AU_OP_ADD_ASG)
-                    BIN_AU_OP_ASG('-', AU_OP_SUB_ASG)
-                    BIN_AU_OP_ASG('%', AU_OP_MOD_ASG)
+                    BIN_OP_ASG('*', AU_OP_MUL_ASG)
+                    BIN_OP_ASG('/', AU_OP_DIV_ASG)
+                    BIN_OP_ASG('+', AU_OP_ADD_ASG)
+                    BIN_OP_ASG('-', AU_OP_SUB_ASG)
+                    BIN_OP_ASG('%', AU_OP_MOD_ASG)
+#undef BIN_OP_ASG
                 }
             } else {
                 parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
