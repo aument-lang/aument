@@ -310,6 +310,12 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     } while (0)
 #endif
 
+            CASE(AU_OP_LOAD_SELF) : {
+                self = (struct au_obj_class *)au_value_get_struct(
+                    frame.locals[0]);
+                self->header.rc++;
+                DISPATCH;
+            }
             // Register/local move operations
             CASE(AU_OP_MOV_U16) : {
                 const uint8_t reg = frame.bc[1];
@@ -671,12 +677,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #else
             MOVE_VALUE(frame.regs[reg], new_value);
 #endif
-                DISPATCH;
-            }
-            CASE(AU_OP_LOAD_SELF) : {
-                self = (struct au_obj_class *)au_value_get_struct(
-                    frame.locals[0]);
-                self->header.rc++;
                 DISPATCH;
             }
             CASE(AU_OP_CLASS_GET_INNER) : {
