@@ -19,6 +19,7 @@
 #include "core/parser/parser.h"
 #include "core/program.h"
 #include "core/rt/exception.h"
+#include "core/rt/malloc.h"
 #include "core/vm/vm.h"
 
 #ifdef AU_FEAT_COMPILER
@@ -146,11 +147,18 @@ int main(int argc, char **argv) {
         au_program_dbg(&program);
 
     if (action_id == ACTION_RUN) {
+        au_obj_malloc_init();
+
         struct au_vm_thread_local tl;
         au_vm_thread_local_init(&tl, &program.data);
         au_vm_thread_local_set(&tl);
 
         au_vm_exec_unverified_main(&tl, &program);
+
+#ifdef AU_FEAT_DELAYED_RC
+        au_vm_thread_local_del_const_cache(&tl);
+        au_obj_malloc_collect();
+#endif
 
         au_program_del(&program);
         au_vm_thread_local_del(&tl);

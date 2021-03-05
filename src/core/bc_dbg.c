@@ -20,7 +20,7 @@ const char *au_opcode_dbg[256] = {
     "sub",       "mod",       "push_arg",  "call",      "ret",
     "ret",       "ret",       "import",    "array_new", "array_push",
     "idx_get",   "idx_set",   "not",       "tuple_new", "idx_set_static",
-    "mov_class", "mov_class", "class_new", "call_1"};
+    "mov_class", "mov_class", "class_new", "call_1",    "load_self"};
 
 void au_bc_dbg(const struct au_bc_storage *bcs,
                const struct au_program_data *data) {
@@ -252,6 +252,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         }
         default: {
             printf("\n");
+            pos += 3;
             break;
         }
         }

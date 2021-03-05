@@ -48,6 +48,8 @@ void au_vm_thread_local_del(struct au_vm_thread_local *tl);
 void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
                                         size_t len);
 
+void au_vm_thread_local_del_const_cache(struct au_vm_thread_local *tl);
+
 enum au_tl_reserve_mod_retval {
 #define X(NAME) AU_TL_RESMOD_RETVAL_##NAME
     X(FAIL),

@@ -31,7 +31,8 @@ static void au_obj_array_vdata_init() {
 }
 
 struct au_obj_array *au_obj_array_new(size_t capacity) {
-    struct au_obj_array *obj_array = malloc(sizeof(struct au_obj_array));
+    struct au_obj_array *obj_array = au_obj_malloc(
+        sizeof(struct au_obj_array), (au_obj_del_fn_t)au_obj_array_del);
     au_obj_array_vdata_init();
     obj_array->header = (struct au_struct){
         .rc = 1,
@@ -48,7 +49,6 @@ void au_obj_array_del(struct au_obj_array *obj_array) {
         au_value_deref(obj_array->array.data[i]);
     }
     free(obj_array->array.data);
-    free(obj_array);
 }
 
 void au_obj_array_push(struct au_obj_array *obj_array, au_value_t el) {

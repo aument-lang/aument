@@ -21,17 +21,19 @@ void au_vm_thread_local_set(struct au_vm_thread_local *tl) {
 void au_vm_thread_local_init(struct au_vm_thread_local *tl,
                              const struct au_program_data *p_data) {
     memset(tl, 0, sizeof(struct au_vm_thread_local));
-    tl->const_cache = au_value_calloc(p_data->data_val.len);
-    tl->const_len = p_data->data_val.len;
+    if (p_data->data_val.len == 0) {
+        tl->const_cache = 0;
+        tl->const_len = 0;
+    } else {
+        tl->const_cache = au_value_calloc(p_data->data_val.len);
+        tl->const_len = p_data->data_val.len;
+    }
     tl->print_fn = au_value_print;
     au_hm_vars_init(&tl->loaded_modules_map);
 }
 
 void au_vm_thread_local_del(struct au_vm_thread_local *tl) {
-    for (size_t i = 0; i < tl->const_len; i++) {
-        au_value_deref(tl->const_cache[i]);
-    }
-    free(tl->const_cache);
+    au_vm_thread_local_del_const_cache(tl);
     au_hm_vars_del(&tl->loaded_modules_map);
     for (size_t i = 0; i < tl->loaded_modules.len; i++) {
         struct au_program_data *ptr = tl->loaded_modules.data[i];
@@ -50,6 +52,17 @@ void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
                               sizeof(au_value_t) * (tl->const_len + len));
     au_value_clear(&tl->const_cache[tl->const_len], len);
     tl->const_len += len;
+}
+
+void au_vm_thread_local_del_const_cache(struct au_vm_thread_local *tl) {
+    if (!tl->const_len)
+        return;
+    for (size_t i = 0; i < tl->const_len; i++) {
+        au_value_deref(tl->const_cache[i]);
+    }
+    free(tl->const_cache);
+    tl->const_cache = 0;
+    tl->const_len = 0;
 }
 
 enum au_tl_reserve_mod_retval

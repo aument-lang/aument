@@ -7,10 +7,10 @@
 #pragma once
 #include <stdint.h>
 #include <stdlib.h>
-
 #ifdef DEBUG_RC
 #include <stdio.h>
 #endif
+#include "malloc.h"
 #endif
 
 struct au_string {
@@ -53,12 +53,16 @@ static inline void au_string_ref(struct au_string *header) {
 ///     reference count reaches 0.
 /// @param header the au_string instance
 static inline void au_string_deref(struct au_string *header) {
-    header->rc--;
+    if (header->rc != 0) {
+        header->rc--;
 #ifdef DEBUG_RC
-    printf("[%.*s]: [deref] rc now %d\n", header->len, header->data,
-           header->rc);
+        printf("[%.*s]: [deref] rc now %d\n", header->len, header->data,
+               header->rc);
 #endif
-    if (header->rc == 0) {
-        free(header);
     }
+#ifndef AU_FEAT_DELAYED_RC
+    else {
+        au_obj_free(header);
+    }
+#endif
 }

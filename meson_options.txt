@@ -1,2 +1,3 @@
 option('compiler', type : 'feature', value : 'enabled')
 option('tests', type : 'feature', value : 'disabled')
+option('delayed_rc', type : 'feature', value : 'enabled')

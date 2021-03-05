@@ -175,6 +175,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     // We add the frame to the linked list first,
     // because tl and frame are fresh in the stack/registers
     frame.link = tl->current_frame;
+    tl->current_frame.bcs = bcs;
     tl->current_frame.data = p_data;
     tl->current_frame.frame = &frame;
 
@@ -202,6 +203,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     frame.arg_stack = (struct au_value_array){0};
 
     au_value_t retval;
+    struct au_obj_class *self = 0;
 
     while (1) {
 #ifdef DEBUG_VM
@@ -280,10 +282,22 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_CLASS_SET_INNER),
             &&CASE(AU_OP_CLASS_NEW),
             &&CASE(AU_OP_CALL1),
+            &&CASE(AU_OP_LOAD_SELF),
         };
         goto *cb[frame.bc[0]];
 #endif
 
+#ifdef AU_FEAT_DELAYED_RC
+#define COPY_VALUE(dest, src)                                             \
+    do {                                                                  \
+        dest = src;                                                       \
+    } while (0)
+#define MOVE_VALUE(dest, src)                                             \
+    do {                                                                  \
+        dest = src;                                                       \
+        au_value_deref(src);                                              \
+    } while (0)
+#else
 /// Copies an au_value from src to dest. For memory safety, please use this
 /// function instead of copying directly
 #define COPY_VALUE(dest, src)                                             \
@@ -300,6 +314,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         dest = src;                                                       \
         au_value_deref(old);                                              \
     } while (0)
+#endif
 
             // Register/local move operations
             CASE(AU_OP_MOV_U16) : {
@@ -480,7 +495,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     au_fn_call(call_fn, tl, p_data, &arg_reg);
                 if (_Unlikely(au_value_is_op_error(callee_retval)))
                     call_error(p_data, &frame);
-                frame.regs[ret_reg] = callee_retval;
+                frame.regs[ret_reg] = au_value_none();
+                MOVE_VALUE(frame.regs[ret_reg], callee_retval);
                 DISPATCH;
             }
             // Return instructions
@@ -583,19 +599,19 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 MOVE_VALUE(frame.regs[reg], new_value);
                 DISPATCH;
             }
+            CASE(AU_OP_LOAD_SELF) : {
+                self = au_obj_class_coerce(frame.locals[0]);
+                DISPATCH;
+            }
             CASE(AU_OP_CLASS_GET_INNER) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t inner = *(uint16_t *)(&frame.bc[2]);
-                struct au_obj_class *self =
-                    au_obj_class_coerce(frame.locals[0]);
                 COPY_VALUE(frame.regs[reg], self->data[inner]);
                 DISPATCH;
             }
             CASE(AU_OP_CLASS_SET_INNER) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t inner = *(uint16_t *)(&frame.bc[2]);
-                struct au_obj_class *self =
-                    au_obj_class_coerce(frame.locals[0]);
                 COPY_VALUE(self->data[inner], frame.regs[reg]);
                 DISPATCH;
             }
@@ -718,6 +734,7 @@ end:
 #endif
     retval = frame.retval;
     frame.retval = au_value_none();
+    tl->current_frame = frame.link;
     au_vm_frame_del(&frame, bcs);
     return retval;
 }

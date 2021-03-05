@@ -28,6 +28,7 @@ c_src = """
 #include "core/rt/exception.h"
 #include "core/rt/au_array.h"
 #include "core/rt/au_tuple.h"
+#include "core/rt/malloc.h"
 #include "core/vm/vm.h"
 """
 
@@ -139,11 +140,18 @@ static void test_{i}() {{
     struct au_program program;
     assert(au_parse(source, {input_src_len}, &program).type == AU_PARSER_RES_OK);
     struct au_vm_thread_local tl;
+    au_obj_malloc_init();
     au_vm_thread_local_init(&tl, &program.data);
+    au_vm_thread_local_set(&tl);
     tl.print_fn = test_{i}_check;
     au_vm_exec_unverified_main(&tl, &program);
+#ifdef AU_FEAT_DELAYED_RC
+    au_vm_thread_local_del_const_cache(&tl);
+    au_obj_malloc_collect();
+#endif
     au_program_del(&program);
     au_vm_thread_local_del(&tl);
+    au_vm_thread_local_set(0);
 }}\n\n"""
 
 c_src += """

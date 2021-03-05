@@ -211,7 +211,6 @@ static void comp_cleanup(struct au_c_comp_state *state,
 
 static void au_c_comp_func(struct au_c_comp_state *state,
                            const struct au_bc_storage *bcs,
-                           const struct au_fn *current_fn,
                            const struct au_program_data *p_data,
                            const size_t module_idx, const size_t func_idx,
                            struct au_c_comp_global_state *g_state) {
@@ -351,19 +350,6 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     }
 
     int has_self = 0;
-    if (current_fn != 0 &&
-        (current_fn->flags & AU_FN_FLAG_HAS_CLASS) != 0) {
-        has_self = 1;
-        comp_printf(
-            state,
-            INDENT
-            "struct _M%ld_%d*self=(void*)au_struct_coerce(args[0]);"
-            "if(self->header.vdata!=&_struct_M%ld_%d_vdata){abort();}"
-            "self->header.rc++;"
-            "\n",
-            module_idx, bcs->class_idx, module_idx, bcs->class_idx,
-            module_idx, bcs->class_idx);
-    }
 
     for (size_t pos = 0; pos < bcs->bc.len;) {
         if (current_source_map && current_line_info) {
@@ -425,6 +411,19 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         const uint8_t opcode = bc(pos++);
 
         switch (opcode) {
+        case AU_OP_LOAD_SELF: {
+            comp_printf(
+                state,
+                INDENT
+                "struct _M%ld_%d*self=(void*)au_struct_coerce(args[0]);"
+                "if(self->header.vdata!=&_struct_M%ld_%d_vdata){abort();}"
+                "self->header.rc++;"
+                "\n",
+                module_idx, bcs->class_idx, module_idx, bcs->class_idx,
+                module_idx, bcs->class_idx);
+            has_self = 1;
+            break;
+        }
         // Move instructions
         case AU_OP_MOV_U16: {
             uint8_t reg = bc(pos);
@@ -1050,7 +1049,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
                 comp_printf(state, "au_value_t _M%ld_f%ld() {\n",
                             module_idx, i);
             }
-            au_c_comp_func(state, bcs, fn, &program->data, module_idx, i,
+            au_c_comp_func(state, bcs, &program->data, module_idx, i,
                            g_state);
             comp_printf(state, "}\n");
         }
@@ -1141,7 +1140,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
                 INDENT "if(_M%ld_main_init){return au_value_none();}\n",
                 module_idx);
     comp_printf(state, INDENT "_M%ld_main_init=1;\n", module_idx);
-    au_c_comp_func(state, &program->main, 0, &program->data, module_idx,
+    au_c_comp_func(state, &program->main, &program->data, module_idx,
                    AU_SM_FUNC_ID_MAIN, g_state);
     comp_printf(state, "}\n");
     comp_printf(&g_state->header_file, "static au_value_t _M%ld_main();\n",

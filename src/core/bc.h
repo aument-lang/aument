@@ -13,7 +13,7 @@
 #define AU_MAX_LOCALS 65536
 #define AU_MAX_ARRAY 65536
 #define AU_MAX_STATIC_IDX 256
-#define AU_OP_MAX_PRINTABLE 43
+#define AU_OP_MAX_PRINTABLE 44
 
 enum au_opcode {
     AU_OP_MOV_U16 = 0,
@@ -60,6 +60,7 @@ enum au_opcode {
     AU_OP_CLASS_SET_INNER = 41,
     AU_OP_CLASS_NEW = 42,
     AU_OP_CALL1 = 43,
+    AU_OP_LOAD_SELF = 44,
 };
 
 extern const char *au_opcode_dbg[AU_REGS];

@@ -5,11 +5,12 @@
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
 #pragma once
+#include "../malloc.h"
 #include "../value/main.h"
 #include "./main.h"
 #endif
 
-typedef void (*au_struct_del_fn_t)(void *self);
+typedef au_obj_del_fn_t au_struct_del_fn_t;
 typedef int (*au_struct_idx_get_fn_t)(struct au_struct *self,
                                       au_value_t idx, au_value_t *value);
 typedef int (*au_struct_idx_set_fn_t)(struct au_struct *self,
@@ -17,7 +18,7 @@ typedef int (*au_struct_idx_set_fn_t)(struct au_struct *self,
 typedef int32_t (*au_struct_len_fn_t)(struct au_struct *self);
 
 struct au_struct_vdata {
-    au_struct_del_fn_t del_fn;
+    au_obj_del_fn_t del_fn;
     au_struct_idx_get_fn_t idx_get_fn;
     au_struct_idx_set_fn_t idx_set_fn;
     au_struct_len_fn_t len_fn;
@@ -37,11 +38,16 @@ static inline void au_struct_ref(struct au_struct *header) {
 ///     reference count reaches 0.
 /// @param header the au_struct instance
 static inline void au_struct_deref(struct au_struct *header) {
-    header->rc--;
+    if (header->rc != 0) {
+        header->rc--;
 #ifdef DEBUG_RC
-    printf("[%p]: [ref] rc now %d\n", header, header->rc);
+        printf("[%p]: [ref] rc now %d\n", header, header->rc);
 #endif
-    if (header->rc == 0) {
-        header->vdata->del_fn(header);
     }
+#ifndef AU_FEAT_DELAYED_RC
+    else {
+        header->vdata->del_fn(header);
+        au_obj_free(header);
+    }
+#endif
 }
