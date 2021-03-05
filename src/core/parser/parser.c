@@ -631,15 +631,16 @@ static int parser_exec_def_statement(struct au_parser *p,
                 au_fn_array_add(&p->p_data->fns, fallback_fn);
 
                 func_value.idx = new_fn_idx;
-                struct au_fn none_func = (struct au_fn){
-                    .type = AU_FN_NONE,
-                    .as.none_func.num_args = 0,
-                    .as.none_func.name_token.type = AU_TOK_EOF,
-                };
-                au_fn_array_add(&p->p_data->fns, none_func);
-                au_str_array_add(&p->p_data->fn_names,
-                                 copy_string(id_tok.src, id_tok.len));
             }
+
+            struct au_fn none_func = (struct au_fn){
+                .type = AU_FN_NONE,
+                .as.none_func.num_args = 0,
+                .as.none_func.name_token.type = AU_TOK_EOF,
+            };
+            au_fn_array_add(&p->p_data->fns, none_func);
+            au_str_array_add(&p->p_data->fn_names,
+                             copy_string(id_tok.src, id_tok.len));
         }
         // If the old function is already a multi-dispatch function,
         // add it to the dispatch list

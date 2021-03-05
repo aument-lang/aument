@@ -1,0 +1,30 @@
+class A{}
+class B{}
+class C{}
+class D{}
+
+def (self: A) dispatch() {}
+def (self: B) dispatch() {}
+def (self: C) dispatch() {}
+def (self: D) dispatch() {}
+
+a = new A;
+b = new B;
+c = new C;
+d = new D;
+i = 0;
+while i < 1000000 {
+    dispatch(a);
+    dispatch(b);
+    dispatch(c);
+    dispatch(d);
+    dispatch(a);
+    dispatch(b);
+    dispatch(c);
+    dispatch(d);
+    dispatch(a);
+    dispatch(b);
+    dispatch(c);
+    dispatch(d);
+    i += 1;
+}

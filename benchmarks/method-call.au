@@ -1,0 +1,29 @@
+class Counter {
+    val number;
+}
+
+def (self: Counter) reset() {
+    @number = 0;
+}
+
+def (self: Counter) up() {
+    @number = @number + 1;
+}
+
+counter = new Counter;
+reset(counter);
+i = 0;
+while i < 1000000 {
+    up(counter);
+    up(counter);
+    up(counter);
+    up(counter);
+    up(counter);
+    up(counter);
+    up(counter);
+    up(counter);
+    up(counter);
+    up(counter);
+    reset(counter);
+    i += 1;
+}
