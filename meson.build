@@ -3,6 +3,7 @@ project('aulang', 'c')
 is_testing = get_option('tests').enabled()
 has_compile_feature = get_option('compiler').enabled()
 has_delayed_rc_feature = get_option('delayed_rc').enabled()
+has_leak_mem_feature = get_option('leak_mem').enabled()
 
 compiler = meson.get_compiler('c')
 
@@ -237,6 +238,10 @@ endif
 if has_delayed_rc_feature
     sources += ['src/core/rt/malloc.c']
     add_project_arguments('-DAU_FEAT_DELAYED_RC', language : ['c'])
+endif
+
+if has_leak_mem_feature
+    add_project_arguments('-DAU_FEAT_LEAK_MEM', language : ['c'])
 endif
 
 au_runtime_sources = [
