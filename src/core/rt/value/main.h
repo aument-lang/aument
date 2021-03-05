@@ -30,7 +30,7 @@ enum au_vtype {
     VALUE_OP_ERROR = 15,
 };
 
-#ifdef USE_NAN_TAGGING
+#ifdef AU_USE_NAN_TAGGING
 typedef union {
     double d;
     uint64_t raw;

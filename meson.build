@@ -13,12 +13,14 @@ if is_testing
     add_project_arguments('-DTEST', language : ['c'])
 endif
 
-code = '''#include <sys/mman.h>
-void main() { mmap(0, 0, 0, 0, 0, 0); }
-'''
-result = compiler.links(code, name : 'mmap')
-if result
-    add_project_arguments('-DUSE_MMAP', language : ['c'])
+if target_machine.system() != 'windows'
+    code = '''#include <sys/mman.h>
+    void main() { mmap(0, 0, 0, 0, 0, 0); }
+    '''
+    result = compiler.links(code, name : 'mmap')
+    if result
+        add_project_arguments('-DAU_USE_MMAP', language : ['c'])
+    endif
 endif
 
 code = '''#include<stdio.h>
@@ -30,7 +32,7 @@ int main(int argc, char **argv) {
 '''
 result = compiler.run(code, name : 'dispatch jump')
 if result.stdout().strip() == '1'
-    add_project_arguments('-DUSE_DISPATCH_JMP', language : ['c'])
+    add_project_arguments('-DAU_USE_DISPATCH_JMP', language : ['c'])
 endif
 
 code = '''#include<float.h>
@@ -50,19 +52,27 @@ int main(int argc, char **argv) {
 '''
 result = compiler.run(code, name : 'nan tagging support')
 if result.stdout().strip() == '1'
-    add_project_arguments('-DUSE_NAN_TAGGING', language : ['c'])
-    au_hdr_cflags += ['DUSE_NAN_TAGGING']
+    add_project_arguments('-DAU_USE_NAN_TAGGING', language : ['c'])
+    au_hdr_cflags += ['DAU_USE_NAN_TAGGING']
 endif
 
-code = '''#include<alloca.h>
+code = '''
+#ifdef _WIN32
+#include <malloc.h>
+#ifndef alloca
+#define alloca _alloca
+#endif
+#else
+#include <alloca.h>
+#endif
 int main(int argc, char **argv) {
     alloca(32);
 }
 '''
 result = compiler.links(code, name : 'alloca support')
 if result
-    add_project_arguments('-DUSE_ALLOCA', language : ['c'])
-    au_hdr_cflags += ['DUSE_ALLOCA']
+    add_project_arguments('-DAU_USE_ALLOCA', language : ['c'])
+    au_hdr_cflags += ['DAU_USE_ALLOCA']
 endif
 
 if compiler.has_argument('-Wextra')
@@ -219,7 +229,7 @@ if has_compile_feature
         rt_hdr_src,
         rt_code_src,
     ]
-    add_project_arguments('-DFEAT_COMPILER', language : ['c'])
+    add_project_arguments('-DAU_FEAT_COMPILER', language : ['c'])
 endif
 
 au_runtime_sources = [

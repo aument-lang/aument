@@ -5,7 +5,7 @@
 // See LICENSE.txt for license information
 #include "mmap.h"
 
-#ifdef USE_MMAP
+#ifdef AU_USE_MMAP
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/mman.h>
@@ -15,7 +15,7 @@
 #endif
 
 int au_mmap_read(const char *path, struct au_mmap_info *info) {
-#ifdef USE_MMAP
+#ifdef AU_USE_MMAP
     info->_fd = open(path, O_RDONLY);
     if (info->_fd < 0)
         return 0;
@@ -39,7 +39,7 @@ int au_mmap_read(const char *path, struct au_mmap_info *info) {
 }
 
 void au_mmap_del(struct au_mmap_info *info) {
-#ifdef USE_MMAP
+#ifdef AU_USE_MMAP
     munmap(info->bytes, info->size);
     close(info->_fd);
 #else
