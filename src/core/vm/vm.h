@@ -15,7 +15,7 @@
 #include "tl.h"
 
 struct au_vm_frame {
-#ifdef USE_ALLOCA
+#ifdef AU_USE_ALLOCA
     au_value_t *regs;
 #else
     au_value_t regs[AU_REGS];

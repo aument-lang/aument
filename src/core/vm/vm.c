@@ -8,8 +8,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef USE_ALLOCA
+#ifdef AU_USE_ALLOCA
+#ifdef _WIN32
+#include <malloc.h>
+#ifndef alloca
+#define alloca _alloca
+#endif
+#else
 #include <alloca.h>
+#endif
 #define ALLOCA_MAX_VALUES 256
 #endif
 
@@ -32,7 +39,7 @@
 
 static void au_vm_frame_del(struct au_vm_frame *frame,
                             _Unused const struct au_bc_storage *bcs) {
-#ifndef USE_ALLOCA
+#ifndef AU_USE_ALLOCA
     for (int i = 0; i < bcs->num_registers; i++) {
         au_value_deref(frame->regs[i]);
     }
@@ -154,7 +161,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
                                  const struct au_program_data *p_data,
                                  const au_value_t *args) {
-#ifdef USE_ALLOCA
+#ifdef AU_USE_ALLOCA
     au_value_t *alloca_values = 0;
     if (_Likely((bcs->num_registers + bcs->locals_len) <
                 ALLOCA_MAX_VALUES)) {
@@ -171,7 +178,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     tl->current_frame.data = p_data;
     tl->current_frame.frame = &frame;
 
-#ifdef USE_ALLOCA
+#ifdef AU_USE_ALLOCA
     if (_Likely(alloca_values)) {
         frame.regs = alloca_values;
         frame.locals = &alloca_values[bcs->num_registers];
@@ -203,7 +210,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #define DISPATCH_DEBUG
 #endif
 
-#ifndef USE_DISPATCH_JMP
+#ifndef AU_USE_DISPATCH_JMP
 #define CASE(x) case x
 #define DISPATCH                                                          \
     DISPATCH_DEBUG;                                                       \
@@ -685,12 +692,12 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             CASE(AU_OP_NOP) : { DISPATCH; }
 #undef COPY_VALUE
-#ifndef USE_DISPATCH_JMP
+#ifndef AU_USE_DISPATCH_JMP
         }
 #endif
     }
 end:
-#ifdef USE_ALLOCA
+#ifdef AU_USE_ALLOCA
     if (_Likely(alloca_values)) {
         int n_values = bcs->num_registers + bcs->locals_len;
         for (int i = 0; i < n_values; i++) {

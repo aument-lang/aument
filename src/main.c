@@ -21,7 +21,7 @@
 #include "core/rt/exception.h"
 #include "core/vm/vm.h"
 
-#ifdef FEAT_COMPILER
+#ifdef AU_FEAT_COMPILER
 #include "compiler/c_comp.h"
 #include "platform/cc.h"
 #endif
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
             au_fatal("no input file\n");
         }
     } else if (strcmp(action, "build") == 0) {
-#ifdef FEAT_COMPILER
+#ifdef AU_FEAT_COMPILER
         action_id = ACTION_BUILD;
 #else
         au_fatal("the compiler feature isn't enabled");
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
         au_vm_thread_local_del(&tl);
         au_vm_thread_local_set(0);
     }
-#ifdef FEAT_COMPILER
+#ifdef AU_FEAT_COMPILER
     else if (action_id == ACTION_BUILD) {
         struct au_c_comp_options options = {0};
         options.with_debug = has_flag(flags, FLAG_GENERATE_DEBUG);
