@@ -20,13 +20,16 @@ static _AlwaysInline au_value_t
 au_fn_call(const struct au_fn *fn, struct au_vm_thread_local *tl,
            const struct au_program_data *p_data, const au_value_t *args);
 
-au_value_t au_fn_call(const struct au_fn *fn,
-                      struct au_vm_thread_local *tl,
-                      const struct au_program_data *p_data,
-                      const au_value_t *args) {
+static _AlwaysInline au_value_t
+au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
+                    const struct au_program_data *p_data,
+                    const au_value_t *args, int *is_native) {
 self_call:
     switch (fn->type) {
     case AU_FN_NATIVE: {
+        if (is_native) {
+            *is_native = 1;
+        }
         return fn->as.native_func.func(tl, args);
     }
     case AU_FN_BC: {
@@ -76,4 +79,11 @@ self_call:
         return au_value_none();
     }
     }
+}
+
+au_value_t au_fn_call(const struct au_fn *fn,
+                      struct au_vm_thread_local *tl,
+                      const struct au_program_data *p_data,
+                      const au_value_t *args) {
+    return au_fn_call_internal(fn, tl, p_data, args, 0);
 }

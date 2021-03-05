@@ -39,6 +39,9 @@ static inline void au_struct_ref(struct au_struct *header) {
 /// @param header the au_struct instance
 static inline void au_struct_deref(struct au_struct *header) {
     if (header->rc != 0) {
+#ifdef DEBUG_RC
+        printf("[%p]: [ref] rc from %d\n", header, header->rc);
+#endif
         header->rc--;
 #ifdef DEBUG_RC
         printf("[%p]: [ref] rc now %d\n", header, header->rc);
