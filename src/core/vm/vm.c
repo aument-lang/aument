@@ -600,7 +600,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 DISPATCH;
             }
             CASE(AU_OP_LOAD_SELF) : {
-                self = au_obj_class_coerce(frame.locals[0]);
+                self = (struct au_obj_class *)au_value_get_struct(
+                    frame.locals[0]);
+                self->header.rc++;
                 DISPATCH;
             }
             CASE(AU_OP_CLASS_GET_INNER) : {
@@ -736,5 +738,7 @@ end:
     frame.retval = au_value_none();
     tl->current_frame = frame.link;
     au_vm_frame_del(&frame, bcs);
+    if (self)
+        self->header.rc--;
     return retval;
 }
