@@ -20,7 +20,7 @@ static int au_obj_tuple_vdata_inited = 0;
 static void au_obj_tuple_vdata_init() {
     if (!au_obj_tuple_vdata_inited) {
         au_obj_tuple_vdata = (struct au_struct_vdata){
-            .del_fn = (au_struct_del_fn_t)au_obj_tuple_del,
+            .del_fn = (au_obj_del_fn_t)au_obj_tuple_del,
             .idx_get_fn = (au_struct_idx_get_fn_t)au_obj_tuple_get,
             .idx_set_fn = (au_struct_idx_set_fn_t)au_obj_tuple_set,
             .len_fn = (au_struct_len_fn_t)au_obj_tuple_len,
@@ -30,8 +30,9 @@ static void au_obj_tuple_vdata_init() {
 }
 
 struct au_obj_tuple *au_obj_tuple_new(size_t len) {
-    struct au_obj_tuple *obj_tuple =
-        malloc(sizeof(struct au_obj_tuple) + sizeof(au_value_t) * len);
+    struct au_obj_tuple *obj_tuple = au_obj_malloc(
+        sizeof(struct au_obj_tuple) + sizeof(au_value_t) * len,
+        (au_obj_del_fn_t)au_obj_tuple_del);
     au_obj_tuple_vdata_init();
     obj_tuple->header = (struct au_struct){
         .rc = 1,
@@ -46,7 +47,6 @@ void au_obj_tuple_del(struct au_obj_tuple *obj_tuple) {
     for (size_t i = 0; i < obj_tuple->len; i++) {
         au_value_deref(obj_tuple->data[i]);
     }
-    free(obj_tuple);
 }
 
 int au_obj_tuple_get(struct au_obj_tuple *obj_tuple, const au_value_t idx,

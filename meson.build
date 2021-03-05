@@ -2,6 +2,7 @@ project('aulang', 'c')
 
 is_testing = get_option('tests').enabled()
 has_compile_feature = get_option('compiler').enabled()
+has_delayed_rc_feature = get_option('delayed_rc').enabled()
 
 compiler = meson.get_compiler('c')
 
@@ -124,6 +125,7 @@ sources = [
 'src/core/rt/extern_fn.h',
 'src/core/rt/includes/stdlib_begin.h',
 'src/core/rt/includes/stdlib_end.h',
+'src/core/rt/malloc.h',
 'src/core/rt/struct/coerce.h',
 'src/core/rt/struct/helper.c',
 'src/core/rt/struct/helper.h',
@@ -157,13 +159,13 @@ sources = [
 'src/stdlib/io.c',
 'src/stdlib/types.c',
 'src/version.h',
-
 ]
 
 if has_compile_feature
     prog_python = import('python').find_installation('python3')
 
     rt_hdr_depends = files(
+        'src/core/rt/malloc.h',
         'src/platform/platform.h',
         'src/core/array.h',
         'src/core/rt/exception.h',
@@ -232,6 +234,11 @@ if has_compile_feature
     add_project_arguments('-DAU_FEAT_COMPILER', language : ['c'])
 endif
 
+if has_delayed_rc_feature
+    sources += ['src/core/rt/malloc.c']
+    add_project_arguments('-DAU_FEAT_DELAYED_RC', language : ['c'])
+endif
+
 au_runtime_sources = [
     'src/core/rt/exception.c',
     'src/stdlib/io.c',
@@ -255,7 +262,7 @@ endif
 incs = include_directories('src')
 
 if has_compile_feature
-    static_library('au_runtime', au_runtime_sources, include_directories: incs)
+    static_library('au_runtime', au_runtime_sources, include_directories: incs, c_args: ['-DAU_IS_STDLIB'])
 endif
 
 if is_testing

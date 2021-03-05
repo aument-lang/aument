@@ -36,7 +36,7 @@ static int au_obj_class_vdata_inited = 0;
 static void au_obj_class_vdata_init() {
     if (!au_obj_class_vdata_inited) {
         au_obj_class_vdata = (struct au_struct_vdata){
-            .del_fn = (au_struct_del_fn_t)au_obj_class_del,
+            .del_fn = (au_obj_del_fn_t)au_obj_class_del,
             .idx_get_fn = (au_struct_idx_get_fn_t)au_obj_class_get,
             .idx_set_fn = (au_struct_idx_set_fn_t)au_obj_class_set,
             .len_fn = (au_struct_len_fn_t)au_obj_class_len,
@@ -48,8 +48,9 @@ static void au_obj_class_vdata_init() {
 struct au_obj_class *
 au_obj_class_new(const struct au_class_interface *interface) {
     const size_t len = interface->map.entries_occ;
-    struct au_obj_class *obj_class =
-        malloc(sizeof(struct au_obj_class) + sizeof(au_value_t) * len);
+    struct au_obj_class *obj_class = au_obj_malloc(
+        sizeof(struct au_obj_class) + sizeof(au_value_t) * len,
+        (au_obj_del_fn_t)au_obj_class_del);
     au_obj_class_vdata_init();
     obj_class->header = (struct au_struct){
         .rc = 1,
@@ -65,7 +66,6 @@ void au_obj_class_del(struct au_obj_class *obj_class) {
     for (size_t i = 0; i < len; i++) {
         au_value_deref(obj_class->data[i]);
     }
-    free(obj_class);
 }
 
 int au_obj_class_get(_Unused struct au_obj_class *obj_class,

@@ -11,6 +11,7 @@ struct au_vm_frame;
 struct au_program_data;
 
 struct au_vm_frame_link {
-    const struct au_vm_frame *frame;
+    const struct au_bc_storage *bcs;
     const struct au_program_data *data;
+    const struct au_vm_frame *frame;
 };

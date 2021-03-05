@@ -32,20 +32,13 @@ self_call:
     case AU_FN_BC: {
         if ((fn->flags & AU_FN_FLAG_HAS_CLASS) != 0) {
             struct au_obj_class *obj_class = au_obj_class_coerce(args[0]);
-            // We keep a reference of obj_class in case the reference in
-            // the local variable gets overwritten
-            obj_class->header.rc++;
             if (_Unlikely(obj_class == 0 ||
                           (fn->as.bc_func.class_interface_cache !=
                            obj_class->interface))) {
                 return au_value_op_error();
             }
-            au_value_t retval =
-                au_vm_exec_unverified(tl, &fn->as.bc_func, p_data, args);
-            obj_class->header.rc--;
-            if (_Unlikely(obj_class->header.rc == 0))
-                au_obj_class_del(obj_class);
-            return retval;
+            return au_vm_exec_unverified(tl, &fn->as.bc_func, p_data,
+                                         args);
         }
         return au_vm_exec_unverified(tl, &fn->as.bc_func, p_data, args);
     }

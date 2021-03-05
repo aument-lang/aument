@@ -752,6 +752,13 @@ static int parser_exec_def_statement(struct au_parser *p,
         assert(bcs.num_args == expected_num_args);
     func_p.self_num_args = bcs.num_args;
 
+    if ((fn_flags & AU_FN_FLAG_HAS_CLASS) != 0) {
+        parser_emit_bc_u8(&func_p, AU_OP_LOAD_SELF);
+        parser_emit_pad8(&func_p);
+        parser_emit_pad8(&func_p);
+        parser_emit_pad8(&func_p);
+    }
+
     const size_t source_map_start = p->p_data->source_map.len;
     if (!parser_exec_block(&func_p, l)) {
         p->res = func_p.res;

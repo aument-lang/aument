@@ -5,11 +5,13 @@
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
 #include "au_string.h"
+#include "malloc.h"
 #include <string.h>
 #endif
 
 struct au_string *au_string_from_const(const char *s, size_t len) {
-    struct au_string *header = malloc(sizeof(struct au_string) + len);
+    struct au_string *header =
+        au_obj_malloc(sizeof(struct au_string) + len, 0);
     header->rc = 1;
     header->len = len;
     memcpy(header->data, s, len);
@@ -19,7 +21,8 @@ struct au_string *au_string_from_const(const char *s, size_t len) {
 struct au_string *au_string_add(struct au_string *left,
                                 struct au_string *right) {
     const size_t len = left->len + right->len;
-    struct au_string *header = malloc(sizeof(struct au_string) + len);
+    struct au_string *header =
+        au_obj_malloc(sizeof(struct au_string) + len, 0);
     header->rc = 1;
     header->len = len;
     memcpy(header->data, left->data, left->len);

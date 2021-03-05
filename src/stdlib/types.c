@@ -53,7 +53,8 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
     }
     case VALUE_INT: {
         int32_t abs_num = au_value_get_int(value);
-        struct au_string *header = malloc(sizeof(struct au_string) + 1);
+        struct au_string *header =
+            au_obj_malloc(sizeof(struct au_string) + 1, 0);
         header->rc = 1;
         header->len = 1;
         uint32_t pos = 0, cap = 1;
@@ -65,7 +66,8 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
         while (abs_num != 0) {
             if (pos == cap) {
                 cap *= 2;
-                header = realloc(header, sizeof(struct au_string) + cap);
+                header =
+                    au_obj_realloc(header, sizeof(struct au_string) + cap);
             }
             header->data[pos] = ((abs_num % 10) + '0');
             pos++;
@@ -74,7 +76,8 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
         if (is_neg) {
             if (pos == cap) {
                 cap *= 2;
-                header = realloc(header, sizeof(struct au_string) + cap);
+                header =
+                    au_obj_realloc(header, sizeof(struct au_string) + cap);
             }
             header->data[pos] = '-';
             pos++;
