@@ -50,8 +50,8 @@ static void print_source(struct au_error_location loc, size_t error_pos,
 void au_print_parser_error(struct au_parser_result res,
                            struct au_error_location loc) {
     printf("parser error(%d) in %s: ", res.type, error_path(loc.path));
-    struct token errored_token;
-    errored_token.type = TOK_EOF;
+    struct au_token errored_token;
+    errored_token.type = AU_TOK_EOF;
 #define X(NAME) AU_PARSER_RES_##NAME
     switch (res.type) {
     case X(OK): {
@@ -100,7 +100,7 @@ void au_print_parser_error(struct au_parser_result res,
     }
 #undef X
     printf("\n");
-    if (errored_token.type != TOK_EOF) {
+    if (errored_token.type != AU_TOK_EOF) {
         print_source(loc, errored_token.src - loc.src, errored_token.len);
     }
 }

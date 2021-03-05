@@ -23,22 +23,22 @@ enum au_parser_result_type {
 struct au_parser_result {
     union {
         struct {
-            struct token got_token;
+            struct au_token got_token;
             const char *expected;
         } unexpected_token;
         struct {
-            struct token name_token;
+            struct au_token name_token;
         } unknown_function;
         struct {
             int got_args;
             int expected_args;
-            struct token call_token;
+            struct au_token call_token;
         } wrong_args;
         struct {
-            struct token name_token;
+            struct au_token name_token;
         } unknown_var;
         struct {
-            struct token at_token;
+            struct au_token at_token;
         } expect_global;
     } data;
     enum au_parser_result_type type;
