@@ -124,6 +124,7 @@ void au_obj_malloc_collect() {
     assert(tl != 0);
     struct au_vm_frame_link link = tl->current_frame;
     while (link.frame != 0) {
+        mark(link.frame->retval);
         for (int i = 0; i < link.bcs->num_registers; i++) {
             mark(link.frame->regs[i]);
         }

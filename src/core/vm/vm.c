@@ -37,23 +37,6 @@
 #include "core/rt/au_tuple.h"
 #include "core/rt/exception.h"
 
-static void au_vm_frame_del(struct au_vm_frame *frame,
-                            _Unused const struct au_bc_storage *bcs) {
-#ifndef AU_USE_ALLOCA
-    for (int i = 0; i < bcs->num_registers; i++) {
-        au_value_deref(frame->regs[i]);
-    }
-    for (int i = 0; i < bcs->locals_len; i++) {
-        au_value_deref(frame->locals[i]);
-    }
-    free(frame->locals);
-#endif
-    for (size_t i = 0; i < frame->arg_stack.len; i++) {
-        au_value_deref(frame->arg_stack.data[i]);
-    }
-    free(frame->arg_stack.data);
-}
-
 #ifdef DEBUG_VM
 static void debug_value(au_value_t v) {
     switch (au_value_get_type(v)) {
@@ -201,7 +184,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     frame.bc_start = bcs->bc.data;
     frame.arg_stack = (struct au_value_array){0};
 
-    au_value_t retval;
     struct au_obj_class *self = 0;
 
     while (1) {
@@ -791,28 +773,45 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 end:
 #ifdef AU_USE_ALLOCA
     if (_Likely(alloca_values)) {
+#ifndef AU_FEAT_DELAYED_RC
         int n_values = bcs->num_registers + bcs->locals_len;
         for (int i = 0; i < n_values; i++) {
             au_value_deref(alloca_values[i]);
         }
+#endif
     } else {
+#ifndef AU_FEAT_DELAYED_RC
         for (int i = 0; i < bcs->num_registers; i++) {
             au_value_deref(frame.regs[i]);
         }
         for (int i = 0; i < bcs->locals_len; i++) {
             au_value_deref(frame.locals[i]);
         }
+#endif
         free(frame.regs);
         free(frame.locals);
         frame.regs = 0;
         frame.locals = 0;
     }
+#else
+#ifndef AU_FEAT_DELAYED_RC
+    for (int i = 0; i < bcs->num_registers; i++) {
+        au_value_deref(frame->regs[i]);
+    }
+    for (int i = 0; i < bcs->locals_len; i++) {
+        au_value_deref(frame->locals[i]);
+    }
 #endif
-    retval = frame.retval;
-    frame.retval = au_value_none();
-    tl->current_frame = frame.link;
-    au_vm_frame_del(&frame, bcs);
+    free(frame->locals);
+#endif
+    for (size_t i = 0; i < frame.arg_stack.len; i++) {
+        au_value_deref(frame.arg_stack.data[i]);
+    }
+    free(frame.arg_stack.data);
+
     if (self)
         au_struct_deref(&self->header);
-    return retval;
+
+    tl->current_frame = frame.link;
+    return frame.retval;
 }
