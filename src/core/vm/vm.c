@@ -52,7 +52,6 @@ static void au_vm_frame_del(struct au_vm_frame *frame,
         au_value_deref(frame->arg_stack.data[i]);
     }
     free(frame->arg_stack.data);
-    memset(frame, 0, sizeof(struct au_vm_frame));
 }
 
 #ifdef DEBUG_VM
@@ -292,11 +291,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     do {                                                                  \
         dest = src;                                                       \
     } while (0)
-#define MOVE_VALUE(dest, src)                                             \
-    do {                                                                  \
-        dest = src;                                                       \
-        au_value_deref(src);                                              \
-    } while (0)
 #else
 /// Copies an au_value from src to dest. For memory safety, please use this
 /// function instead of copying directly
@@ -320,7 +314,11 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(AU_OP_MOV_U16) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t n = *(uint16_t *)(&frame.bc[2]);
-                MOVE_VALUE(frame.regs[reg], au_value_int(n));
+#ifdef AU_FEAT_DELAYED_RC
+                frame.regs[reg] = au_value_int(n);
+#else
+            MOVE_VALUE(frame.regs[reg], au_value_int(n));
+#endif
                 DISPATCH;
             }
             CASE(AU_OP_MOV_REG_LOCAL) : {
@@ -377,13 +375,33 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     frame.regs[reg] =
                         au_value_bool(!au_value_get_bool(frame.regs[reg]));
                 } else {
-                    MOVE_VALUE(frame.regs[reg],
-                               au_value_bool(
-                                   !au_value_is_truthy(frame.regs[reg])));
+#ifdef AU_FEAT_DELAYED_RC
+                    frame.regs[reg] = au_value_bool(
+                        !au_value_is_truthy(frame.regs[reg]));
+#else
+                MOVE_VALUE(
+                    frame.regs[reg],
+                    au_value_bool(!au_value_is_truthy(frame.regs[reg])));
+#endif
                 }
                 DISPATCH;
             }
             // Binary operations
+#ifdef AU_FEAT_DELAYED_RC
+#define BIN_OP(NAME, FUN)                                                 \
+    CASE(NAME) : {                                                        \
+        const au_value_t lhs = frame.regs[frame.bc[1]];                   \
+        const au_value_t rhs = frame.regs[frame.bc[2]];                   \
+        const uint8_t res = frame.bc[3];                                  \
+        const au_value_t result = au_value_##FUN(lhs, rhs);               \
+        au_value_deref(result);                                           \
+        if (_Unlikely(au_value_is_op_error(frame.regs[res]))) {           \
+            bin_op_error(lhs, rhs, p_data, &frame);                       \
+        }                                                                 \
+        frame.regs[res] = result;                                         \
+        DISPATCH;                                                         \
+    }
+#else
 #define BIN_OP(NAME, FUN)                                                 \
     CASE(NAME) : {                                                        \
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
@@ -396,6 +414,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         MOVE_VALUE(frame.regs[res], result);                              \
         DISPATCH;                                                         \
     }
+#endif
             BIN_OP(AU_OP_MUL, mul)
             BIN_OP(AU_OP_DIV, div)
             BIN_OP(AU_OP_ADD, add)
@@ -444,6 +463,22 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 DISPATCH_JMP;
             }
             // Binary operation into local instructions
+#ifdef AU_FEAT_DELAYED_RC
+#define BIN_AU_OP_ASG(NAME, FUN)                                          \
+    CASE(NAME) : {                                                        \
+        const uint8_t reg = frame.bc[1];                                  \
+        const uint8_t local = frame.bc[2];                                \
+        const au_value_t lhs = frame.locals[local];                       \
+        const au_value_t rhs = frame.regs[reg];                           \
+        const au_value_t result = au_value_##FUN(lhs, rhs);               \
+        au_value_deref(result);                                           \
+        if (_Unlikely(au_value_is_op_error(result))) {                    \
+            bin_op_error(lhs, rhs, p_data, &frame);                       \
+        }                                                                 \
+        frame.locals[local] = result;                                     \
+        DISPATCH;                                                         \
+    }
+#else
 #define BIN_AU_OP_ASG(NAME, FUN)                                          \
     CASE(NAME) : {                                                        \
         const uint8_t reg = frame.bc[1];                                  \
@@ -457,6 +492,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         MOVE_VALUE(frame.locals[local], result);                          \
         DISPATCH;                                                         \
     }
+#endif
             BIN_AU_OP_ASG(AU_OP_MUL_ASG, mul)
             BIN_AU_OP_ASG(AU_OP_DIV_ASG, div)
             BIN_AU_OP_ASG(AU_OP_ADD_ASG, add)
@@ -477,11 +513,22 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 int n_regs = au_fn_num_args(call_fn);
                 const au_value_t *args =
                     &frame.arg_stack.data[frame.arg_stack.len - n_regs];
-                const au_value_t callee_retval =
-                    au_fn_call(call_fn, tl, p_data, args);
+#ifdef AU_FEAT_DELAYED_RC
+                int is_native = 0;
+                const au_value_t callee_retval = au_fn_call_internal(
+                    call_fn, tl, p_data, args, &is_native);
                 if (_Unlikely(au_value_is_op_error(callee_retval)))
                     call_error(p_data, &frame);
-                MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+                frame.regs[ret_reg] = callee_retval;
+                if (is_native)
+                    au_value_deref(callee_retval);
+#else
+            const au_value_t callee_retval =
+                au_fn_call(call_fn, tl, p_data, args);
+            if (_Unlikely(au_value_is_op_error(callee_retval)))
+                call_error(p_data, &frame);
+            MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+#endif
                 frame.arg_stack.len -= n_regs;
                 DISPATCH;
             }
@@ -491,12 +538,22 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
                 au_value_t arg_reg = frame.regs[ret_reg];
                 // arg_reg is moved to locals in au_fn_call
-                const au_value_t callee_retval =
-                    au_fn_call(call_fn, tl, p_data, &arg_reg);
+#ifdef AU_FEAT_DELAYED_RC
+                int is_native = 0;
+                const au_value_t callee_retval = au_fn_call_internal(
+                    call_fn, tl, p_data, &arg_reg, &is_native);
                 if (_Unlikely(au_value_is_op_error(callee_retval)))
                     call_error(p_data, &frame);
-                frame.regs[ret_reg] = au_value_none();
-                MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+                frame.regs[ret_reg] = callee_retval;
+                if (_Unlikely(is_native))
+                    au_value_deref(callee_retval);
+#else
+            const au_value_t callee_retval =
+                au_fn_call(call_fn, tl, p_data, &arg_reg);
+            if (_Unlikely(au_value_is_op_error(callee_retval)))
+                call_error(p_data, &frame);
+            MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+#endif
                 DISPATCH;
             }
             // Return instructions
@@ -521,10 +578,16 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(AU_OP_ARRAY_NEW) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t capacity = *((uint16_t *)(&frame.bc[2]));
-                MOVE_VALUE(
-                    frame.regs[reg],
-                    au_value_struct(
-                        (struct au_struct *)au_obj_array_new(capacity)));
+#ifdef AU_FEAT_DELAYED_RC
+                struct au_struct *s =
+                    (struct au_struct *)au_obj_array_new(capacity);
+                frame.regs[reg] = au_value_struct(s);
+                s->rc = 0;
+#else
+            MOVE_VALUE(frame.regs[reg],
+                       au_value_struct((
+                           struct au_struct *)au_obj_array_new(capacity)));
+#endif
                 DISPATCH;
             }
             CASE(AU_OP_ARRAY_PUSH) : {
@@ -569,10 +632,16 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(AU_OP_TUPLE_NEW) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t length = *((uint16_t *)(&frame.bc[2]));
-                MOVE_VALUE(
-                    frame.regs[reg],
-                    au_value_struct(
-                        (struct au_struct *)au_obj_tuple_new(length)));
+#ifdef AU_FEAT_DELAYED_RC
+                struct au_struct *s =
+                    (struct au_struct *)au_obj_tuple_new(length);
+                frame.regs[reg] = au_value_struct(s);
+                s->rc = 0;
+#else
+            MOVE_VALUE(frame.regs[reg],
+                       au_value_struct(
+                           (struct au_struct *)au_obj_tuple_new(length)));
+#endif
                 DISPATCH;
             }
             CASE(AU_OP_IDX_SET_STATIC) : {
@@ -596,7 +665,12 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     (struct au_struct *)au_obj_class_new(
                         p_data->classes.data[class_id]);
                 const au_value_t new_value = au_value_struct(obj_class);
-                MOVE_VALUE(frame.regs[reg], new_value);
+#ifdef AU_FEAT_DELAYED_RC
+                frame.regs[reg] = new_value;
+                obj_class->rc = 0;
+#else
+            MOVE_VALUE(frame.regs[reg], new_value);
+#endif
                 DISPATCH;
             }
             CASE(AU_OP_LOAD_SELF) : {
@@ -739,6 +813,6 @@ end:
     tl->current_frame = frame.link;
     au_vm_frame_del(&frame, bcs);
     if (self)
-        self->header.rc--;
+        au_struct_deref(&self->header);
     return retval;
 }
