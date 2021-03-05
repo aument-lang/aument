@@ -55,12 +55,10 @@ void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
 enum au_tl_reserve_mod_retval
 au_vm_thread_local_reserve_import_only(struct au_vm_thread_local *tl,
                                        const char *abspath) {
-    struct au_hm_var_value value = (struct au_hm_var_value){
-        .idx = AU_HM_VAR_VALUE_NONE,
-    };
     struct au_hm_var_value *old_value;
-    if ((old_value = au_hm_vars_add(&tl->loaded_modules_map, abspath,
-                                    strlen(abspath), &value)) != 0) {
+    if ((old_value = au_hm_vars_add(
+             &tl->loaded_modules_map, abspath, strlen(abspath),
+             AU_HM_VAR_VALUE(AU_HM_VAR_VALUE_NONE))) != 0) {
         if (old_value->idx == AU_HM_VAR_VALUE_NONE) {
             return AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED;
         }
@@ -77,7 +75,7 @@ au_vm_thread_local_reserve_module(struct au_vm_thread_local *tl,
     };
     struct au_hm_var_value *old_value;
     if ((old_value = au_hm_vars_add(&tl->loaded_modules_map, abspath,
-                                    strlen(abspath), &value)) != 0) {
+                                    strlen(abspath), value)) != 0) {
         if (old_value->idx == AU_HM_VAR_VALUE_NONE) {
             old_value->idx = value.idx;
             *retidx = value.idx;

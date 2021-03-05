@@ -10,6 +10,7 @@
 #include "hash.h"
 
 #define AU_HM_VAR_VALUE_NONE ((uint32_t)-1)
+#define AU_HM_VAR_VALUE(x) ((struct au_hm_var_value){.idx = x})
 
 struct au_hm_var_value {
     uint32_t idx;
@@ -50,9 +51,9 @@ void au_hm_vars_del(struct au_hm_vars *vars);
 /// @param len the bytesize length of the key
 /// @param value the value to be added
 /// @return the old value (if it exists), otherwise `NULL`
-struct au_hm_var_value *
-au_hm_vars_add(struct au_hm_vars *vars, const char *key, size_t len,
-               const struct au_hm_var_value *value);
+struct au_hm_var_value *au_hm_vars_add(struct au_hm_vars *vars,
+                                       const char *key, size_t len,
+                                       const struct au_hm_var_value value);
 
 /// Retrieves a value from an au_hm_vars instance
 /// @param vars the au_hm_vars instance
