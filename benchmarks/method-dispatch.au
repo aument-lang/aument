@@ -3,10 +3,10 @@ class B{}
 class C{}
 class D{}
 
-def (self: A) dispatch() {}
-def (self: B) dispatch() {}
-def (self: C) dispatch() {}
-def (self: D) dispatch() {}
+def (self: A) dispatch() { return 1; }
+def (self: B) dispatch() { return 2; }
+def (self: C) dispatch() { return 3; }
+def (self: D) dispatch() { return 4; }
 
 a = new A;
 b = new B;
