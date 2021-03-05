@@ -155,6 +155,7 @@ int main(int argc, char **argv) {
 
         au_vm_exec_unverified_main(&tl, &program);
 
+#ifndef AU_FEAT_LEAK_MEM
 #ifdef AU_FEAT_DELAYED_RC
         au_vm_thread_local_del_const_cache(&tl);
         au_obj_malloc_collect();
@@ -163,6 +164,7 @@ int main(int argc, char **argv) {
         au_program_del(&program);
         au_vm_thread_local_del(&tl);
         au_vm_thread_local_set(0);
+#endif
     }
 #ifdef AU_FEAT_COMPILER
     else if (action_id == ACTION_BUILD) {
