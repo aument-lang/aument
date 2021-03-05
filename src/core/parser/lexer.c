@@ -30,8 +30,9 @@ static inline int is_id_cont(int ch) {
 
 #ifdef DEBUG_LEXER
 static const char *token_type_dbg[] = {
-    "AU_TOK_EOF",    "AU_TOK_INT",      "AU_TOK_DOUBLE",        "AU_TOK_IDENTIFIER",
-    "AU_TOK_STRING", "AU_TOK_OPERATOR", "AU_TOK_AT_IDENTIFIER",
+    "AU_TOK_EOF",           "AU_TOK_INT",    "AU_TOK_DOUBLE",
+    "AU_TOK_IDENTIFIER",    "AU_TOK_STRING", "AU_TOK_OPERATOR",
+    "AU_TOK_AT_IDENTIFIER",
 };
 
 static void token_dbg(const struct au_token *t);
@@ -46,7 +47,9 @@ void au_lexer_init(struct au_lexer *l, const char *src, size_t len) {
     l->lh_write = 0;
 }
 
-void au_lexer_del(struct au_lexer *l) { memset(l, 0, sizeof(struct au_lexer)); }
+void au_lexer_del(struct au_lexer *l) {
+    memset(l, 0, sizeof(struct au_lexer));
+}
 
 static struct au_token au_lexer_next_(struct au_lexer *l) {
     if (l->lh_read < l->lh_write) {

@@ -81,7 +81,8 @@ struct au_parser {
 };
 
 static inline int is_return_op(uint8_t op) {
-    return op == AU_OP_RET_LOCAL || op == AU_OP_RET || op == AU_OP_RET_NULL;
+    return op == AU_OP_RET_LOCAL || op == AU_OP_RET ||
+           op == AU_OP_RET_NULL;
 }
 
 static void parser_flush_free_regs(struct au_parser *p) {
@@ -91,7 +92,8 @@ static void parser_flush_free_regs(struct au_parser *p) {
     }
 }
 
-static void parser_init(struct au_parser *p, struct au_program_data *p_data) {
+static void parser_init(struct au_parser *p,
+                        struct au_program_data *p_data) {
     p->bc = (struct au_bc_buf){0};
     parser_flush_free_regs(p);
     au_hm_vars_init(&p->vars);
@@ -193,7 +195,9 @@ static void parser_emit_bc_u16(struct au_parser *p, uint16_t val) {
     ptr[0] = val;
 }
 
-static void parser_emit_pad8(struct au_parser *p) { parser_emit_bc_u8(p, 0); }
+static void parser_emit_pad8(struct au_parser *p) {
+    parser_emit_bc_u8(p, 0);
+}
 
 #define EXPECT_TOKEN(CONDITION, TOKEN, EXPECTED)                          \
     do {                                                                  \
@@ -230,8 +234,8 @@ static int parser_exec_muldiv(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_unary_expr(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_index_expr(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_val(struct au_parser *p, struct au_lexer *l);
-static int parser_exec_array_or_tuple(struct au_parser *p, struct au_lexer *l,
-                                      int is_tuple);
+static int parser_exec_array_or_tuple(struct au_parser *p,
+                                      struct au_lexer *l, int is_tuple);
 static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l);
 
 static int parser_exec(struct au_parser *p, struct au_lexer *l) {
@@ -247,25 +251,32 @@ static int parser_exec(struct au_parser *p, struct au_lexer *l) {
     return 1;
 }
 
-static int parser_exec_export_statement(struct au_parser *p, struct au_lexer *l);
-static int parser_exec_import_statement(struct au_parser *p, struct au_lexer *l);
-static int parser_exec_class_statement(struct au_parser *p, struct au_lexer *l,
-                                       int exported);
-static int parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
-                                     int exported);
-static int parser_exec_while_statement(struct au_parser *p, struct au_lexer *l);
-static int parser_exec_if_statement(struct au_parser *p, struct au_lexer *l);
-static int parser_exec_print_statement(struct au_parser *p, struct au_lexer *l);
-static int parser_exec_return_statement(struct au_parser *p, struct au_lexer *l);
+static int parser_exec_export_statement(struct au_parser *p,
+                                        struct au_lexer *l);
+static int parser_exec_import_statement(struct au_parser *p,
+                                        struct au_lexer *l);
+static int parser_exec_class_statement(struct au_parser *p,
+                                       struct au_lexer *l, int exported);
+static int parser_exec_def_statement(struct au_parser *p,
+                                     struct au_lexer *l, int exported);
+static int parser_exec_while_statement(struct au_parser *p,
+                                       struct au_lexer *l);
+static int parser_exec_if_statement(struct au_parser *p,
+                                    struct au_lexer *l);
+static int parser_exec_print_statement(struct au_parser *p,
+                                       struct au_lexer *l);
+static int parser_exec_return_statement(struct au_parser *p,
+                                        struct au_lexer *l);
 
-static int parser_exec_with_semicolon(struct au_parser *p, struct au_lexer *l,
-                                      int retval) {
+static int parser_exec_with_semicolon(struct au_parser *p,
+                                      struct au_lexer *l, int retval) {
     if (!retval)
         return retval;
     struct au_token t = au_lexer_next(l);
     if (t.type == AU_TOK_EOF)
         return 1;
-    EXPECT_TOKEN(t.type == AU_TOK_OPERATOR && t.len == 1 && t.src[0] == ';',
+    EXPECT_TOKEN(t.type == AU_TOK_OPERATOR && t.len == 1 &&
+                     t.src[0] == ';',
                  t, "')'");
     return 1;
 }
@@ -275,7 +286,8 @@ static int parser_exec_block(struct au_parser *p, struct au_lexer *l) {
     p->block_level++;
 
     struct au_token t = au_lexer_next(l);
-    EXPECT_TOKEN(t.type == AU_TOK_OPERATOR && t.len == 1 && t.src[0] == '{',
+    EXPECT_TOKEN(t.type == AU_TOK_OPERATOR && t.len == 1 &&
+                     t.src[0] == '{',
                  t, "'{'");
 
     while (1) {
@@ -376,12 +388,9 @@ static int parser_exec_import_statement(struct au_parser *p,
         au_imported_module_init(&module);
         au_imported_module_array_add(&p->p_data->imported_modules, module);
 
-        const struct au_hm_var_value value = (struct au_hm_var_value){
-            .idx = module_idx,
-        };
         const struct au_hm_var_value *old_value =
             au_hm_vars_add(&p->p_data->imported_module_map, module_tok.src,
-                           module_tok.len, &value);
+                           module_tok.len, AU_HM_VAR_VALUE(module_idx));
         assert(old_value == 0);
 
         const struct au_program_import import = (struct au_program_import){
@@ -418,8 +427,8 @@ static int parser_exec_export_statement(struct au_parser *p,
     return 1;
 }
 
-static int parser_exec_class_statement(struct au_parser *p, struct au_lexer *l,
-                                       int exported) {
+static int parser_exec_class_statement(struct au_parser *p,
+                                       struct au_lexer *l, int exported) {
     uint32_t class_flags = 0;
     if (exported)
         class_flags |= AU_CLASS_FLAG_EXPORTED;
@@ -431,7 +440,7 @@ static int parser_exec_class_statement(struct au_parser *p, struct au_lexer *l,
         .idx = p->p_data->classes.len,
     };
     struct au_hm_var_value *old_value = au_hm_vars_add(
-        &p->p_data->class_map, id_tok.src, id_tok.len, &class_value);
+        &p->p_data->class_map, id_tok.src, id_tok.len, class_value);
     assert(old_value == 0);
     au_class_interface_ptr_array_add(&p->p_data->classes, 0);
 
@@ -462,7 +471,7 @@ static int parser_exec_class_statement(struct au_parser *p, struct au_lexer *l,
                 .idx = interface->map.entries_occ,
             };
             const struct au_hm_var_value *old_prop_value = au_hm_vars_add(
-                &interface->map, name_tok.src, name_tok.len, &prop_value);
+                &interface->map, name_tok.src, name_tok.len, prop_value);
             assert(old_prop_value == 0);
 
             const struct au_token semicolon = au_lexer_next(l);
@@ -487,8 +496,8 @@ static int parser_exec_class_statement(struct au_parser *p, struct au_lexer *l,
     return 1;
 }
 
-static int parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
-                                     int exported) {
+static int parser_exec_def_statement(struct au_parser *p,
+                                     struct au_lexer *l, int exported) {
     uint32_t fn_flags = 0;
     if (exported)
         fn_flags |= AU_FN_FLAG_EXPORTED;
@@ -531,9 +540,8 @@ static int parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
             struct au_hm_var_value class_val = (struct au_hm_var_value){
                 .idx = p->p_data->classes.len,
             };
-            const struct au_hm_var_value *old_class_val =
-                au_hm_vars_add(&module->class_map, name_tok.src,
-                               name_tok.len, &class_val);
+            const struct au_hm_var_value *old_class_val = au_hm_vars_add(
+                &module->class_map, name_tok.src, name_tok.len, class_val);
             if (old_class_val != 0) {
                 class_val = *old_class_val;
             } else {
@@ -563,7 +571,7 @@ static int parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
         .idx = p->p_data->fns.len,
     };
     struct au_hm_var_value *old_value = au_hm_vars_add(
-        &p->p_data->fn_map, id_tok.src, id_tok.len, &func_value);
+        &p->p_data->fn_map, id_tok.src, id_tok.len, func_value);
     if (old_value) {
         struct au_fn *old = &p->p_data->fns.data[old_value->idx];
         expected_num_args = au_fn_num_args(old);
@@ -688,10 +696,8 @@ static int parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
         if (!token_keyword_cmp(&self_tok, "_")) {
             func_p.self_keyword = self_tok.src;
             func_p.self_keyword_len = self_tok.len;
-            const struct au_hm_var_value v = (struct au_hm_var_value){
-                .idx = 0,
-            };
-            au_hm_vars_add(&func_p.vars, self_tok.src, self_tok.len, &v);
+            au_hm_vars_add(&func_p.vars, self_tok.src, self_tok.len,
+                           AU_HM_VAR_VALUE(0));
         }
         bcs.num_args++;
         func_p.locals_len++;
@@ -705,11 +711,8 @@ static int parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
     tok = au_lexer_peek(l, 0);
     if (tok.type == AU_TOK_IDENTIFIER) {
         au_lexer_next(l);
-        const struct au_hm_var_value value = (struct au_hm_var_value){
-            .idx = bcs.num_args,
-        };
-        const struct au_hm_var_value *old =
-            au_hm_vars_add(&func_p.vars, tok.src, tok.len, &value);
+        const struct au_hm_var_value *old = au_hm_vars_add(
+            &func_p.vars, tok.src, tok.len, AU_HM_VAR_VALUE(bcs.num_args));
         assert(old == NULL);
         func_p.locals_len++;
         assert(func_p.locals_len < AU_MAX_LOCALS);
@@ -726,11 +729,9 @@ static int parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
                 tok = au_lexer_next(l);
                 EXPECT_TOKEN(tok.type == AU_TOK_IDENTIFIER, tok,
                              "identifier");
-                const struct au_hm_var_value v = (struct au_hm_var_value){
-                    .idx = bcs.num_args,
-                };
                 const struct au_hm_var_value *old =
-                    au_hm_vars_add(&func_p.vars, tok.src, tok.len, &v);
+                    au_hm_vars_add(&func_p.vars, tok.src, tok.len,
+                                   AU_HM_VAR_VALUE(bcs.num_args));
                 assert(old == NULL);
                 func_p.locals_len++;
                 assert(func_p.locals_len < AU_MAX_LOCALS);
@@ -781,7 +782,8 @@ static int parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
     return 1;
 }
 
-static int parser_exec_if_statement(struct au_parser *p, struct au_lexer *l) {
+static int parser_exec_if_statement(struct au_parser *p,
+                                    struct au_lexer *l) {
     // condition
     int has_else_part = 0;
     if (!parser_exec_expr(p, l))
@@ -906,7 +908,8 @@ static int parser_exec_if_statement(struct au_parser *p, struct au_lexer *l) {
     return 1;
 }
 
-static int parser_exec_while_statement(struct au_parser *p, struct au_lexer *l) {
+static int parser_exec_while_statement(struct au_parser *p,
+                                       struct au_lexer *l) {
     // condition
     const size_t cond_part = p->bc.len;
     if (!parser_exec_expr(p, l))
@@ -968,7 +971,8 @@ static int parser_exec_while_statement(struct au_parser *p, struct au_lexer *l) 
     return 1;
 }
 
-static int parser_exec_print_statement(struct au_parser *p, struct au_lexer *l) {
+static int parser_exec_print_statement(struct au_parser *p,
+                                       struct au_lexer *l) {
     if (!parser_exec_expr(p, l))
         return 0;
     parser_emit_bc_u8(p, AU_OP_PRINT);
@@ -1001,8 +1005,9 @@ static int parser_exec_return_statement(struct au_parser *p,
     if (!parser_exec_expr(p, l))
         return 0;
     const uint8_t reg = parser_pop_reg(p);
-    if (p->bc.len > 4 && (p->bc.data[p->bc.len - 4] == AU_OP_MOV_LOCAL_REG &&
-                          p->bc.data[p->bc.len - 3] == reg)) {
+    if (p->bc.len > 4 &&
+        (p->bc.data[p->bc.len - 4] == AU_OP_MOV_LOCAL_REG &&
+         p->bc.data[p->bc.len - 3] == reg)) {
         // OPTIMIZE: peephole optimization for local returns
         p->bc.data[p->bc.len - 4] = AU_OP_RET_LOCAL;
     } else {
@@ -1092,7 +1097,7 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
 
             if (!(op.len == 1 && op.src[0] == '=')) {
                 switch (op.src[0]) {
-#define BIN_AU_OP_ASG(OP, OPCODE)                                            \
+#define BIN_AU_OP_ASG(OP, OPCODE)                                         \
     case OP: {                                                            \
         parser_emit_bc_u8(p, OPCODE);                                     \
         break;                                                            \
@@ -1109,7 +1114,7 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
 
             parser_emit_bc_u8(p, parser_last_reg(p));
             struct au_hm_var_value *old_value =
-                au_hm_vars_add(&p->vars, t.src, t.len, &var_value);
+                au_hm_vars_add(&p->vars, t.src, t.len, var_value);
             if (old_value) {
                 parser_emit_bc_u16(p, old_value->idx);
             } else {
@@ -1240,16 +1245,16 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
 }
 
 #define BIN_EXPR(FN_NAME, BIN_COND, BIN_EXEC, FN_LOWER)                   \
-    static int FN_NAME(struct au_parser *p, struct au_lexer *l) {               \
+    static int FN_NAME(struct au_parser *p, struct au_lexer *l) {         \
         if (!FN_LOWER(p, l))                                              \
             return 0;                                                     \
         while (1) {                                                       \
             const size_t len = l->pos;                                    \
-            const struct au_token t = au_lexer_next(l);                         \
-            if (t.type == AU_TOK_EOF) {                                      \
+            const struct au_token t = au_lexer_next(l);                   \
+            if (t.type == AU_TOK_EOF) {                                   \
                 l->pos = len;                                             \
                 return 1;                                                 \
-            } else if (t.type == AU_TOK_OPERATOR && (BIN_COND)) {            \
+            } else if (t.type == AU_TOK_OPERATOR && (BIN_COND)) {         \
                 if (!FN_LOWER(p, l))                                      \
                     return 0;                                             \
                 do {                                                      \
@@ -1327,7 +1332,8 @@ BIN_EXPR(
     },
     parser_exec_unary_expr)
 
-static int parser_exec_unary_expr(struct au_parser *p, struct au_lexer *l) {
+static int parser_exec_unary_expr(struct au_parser *p,
+                                  struct au_lexer *l) {
     struct au_token tok = au_lexer_peek(l, 0);
     if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == '!') {
         au_lexer_next(l);
@@ -1346,7 +1352,8 @@ static int parser_exec_unary_expr(struct au_parser *p, struct au_lexer *l) {
     }
 }
 
-static int parser_exec_index_expr(struct au_parser *p, struct au_lexer *l) {
+static int parser_exec_index_expr(struct au_parser *p,
+                                  struct au_lexer *l) {
     if (!parser_exec_val(p, l))
         return 0;
     const uint8_t left_reg = parser_last_reg(p);
@@ -1529,7 +1536,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                     au_fn_array_add(&p->p_data->fns, fn);
                     func_idx = value.idx;
                     struct au_hm_var_value *old = au_hm_vars_add(
-                        &module->fn_map, t.src, t.len, &value);
+                        &module->fn_map, t.src, t.len, value);
                     assert(old == 0);
                     val = au_hm_vars_get(&module->fn_map, t.src, t.len);
                 } else {
@@ -1555,7 +1562,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                         .idx = p->p_data->fns.len,
                     };
                 au_hm_vars_add(&p->p_data->fn_map, t.src, t.len,
-                               &func_value);
+                               func_value);
                 struct au_fn none_func = (struct au_fn){
                     .type = AU_FN_NONE,
                     .as.none_func.num_args = n_args,
@@ -1689,8 +1696,8 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
     return 1;
 }
 
-static int parser_exec_array_or_tuple(struct au_parser *p, struct au_lexer *l,
-                                      int is_tuple) {
+static int parser_exec_array_or_tuple(struct au_parser *p,
+                                      struct au_lexer *l, int is_tuple) {
     const uint8_t array_reg = parser_new_reg(p);
     if (is_tuple) {
         parser_emit_bc_u8(p, AU_OP_TUPLE_NEW);

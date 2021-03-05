@@ -422,7 +422,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 DISPATCH_JMP;
             }
             // Binary operation into local instructions
-#define BIN_AU_OP_ASG(NAME, FUN)                                             \
+#define BIN_AU_OP_ASG(NAME, FUN)                                          \
     CASE(NAME) : {                                                        \
         const uint8_t reg = frame.bc[1];                                  \
         const uint8_t local = frame.bc[2];                                \

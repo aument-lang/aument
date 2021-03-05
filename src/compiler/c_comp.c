@@ -493,7 +493,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             BIN_OP("geq")
 #undef BIN_OP
             // Binary operations on local variables
-#define BIN_AU_OP_ASG(NAME)                                                  \
+#define BIN_AU_OP_ASG(NAME)                                               \
     {                                                                     \
         uint8_t reg = bc(pos);                                            \
         DEF_BC16(local, 1)                                                \
@@ -706,12 +706,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                    mmap.size);
 
             {
-                struct au_hm_var_value value = (struct au_hm_var_value){
-                    .idx = imported_module_idx,
-                };
-                struct au_hm_var_value *old_value =
-                    au_hm_vars_add(&g_state->modules_map, abspath,
-                                   strlen(abspath), &value);
+                struct au_hm_var_value *old_value = au_hm_vars_add(
+                    &g_state->modules_map, abspath, strlen(abspath),
+                    AU_HM_VAR_VALUE(imported_module_idx));
                 if (old_value != 0) {
                     imported_module_idx = old_value->idx;
                     has_old_value = 1;

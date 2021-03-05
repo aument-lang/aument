@@ -33,10 +33,7 @@ void au_install_stdlib(struct au_program_data *data) {
             .flags = 0, .type = AU_FN_NATIVE, .as.native_func = lib_func};
         const size_t len = data->fns.len;
         au_fn_array_add(&data->fns, fn);
-        struct au_hm_var_value var_value = (struct au_hm_var_value){
-            .idx = len,
-        };
         au_hm_vars_add(&data->fn_map, lib_func.name, strlen(lib_func.name),
-                       &var_value);
+                       AU_HM_VAR_VALUE(len));
     }
 }
