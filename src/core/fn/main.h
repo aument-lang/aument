@@ -44,7 +44,7 @@ struct au_none_func {
     /// Expected number of arguments this function has
     int num_args;
     /// Expected name of the function
-    struct token name_token;
+    struct au_token name_token;
 };
 
 struct au_dispatch_func_instance {

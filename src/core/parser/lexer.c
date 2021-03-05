@@ -30,14 +30,14 @@ static inline int is_id_cont(int ch) {
 
 #ifdef DEBUG_LEXER
 static const char *token_type_dbg[] = {
-    "TOK_EOF",    "TOK_INT",      "TOK_DOUBLE",        "TOK_IDENTIFIER",
-    "TOK_STRING", "TOK_OPERATOR", "TOK_AT_IDENTIFIER",
+    "AU_TOK_EOF",    "AU_TOK_INT",      "AU_TOK_DOUBLE",        "AU_TOK_IDENTIFIER",
+    "AU_TOK_STRING", "AU_TOK_OPERATOR", "AU_TOK_AT_IDENTIFIER",
 };
 
-static void token_dbg(const struct token *t);
+static void token_dbg(const struct au_token *t);
 #endif
 
-void lexer_init(struct lexer *l, const char *src, size_t len) {
+void au_lexer_init(struct au_lexer *l, const char *src, size_t len) {
     l->src = src;
     l->pos = 0;
     l->len = len;
@@ -46,11 +46,11 @@ void lexer_init(struct lexer *l, const char *src, size_t len) {
     l->lh_write = 0;
 }
 
-void lexer_del(struct lexer *l) { memset(l, 0, sizeof(struct lexer)); }
+void au_lexer_del(struct au_lexer *l) { memset(l, 0, sizeof(struct au_lexer)); }
 
-static struct token lexer_next_(struct lexer *l) {
+static struct au_token au_lexer_next_(struct au_lexer *l) {
     if (l->lh_read < l->lh_write) {
-        struct token_lookahead lh = l->lh[l->lh_read];
+        struct au_token_lookahead lh = l->lh[l->lh_read];
         l->lh_read++;
         if (l->lh_read == l->lh_write) {
             l->lh_read = 0;
@@ -83,8 +83,8 @@ static struct token lexer_next_(struct lexer *l) {
         }
     }
     if (L_EOF()) {
-        return (struct token){
-            .type = TOK_EOF,
+        return (struct au_token){
+            .type = AU_TOK_EOF,
         };
     }
 
@@ -101,8 +101,8 @@ static struct token lexer_next_(struct lexer *l) {
         }
         // Subtract 1 for the final quote character
         const size_t len = l->pos - start - 2;
-        return (struct token){
-            .type = TOK_STRING,
+        return (struct au_token){
+            .type = AU_TOK_STRING,
             .src = l->src + start + 1,
             .len = len,
         };
@@ -123,15 +123,15 @@ static struct token lexer_next_(struct lexer *l) {
                 l->pos++;
             }
             const size_t len = l->pos - start;
-            return (struct token){
-                .type = TOK_DOUBLE,
+            return (struct au_token){
+                .type = AU_TOK_DOUBLE,
                 .src = l->src + start,
                 .len = len,
             };
         }
         const size_t len = l->pos - start;
-        return (struct token){
-            .type = TOK_INT,
+        return (struct au_token){
+            .type = AU_TOK_INT,
             .src = l->src + start,
             .len = len,
         };
@@ -144,8 +144,8 @@ static struct token lexer_next_(struct lexer *l) {
             l->pos++;
         }
         const size_t len = l->pos - start;
-        return (struct token){
-            .type = TOK_IDENTIFIER,
+        return (struct au_token){
+            .type = AU_TOK_IDENTIFIER,
             .src = l->src + start,
             .len = len,
         };
@@ -160,8 +160,8 @@ static struct token lexer_next_(struct lexer *l) {
                 l->pos++;
             }
             const size_t len = l->pos - start;
-            return (struct token){
-                .type = TOK_AT_IDENTIFIER,
+            return (struct au_token){
+                .type = AU_TOK_AT_IDENTIFIER,
                 .src = l->src + start,
                 .len = len,
             };
@@ -172,14 +172,14 @@ static struct token lexer_next_(struct lexer *l) {
         l->pos++;
         if (!L_EOF() && l->src[l->pos] == '=') {
             l->pos++;
-            return (struct token){
-                .type = TOK_OPERATOR,
+            return (struct au_token){
+                .type = AU_TOK_OPERATOR,
                 .src = l->src + start,
                 .len = 2,
             };
         }
-        return (struct token){
-            .type = TOK_OPERATOR,
+        return (struct au_token){
+            .type = AU_TOK_OPERATOR,
             .src = l->src + start,
             .len = 1,
         };
@@ -187,14 +187,14 @@ static struct token lexer_next_(struct lexer *l) {
         l->pos++;
         if (!L_EOF() && l->src[l->pos] == start_ch) {
             l->pos++;
-            return (struct token){
-                .type = TOK_OPERATOR,
+            return (struct au_token){
+                .type = AU_TOK_OPERATOR,
                 .src = l->src + start,
                 .len = 2,
             };
         }
-        return (struct token){
-            .type = TOK_OPERATOR,
+        return (struct au_token){
+            .type = AU_TOK_OPERATOR,
             .src = l->src + start,
             .len = 1,
         };
@@ -202,8 +202,8 @@ static struct token lexer_next_(struct lexer *l) {
                start_ch == ',' || start_ch == '{' || start_ch == '}' ||
                start_ch == '[' || start_ch == ']') {
         l->pos++;
-        return (struct token){
-            .type = TOK_OPERATOR,
+        return (struct au_token){
+            .type = AU_TOK_OPERATOR,
             .src = l->src + start,
             .len = 1,
         };
@@ -211,14 +211,14 @@ static struct token lexer_next_(struct lexer *l) {
         l->pos++;
         if (!L_EOF() && l->src[l->pos] == ':') {
             l->pos++;
-            return (struct token){
-                .type = TOK_OPERATOR,
+            return (struct au_token){
+                .type = AU_TOK_OPERATOR,
                 .src = l->src + start,
                 .len = 2,
             };
         }
-        return (struct token){
-            .type = TOK_OPERATOR,
+        return (struct au_token){
+            .type = AU_TOK_OPERATOR,
             .src = l->src + start,
             .len = 1,
         };
@@ -226,32 +226,32 @@ static struct token lexer_next_(struct lexer *l) {
         l->pos++;
         if (!L_EOF() && l->src[l->pos] == '[') {
             l->pos++;
-            return (struct token){
-                .type = TOK_OPERATOR,
+            return (struct au_token){
+                .type = AU_TOK_OPERATOR,
                 .src = l->src + start,
                 .len = 2,
             };
         }
     } else if (start_ch == 0) {
         l->pos = l->len;
-        return (struct token){
-            .type = TOK_EOF,
+        return (struct au_token){
+            .type = AU_TOK_EOF,
         };
     }
 
-    return (struct token){
-        .type = TOK_UNKNOWN,
+    return (struct au_token){
+        .type = AU_TOK_UNKNOWN,
         .src = l->src + start,
         .len = 1,
     };
 #undef L_EOF
 }
 
-struct token lexer_peek(struct lexer *l, int lh_pos) {
+struct au_token au_lexer_peek(struct au_lexer *l, int lh_pos) {
     const size_t old_pos = l->pos;
     if (lh_pos == 0 && l->lh_write == 0) {
-        struct token t = lexer_next_(l);
-        struct token_lookahead *lh_new = &l->lh[l->lh_write++];
+        struct au_token t = au_lexer_next_(l);
+        struct au_token_lookahead *lh_new = &l->lh[l->lh_write++];
         assert(l->lh_write <= LOOKAHEAD_MAX);
         lh_new->token = t;
         lh_new->start_pos = old_pos;
@@ -263,14 +263,14 @@ struct token lexer_peek(struct lexer *l, int lh_pos) {
 #endif
         return t;
     } else if (lh_pos == l->lh_write) {
-        struct token_lookahead *lh_last = &l->lh[l->lh_write - 1];
+        struct au_token_lookahead *lh_last = &l->lh[l->lh_write - 1];
 #ifdef DEBUG_LEXER
         printf("! from:");
         token_dbg(&lh_last->token);
 #endif
         l->pos = lh_last->end_pos;
-        struct token t = lexer_next_(l);
-        struct token_lookahead *lh_new = &l->lh[l->lh_write++];
+        struct au_token t = au_lexer_next_(l);
+        struct au_token_lookahead *lh_new = &l->lh[l->lh_write++];
         assert(l->lh_write <= LOOKAHEAD_MAX);
         lh_new->token = t;
         lh_new->start_pos = lh_last->end_pos;
@@ -282,7 +282,7 @@ struct token lexer_peek(struct lexer *l, int lh_pos) {
 #endif
         return t;
     } else if (lh_pos < l->lh_write) {
-        struct token_lookahead *lh = &l->lh[lh_pos];
+        struct au_token_lookahead *lh = &l->lh[lh_pos];
 #ifdef DEBUG_LEXER
         printf("peek %d:", lh_pos);
         token_dbg(&lh->token);
@@ -294,18 +294,18 @@ struct token lexer_peek(struct lexer *l, int lh_pos) {
 }
 
 #ifdef DEBUG_LEXER
-void token_dbg(const struct token *t) {
+void token_dbg(const struct au_token *t) {
     printf("(token) { .type = %s, src = %p, len = %ld, text: [%.*s] }\n",
            token_type_dbg[t->type], t->src, t->len, (int)t->len, t->src);
 }
 
-struct token lexer_next(struct lexer *l) {
-    struct token t = lexer_next_(l);
+struct au_token au_lexer_next(struct au_lexer *l) {
+    struct au_token t = au_lexer_next_(l);
     token_dbg(&t);
     return t;
 }
 #else
-struct token lexer_next(struct lexer *l) {
-    return lexer_next_(l);
+struct au_token au_lexer_next(struct au_lexer *l) {
+    return au_lexer_next_(l);
 }
 #endif
