@@ -30,7 +30,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         assert(pos % 4 == 0);
         uint8_t opcode = bc(pos);
         printf("%5" PRIdPTR ": ", pos);
-        if (opcode >= AU_OP_MAX_PRINTABLE) {
+        if (opcode > AU_OP_MAX_PRINTABLE) {
             au_fatal("unknown opcode %d", opcode);
         } else {
             printf("%s", au_opcode_dbg[opcode]);
@@ -239,7 +239,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         case AU_OP_CLASS_GET_INNER: {
             uint8_t reg = bc(pos);
             DEF_BC16(local, 1);
-            printf(" @%d -> r%d\n", reg, local);
+            printf(" @%d -> r%d\n", local, reg);
             pos += 3;
             break;
         }

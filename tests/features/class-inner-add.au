@@ -1,0 +1,16 @@
+class A {
+    val a;
+}
+
+def (self: A) init() {
+    @a = 0;
+}
+
+def (self: A) method() {
+    @a += 1;
+    print @a;
+}
+
+a = new A;
+init(a);
+method(a);
