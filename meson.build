@@ -1,9 +1,10 @@
 project('aulang', 'c')
 
-is_testing = get_option('tests').enabled()
-has_compile_feature = get_option('compiler').enabled()
-has_delayed_rc_feature = get_option('delayed_rc').enabled()
-has_leak_mem_feature = get_option('leak_mem').enabled()
+is_testing = get_option('tests')
+has_compile_feature = get_option('compiler')
+has_delayed_rc_feature = get_option('delayed_rc')
+has_leak_mem_feature = get_option('leak_mem')
+is_static_exe = get_option('static_exe')
 
 compiler = meson.get_compiler('c')
 
@@ -278,5 +279,9 @@ if is_testing
         test('c compiler test', e)
     endif
 else
-    executable('aulang', sources + ['src/main.c'], include_directories: incs)
+    link_args = []
+    if is_static_exe
+        link_args += ['-static']
+    endif
+    executable('aulang', sources + ['src/main.c'], include_directories: incs, link_args: link_args)
 endif

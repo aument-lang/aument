@@ -2,3 +2,4 @@ notes
 build
 *.swp
 .vscode
+dist
