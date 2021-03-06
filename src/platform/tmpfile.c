@@ -62,7 +62,6 @@ static int new_tmpfile(_Unused struct au_tmpfile *tmp,
         int fd = _open_osfhandle((intptr_t)hfile, _O_TEXT);
         tmp->f = _fdopen(fd, "w");
         tmp->path = strdup(name);
-        printf("FILE %s\n", tmp->path);
         return 1;
     }
 
