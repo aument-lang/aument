@@ -48,7 +48,7 @@ static inline void au_struct_deref(struct au_struct *header) {
 #endif
     }
 #ifndef AU_FEAT_DELAYED_RC
-    else {
+    if (header->rc == 0) {
         header->vdata->del_fn(header);
         au_obj_free(header);
     }
