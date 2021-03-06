@@ -48,8 +48,8 @@ struct au_none_func {
 };
 
 struct au_dispatch_func_instance {
-    size_t function_idx;
     struct au_class_interface *class_interface_cache;
+    size_t function_idx;
     size_t class_idx;
 };
 

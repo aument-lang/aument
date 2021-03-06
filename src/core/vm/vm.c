@@ -143,15 +143,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
                                  const struct au_program_data *p_data,
                                  const au_value_t *args) {
-#ifdef AU_USE_ALLOCA
-    au_value_t *alloca_values = 0;
-    if (_Likely((bcs->num_registers + bcs->locals_len) <
-                ALLOCA_MAX_VALUES)) {
-        const size_t n_values = bcs->num_registers + bcs->locals_len;
-        alloca_values = alloca(n_values * sizeof(au_value_t));
-        au_value_clear(alloca_values, n_values);
-    }
-#endif
     struct au_vm_frame frame;
 
     // We add the frame to the linked list first,
@@ -162,7 +153,12 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     tl->current_frame.frame = &frame;
 
 #ifdef AU_USE_ALLOCA
-    if (_Likely(alloca_values)) {
+    au_value_t *alloca_values = 0;
+    if (_Likely((bcs->num_registers + bcs->locals_len) <
+                ALLOCA_MAX_VALUES)) {
+        const size_t n_values = bcs->num_registers + bcs->locals_len;
+        alloca_values = alloca(n_values * sizeof(au_value_t));
+        au_value_clear(alloca_values, n_values);
         frame.regs = alloca_values;
         frame.locals = &alloca_values[bcs->num_registers];
     } else {
@@ -173,15 +169,15 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     au_value_clear(frame.regs, bcs->num_registers);
     frame.locals = au_value_calloc(bcs->locals_len);
 #endif
-    frame.retval = au_value_none();
-    if (args != 0) {
-#ifdef DEBUG_VM
-        assert(bcs->locals_len >= bcs->num_args);
-#endif
-        memcpy(frame.locals, args, bcs->num_args * sizeof(au_value_t));
+    
+    for(int i = 0; i < bcs->num_args; i++) {
+        frame.locals[i] = args[i]; 
     }
+
+    frame.retval = au_value_none();
     frame.bc = (uint8_t *)bcs->bc.data;
-    frame.bc_start = bcs->bc.data;
+    frame.bc_start = frame.bc;
+    
     frame.arg_stack = (struct au_value_array){0};
     frame.self = 0;
 
