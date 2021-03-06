@@ -95,11 +95,11 @@ static _AlwaysInline double au_value_get_double(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_bool(int32_t n) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(VALUE_BOOL, (uint64_t)n);
+    v.raw = AU_REPR_BOXED(VALUE_BOOL, n != 0);
     return v;
 }
 static _AlwaysInline int32_t au_value_get_bool(const au_value_t v) {
-    return (int32_t)(AU_REPR_GET_POINTER(v.raw));
+    return v.raw & 1;
 }
 
 static _AlwaysInline au_value_t au_value_string(struct au_string *data) {

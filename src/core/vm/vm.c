@@ -183,8 +183,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     frame.bc = (uint8_t *)bcs->bc.data;
     frame.bc_start = bcs->bc.data;
     frame.arg_stack = (struct au_value_array){0};
-
-    struct au_obj_class *self = 0;
+    frame.self = 0;
 
     while (1) {
 #ifdef DEBUG_VM
@@ -275,6 +274,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_GT_INT),
             &&CASE(AU_OP_LEQ_INT),
             &&CASE(AU_OP_GEQ_INT),
+            &&CASE(AU_OP_JIF_BOOL),
+            &&CASE(AU_OP_JNIF_BOOL),
         };
         goto *cb[frame.bc[0]];
 #endif
@@ -304,9 +305,11 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #endif
 
             CASE(AU_OP_LOAD_SELF) : {
-                self = (struct au_obj_class *)au_value_get_struct(
+                frame.self = (struct au_obj_class *)au_value_get_struct(
                     frame.locals[0]);
-                self->header.rc++;
+#ifndef AU_FEAT_DELAYED_RC
+                frame.self->header.rc++;
+#endif
                 DISPATCH;
             }
             // Register/local move operations
@@ -470,9 +473,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #undef FAST_MOVE_VALUE
             // Jump instructions
             CASE(AU_OP_JIF) : {
+_AU_OP_JIF:;
                 const au_value_t cmp = frame.regs[frame.bc[1]];
                 const uint16_t n = *(uint16_t *)(&frame.bc[2]);
                 const size_t offset = ((size_t)n) * 4;
+                if (au_value_get_type(cmp) == VALUE_BOOL) {
+                    frame.bc[0] = AU_OP_JIF_BOOL;
+                }
                 if (au_value_is_truthy(cmp)) {
                     frame.bc += offset;
                     DISPATCH_JMP;
@@ -481,9 +488,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 }
             }
             CASE(AU_OP_JNIF) : {
+_AU_OP_JNIF:;
                 const au_value_t cmp = frame.regs[frame.bc[1]];
                 const uint16_t n = *(uint16_t *)(&frame.bc[2]);
                 const size_t offset = ((size_t)n) * 4;
+                if (au_value_get_type(cmp) == VALUE_BOOL) {
+                    frame.bc[0] = AU_OP_JNIF_BOOL;
+                }
                 if (!au_value_is_truthy(cmp)) {
                     frame.bc += offset;
                     DISPATCH_JMP;
@@ -502,6 +513,37 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const size_t offset = ((size_t)n) * 4;
                 frame.bc -= offset;
                 DISPATCH_JMP;
+            }
+            // Jump instructions optimized on bools
+            CASE(AU_OP_JIF_BOOL) : {
+                const au_value_t cmp = frame.regs[frame.bc[1]];
+                const uint16_t n = *(uint16_t *)(&frame.bc[2]);
+                const size_t offset = ((size_t)n) * 4;
+                if (_Unlikely(au_value_get_type(cmp) != VALUE_BOOL)) {
+                    frame.bc[0] = AU_OP_JIF;
+                    goto _AU_OP_JIF;
+                }
+                if (au_value_get_bool(cmp)) {
+                    frame.bc += offset;
+                    DISPATCH_JMP;
+                } else {
+                    DISPATCH;
+                }
+            }
+            CASE(AU_OP_JNIF_BOOL) : {
+                const au_value_t cmp = frame.regs[frame.bc[1]];
+                const uint16_t n = *(uint16_t *)(&frame.bc[2]);
+                const size_t offset = ((size_t)n) * 4;
+                if (_Unlikely(au_value_get_type(cmp) != VALUE_BOOL)) {
+                    frame.bc[0] = AU_OP_JNIF;
+                    goto _AU_OP_JNIF;
+                }
+                if (!au_value_get_bool(cmp)) {
+                    frame.bc += offset;
+                    DISPATCH_JMP;
+                } else {
+                    DISPATCH;
+                }
             }
             // Binary operation into local instructions
 #ifdef AU_FEAT_DELAYED_RC
@@ -717,13 +759,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(AU_OP_CLASS_GET_INNER) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t inner = *(uint16_t *)(&frame.bc[2]);
-                COPY_VALUE(frame.regs[reg], self->data[inner]);
+                COPY_VALUE(frame.regs[reg], frame.self->data[inner]);
                 DISPATCH;
             }
             CASE(AU_OP_CLASS_SET_INNER) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t inner = *(uint16_t *)(&frame.bc[2]);
-                COPY_VALUE(self->data[inner], frame.regs[reg]);
+                COPY_VALUE(frame.self->data[inner], frame.regs[reg]);
                 DISPATCH;
             }
             // Module instructions
@@ -862,8 +904,10 @@ end:
     }
     free(frame.arg_stack.data);
 
-    if (self)
-        au_struct_deref(&self->header);
+#ifndef AU_FEAT_DELAYED_RC
+    if (frame.self)
+        frame.self->header.rc--;
+#endif
 
     tl->current_frame = frame.link;
     return frame.retval;

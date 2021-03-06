@@ -35,7 +35,7 @@ self_call:
     case AU_FN_BC: {
         if ((fn->flags & AU_FN_FLAG_HAS_CLASS) != 0) {
             struct au_obj_class *obj_class = au_obj_class_coerce(args[0]);
-            if (_Unlikely(obj_class == 0 ||
+            if (_Unlikely((obj_class == 0) |
                           (fn->as.bc_func.class_interface_cache !=
                            obj_class->interface))) {
                 return au_value_op_error();
