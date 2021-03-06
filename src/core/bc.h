@@ -72,6 +72,8 @@ enum au_opcode {
     AU_OP_GT_INT = 53,
     AU_OP_LEQ_INT = 54,
     AU_OP_GEQ_INT = 55,
+    AU_OP_JIF_BOOL = 56,
+    AU_OP_JNIF_BOOL = 57,
 };
 
 extern const char *au_opcode_dbg[AU_REGS];
