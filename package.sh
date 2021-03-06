@@ -10,10 +10,10 @@ rm -f dist/*
 
 ./build.sh -f release
 cd build
-rm -f aulang-linux.zip
-zip -9 aulang-linux.zip aulang libau_runtime.a
+rm -f aulang-linux64.zip
+zip -9 aulang-linux64.zip aulang libau_runtime.a
 cd ..
-mv build/aulang-linux.zip dist/
+mv build/aulang-linux64.zip dist/
 
 ./build.sh -f release --cross-win64
 cd build
