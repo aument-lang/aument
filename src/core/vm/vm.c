@@ -180,7 +180,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #endif
         memcpy(frame.locals, args, bcs->num_args * sizeof(au_value_t));
     }
-    frame.bc = bcs->bc.data;
+    frame.bc = (uint8_t *)bcs->bc.data;
     frame.bc_start = bcs->bc.data;
     frame.arg_stack = (struct au_value_array){0};
 
@@ -219,6 +219,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         goto *cb[op];                                                     \
     } while (0)
         static void *cb[] = {
+            &&CASE(AU_OP_LOAD_SELF),
             &&CASE(AU_OP_MOV_U16),
             &&CASE(AU_OP_MUL),
             &&CASE(AU_OP_DIV),
@@ -263,7 +264,17 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_CLASS_SET_INNER),
             &&CASE(AU_OP_CLASS_NEW),
             &&CASE(AU_OP_CALL1),
-            &&CASE(AU_OP_LOAD_SELF),
+            &&CASE(AU_OP_MUL_INT),
+            &&CASE(AU_OP_DIV_INT),
+            &&CASE(AU_OP_ADD_INT),
+            &&CASE(AU_OP_SUB_INT),
+            &&CASE(AU_OP_MOD_INT),
+            &&CASE(AU_OP_EQ_INT),
+            &&CASE(AU_OP_NEQ_INT),
+            &&CASE(AU_OP_LT_INT),
+            &&CASE(AU_OP_GT_INT),
+            &&CASE(AU_OP_LEQ_INT),
+            &&CASE(AU_OP_GEQ_INT),
         };
         goto *cb[frame.bc[0]];
 #endif
@@ -378,9 +389,15 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #ifdef AU_FEAT_DELAYED_RC
 #define BIN_OP(NAME, FUN)                                                 \
     CASE(NAME) : {                                                        \
+        _##NAME:;                                                         \
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
         const au_value_t rhs = frame.regs[frame.bc[2]];                   \
         const uint8_t res = frame.bc[3];                                  \
+        if ((au_value_get_type(lhs) == VALUE_INT) &&                      \
+            (au_value_get_type(rhs) == VALUE_INT)) {                      \
+            frame.bc[0] = NAME##_INT;                                     \
+            goto _##NAME##_INT;                                           \
+        }                                                                 \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
         au_value_deref(result);                                           \
         if (_Unlikely(au_value_is_op_error(frame.regs[res]))) {           \
@@ -392,6 +409,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #else
 #define BIN_OP(NAME, FUN)                                                 \
     CASE(NAME) : {                                                        \
+        _##NAME:;                                                         \
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
         const au_value_t rhs = frame.regs[frame.bc[2]];                   \
         const uint8_t res = frame.bc[3];                                  \
@@ -415,6 +433,41 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             BIN_OP(AU_OP_LEQ, leq)
             BIN_OP(AU_OP_GEQ, geq)
 #undef BIN_OP
+            // Binary operations (specialized on int)
+#ifdef AU_FEAT_DELAYED_RC
+#define FAST_MOVE_VALUE(dest, src) dest = src;
+#else
+#define FAST_MOVE_VALUE(dest, src) MOVE_VALUE(dest, src)
+#endif
+#define BIN_OP(NAME, OP)                                                  \
+    CASE(NAME##_INT) : {                                                  \
+        _##NAME##_INT:;                                                   \
+        const au_value_t lhs = frame.regs[frame.bc[1]];                   \
+        const au_value_t rhs = frame.regs[frame.bc[2]];                   \
+        const uint8_t res = frame.bc[3];                                  \
+        if (_Unlikely((au_value_get_type(lhs) != VALUE_INT) |             \
+                      (au_value_get_type(rhs) != VALUE_INT))) {           \
+            frame.bc[0] = NAME;                                           \
+            goto _##NAME;                                                 \
+        }                                                                 \
+        const au_value_t result =                                         \
+            au_value_int(au_value_get_int(lhs) OP au_value_get_int(rhs)); \
+        FAST_MOVE_VALUE(frame.regs[res], result);                         \
+        DISPATCH;                                                         \
+    }
+            BIN_OP(AU_OP_MUL, *)
+            BIN_OP(AU_OP_DIV, /)
+            BIN_OP(AU_OP_ADD, +)
+            BIN_OP(AU_OP_SUB, -)
+            BIN_OP(AU_OP_MOD, %)
+            BIN_OP(AU_OP_EQ, ==)
+            BIN_OP(AU_OP_NEQ, !=)
+            BIN_OP(AU_OP_LT, <)
+            BIN_OP(AU_OP_GT, >)
+            BIN_OP(AU_OP_LEQ, <=)
+            BIN_OP(AU_OP_GEQ, >=)
+#undef BIN_OP
+#undef FAST_MOVE_VALUE
             // Jump instructions
             CASE(AU_OP_JIF) : {
                 const au_value_t cmp = frame.regs[frame.bc[1]];
