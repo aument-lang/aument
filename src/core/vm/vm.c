@@ -169,15 +169,15 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     au_value_clear(frame.regs, bcs->num_registers);
     frame.locals = au_value_calloc(bcs->locals_len);
 #endif
-    
-    for(int i = 0; i < bcs->num_args; i++) {
-        frame.locals[i] = args[i]; 
+
+    for (int i = 0; i < bcs->num_args; i++) {
+        frame.locals[i] = args[i];
     }
 
     frame.retval = au_value_none();
     frame.bc = (uint8_t *)bcs->bc.data;
     frame.bc_start = frame.bc;
-    
+
     frame.arg_stack = (struct au_value_array){0};
     frame.self = 0;
 
@@ -272,6 +272,16 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_GEQ_INT),
             &&CASE(AU_OP_JIF_BOOL),
             &&CASE(AU_OP_JNIF_BOOL),
+            &&CASE(AU_OP_MUL_DOUBLE),
+            &&CASE(AU_OP_DIV_DOUBLE),
+            &&CASE(AU_OP_ADD_DOUBLE),
+            &&CASE(AU_OP_SUB_DOUBLE),
+            &&CASE(AU_OP_EQ_DOUBLE),
+            &&CASE(AU_OP_NEQ_DOUBLE),
+            &&CASE(AU_OP_LT_DOUBLE),
+            &&CASE(AU_OP_GT_DOUBLE),
+            &&CASE(AU_OP_LEQ_DOUBLE),
+            &&CASE(AU_OP_GEQ_DOUBLE),
         };
         goto *cb[frame.bc[0]];
 #endif
@@ -386,17 +396,28 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             // Binary operations
 #ifdef AU_FEAT_DELAYED_RC
-#define BIN_OP(NAME, FUN)                                                 \
+#define SPECIALIZED_INT_ONLY(NAME)                                        \
+    if ((au_value_get_type(lhs) == VALUE_INT) &&                          \
+        (au_value_get_type(rhs) == VALUE_INT)) {                          \
+        frame.bc[0] = NAME##_INT;                                         \
+        goto _##NAME##_INT;                                               \
+    }
+
+#define SPECIALIZED_INT_AND_DOUBLE(NAME)                                  \
+    SPECIALIZED_INT_ONLY(NAME)                                            \
+    else if ((au_value_get_type(lhs) == VALUE_DOUBLE) &&                  \
+             (au_value_get_type(rhs) == VALUE_DOUBLE)) {                  \
+        frame.bc[0] = NAME##_DOUBLE;                                      \
+        goto _##NAME##_DOUBLE;                                            \
+    }
+
+#define BIN_OP(NAME, FUN, SPECIALIZER)                                    \
     CASE(NAME) : {                                                        \
         _##NAME:;                                                         \
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
         const au_value_t rhs = frame.regs[frame.bc[2]];                   \
         const uint8_t res = frame.bc[3];                                  \
-        if ((au_value_get_type(lhs) == VALUE_INT) &&                      \
-            (au_value_get_type(rhs) == VALUE_INT)) {                      \
-            frame.bc[0] = NAME##_INT;                                     \
-            goto _##NAME##_INT;                                           \
-        }                                                                 \
+        SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
         au_value_deref(result);                                           \
         if (_Unlikely(au_value_is_op_error(frame.regs[res]))) {           \
@@ -406,12 +427,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         DISPATCH;                                                         \
     }
 #else
-#define BIN_OP(NAME, FUN)                                                 \
+#define BIN_OP(NAME, FUN, SPECIALIZER)                                    \
     CASE(NAME) : {                                                        \
         _##NAME:;                                                         \
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
         const au_value_t rhs = frame.regs[frame.bc[2]];                   \
         const uint8_t res = frame.bc[3];                                  \
+        SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
         if (_Unlikely(au_value_is_op_error(frame.regs[res]))) {           \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
@@ -420,17 +442,19 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         DISPATCH;                                                         \
     }
 #endif
-            BIN_OP(AU_OP_MUL, mul)
-            BIN_OP(AU_OP_DIV, div)
-            BIN_OP(AU_OP_ADD, add)
-            BIN_OP(AU_OP_SUB, sub)
-            BIN_OP(AU_OP_MOD, mod)
-            BIN_OP(AU_OP_EQ, eq)
-            BIN_OP(AU_OP_NEQ, neq)
-            BIN_OP(AU_OP_LT, lt)
-            BIN_OP(AU_OP_GT, gt)
-            BIN_OP(AU_OP_LEQ, leq)
-            BIN_OP(AU_OP_GEQ, geq)
+            BIN_OP(AU_OP_MUL, mul, SPECIALIZED_INT_AND_DOUBLE(AU_OP_MUL))
+            BIN_OP(AU_OP_DIV, div, SPECIALIZED_INT_AND_DOUBLE(AU_OP_DIV))
+            BIN_OP(AU_OP_ADD, add, SPECIALIZED_INT_AND_DOUBLE(AU_OP_ADD))
+            BIN_OP(AU_OP_SUB, sub, SPECIALIZED_INT_AND_DOUBLE(AU_OP_SUB))
+            BIN_OP(AU_OP_MOD, mod, SPECIALIZED_INT_ONLY(AU_OP_MOD))
+            BIN_OP(AU_OP_EQ, eq, SPECIALIZED_INT_AND_DOUBLE(AU_OP_EQ))
+            BIN_OP(AU_OP_NEQ, neq, SPECIALIZED_INT_AND_DOUBLE(AU_OP_NEQ))
+            BIN_OP(AU_OP_LT, lt, SPECIALIZED_INT_AND_DOUBLE(AU_OP_LT))
+            BIN_OP(AU_OP_GT, gt, SPECIALIZED_INT_AND_DOUBLE(AU_OP_GT))
+            BIN_OP(AU_OP_LEQ, leq, SPECIALIZED_INT_AND_DOUBLE(AU_OP_LEQ))
+            BIN_OP(AU_OP_GEQ, geq, SPECIALIZED_INT_AND_DOUBLE(AU_OP_GEQ))
+#undef SPECIALIZED_INT_ONLY
+#undef SPECIALIZED_INT_AND_DOUBLE
 #undef BIN_OP
             // Binary operations (specialized on int)
 #ifdef AU_FEAT_DELAYED_RC
@@ -459,6 +483,40 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             BIN_OP(AU_OP_ADD, +)
             BIN_OP(AU_OP_SUB, -)
             BIN_OP(AU_OP_MOD, %)
+            BIN_OP(AU_OP_EQ, ==)
+            BIN_OP(AU_OP_NEQ, !=)
+            BIN_OP(AU_OP_LT, <)
+            BIN_OP(AU_OP_GT, >)
+            BIN_OP(AU_OP_LEQ, <=)
+            BIN_OP(AU_OP_GEQ, >=)
+#undef BIN_OP
+#undef FAST_MOVE_VALUE
+            // Binary operations (specialized on float)
+#ifdef AU_FEAT_DELAYED_RC
+#define FAST_MOVE_VALUE(dest, src) dest = src;
+#else
+#define FAST_MOVE_VALUE(dest, src) MOVE_VALUE(dest, src)
+#endif
+#define BIN_OP(NAME, OP)                                                  \
+    CASE(NAME##_DOUBLE) : {                                               \
+        _##NAME##_DOUBLE:;                                                \
+        const au_value_t lhs = frame.regs[frame.bc[1]];                   \
+        const au_value_t rhs = frame.regs[frame.bc[2]];                   \
+        const uint8_t res = frame.bc[3];                                  \
+        if (_Unlikely((au_value_get_type(lhs) != VALUE_DOUBLE) |          \
+                      (au_value_get_type(rhs) != VALUE_DOUBLE))) {        \
+            frame.bc[0] = NAME;                                           \
+            goto _##NAME;                                                 \
+        }                                                                 \
+        const au_value_t result = au_value_double(                        \
+            au_value_get_double(lhs) OP au_value_get_double(rhs));        \
+        FAST_MOVE_VALUE(frame.regs[res], result);                         \
+        DISPATCH;                                                         \
+    }
+            BIN_OP(AU_OP_MUL, *)
+            BIN_OP(AU_OP_DIV, /)
+            BIN_OP(AU_OP_ADD, +)
+            BIN_OP(AU_OP_SUB, -)
             BIN_OP(AU_OP_EQ, ==)
             BIN_OP(AU_OP_NEQ, !=)
             BIN_OP(AU_OP_LT, <)

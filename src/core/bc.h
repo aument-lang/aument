@@ -74,6 +74,16 @@ enum au_opcode {
     AU_OP_GEQ_INT = 55,
     AU_OP_JIF_BOOL = 56,
     AU_OP_JNIF_BOOL = 57,
+    AU_OP_MUL_DOUBLE = 58,
+    AU_OP_DIV_DOUBLE = 59,
+    AU_OP_ADD_DOUBLE = 60,
+    AU_OP_SUB_DOUBLE = 61,
+    AU_OP_EQ_DOUBLE = 62,
+    AU_OP_NEQ_DOUBLE = 63,
+    AU_OP_LT_DOUBLE = 64,
+    AU_OP_GT_DOUBLE = 65,
+    AU_OP_LEQ_DOUBLE = 66,
+    AU_OP_GEQ_DOUBLE = 67,
 };
 
 extern const char *au_opcode_dbg[AU_REGS];

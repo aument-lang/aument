@@ -1119,10 +1119,9 @@ void au_c_comp_module(struct au_c_comp_state *state,
                     "struct _M%ld_%d *_struct_M%ld_%d_new(){\n",
                     module_idx, i, module_idx, i);
         comp_printf(&g_state->header_file,
-                    INDENT
-                    "struct _M%ld_%d*k="
-                    "au_obj_malloc(sizeof(struct _M%ld_%d),"
-                    "_struct_M%ld_%d_del_fn);\n",
+                    INDENT "struct _M%ld_%d*k="
+                           "au_obj_malloc(sizeof(struct _M%ld_%d),"
+                           "_struct_M%ld_%d_del_fn);\n",
                     module_idx, i, module_idx, i, module_idx, i);
         comp_printf(&g_state->header_file, INDENT "k->header.rc=1;\n");
         comp_printf(&g_state->header_file,
