@@ -5,4 +5,4 @@
 // See LICENSE.txt for license information
 #pragma once
 
-#define AU_VERSION "0.2.1"
+#define AU_VERSION "0.2.2"
