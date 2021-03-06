@@ -61,7 +61,7 @@ static inline void au_string_deref(struct au_string *header) {
 #endif
     }
 #ifndef AU_FEAT_DELAYED_RC
-    else {
+    if (header->rc == 0) {
         au_obj_free(header);
     }
 #endif
