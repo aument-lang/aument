@@ -286,6 +286,13 @@ if is_testing
         test('c compiler test', e)
     endif
 
+    test('features with input', prog_python,
+        args: files('./build-scripts/check_output_with_input.py') + [
+            '--binary', join_paths(meson.build_root(), 'aulang'),
+            '--path', join_paths(meson.source_root(), 'tests/features-with-input'),
+        ],
+        depends: [aulang_exe])
+
     test('imports', prog_python,
         args: files('./build-scripts/check_output.py') + [
             '--binary', join_paths(meson.build_root(), 'aulang'),

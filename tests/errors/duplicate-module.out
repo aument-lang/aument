@@ -1,0 +1,3 @@
+parser error(9) in -: this module is already imported
+2 | import "" as a;
+                 ^

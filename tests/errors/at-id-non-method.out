@@ -1,0 +1,3 @@
+parser error(8) in -: this variable can only be accessed in a method
+2 |     @a = 1;
+        ^^

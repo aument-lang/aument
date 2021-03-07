@@ -1,0 +1,3 @@
+parser error(5) in -: unknown variable '@a'
+4 |     @a;
+        ^^

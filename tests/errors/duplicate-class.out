@@ -1,0 +1,3 @@
+parser error(7) in -: this class is already declared
+2 | class A{}
+          ^
