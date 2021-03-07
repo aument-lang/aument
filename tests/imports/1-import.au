@@ -4,4 +4,4 @@ def private() {
 
 export def func() {
     return private();
-};
+}

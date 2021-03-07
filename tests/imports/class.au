@@ -3,10 +3,10 @@ class B {
 import "./class-import.au" as import;
 
 def (self: import::A) func() {
-    print "A";
+    print "A\n";
 }
 def (self: B) func() {
-    print "B";
+    print "B\n";
 }
 a = import::make();
 b = new B;

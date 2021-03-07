@@ -1,0 +1,2 @@
+interpreter error(2) in -: incompatible call
+7 | init("A");

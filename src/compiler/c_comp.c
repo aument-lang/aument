@@ -1154,7 +1154,7 @@ extern const size_t AU_RT_HDR_LEN;
 extern const char AU_RT_CODE[];
 extern const size_t AU_RT_CODE_LEN;
 
-#ifdef TEST
+#ifdef AU_TEST_RT_CODE
 char *TEST_RT_CODE;
 size_t TEST_RT_CODE_LEN;
 #endif
@@ -1199,7 +1199,7 @@ void au_c_comp(struct au_c_comp_state *state,
     }
 
     comp_write(state, AU_RT_CODE, AU_RT_CODE_LEN);
-#ifdef TEST
+#ifdef AU_TEST_RT_CODE
     comp_printf(state, "\n");
     comp_write(state, TEST_RT_CODE, TEST_RT_CODE_LEN);
 #endif

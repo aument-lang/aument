@@ -10,7 +10,9 @@ import os
 
 source_path = os.path.dirname(os.path.abspath(__file__))
 
-files = glob.glob('tests/features/*.out')
+out_extension = '.out'
+out_extension_len = len(out_extension)
+files = glob.glob('tests/features/*' + out_extension)
 n_tests = len(files)
 
 c_src = """
@@ -70,7 +72,7 @@ test_srcs = []
 input_srcs = []
 
 for (i, fn) in enumerate(files):
-    with open(fn[:-4] + '.au', 'r') as f:
+    with open(fn[:-out_extension_len] + '.au', 'r') as f:
         input_cont = f.read()
     with open(fn, 'r') as f:
         output_lines = map(lambda s: s.rstrip(), f.readlines())
@@ -175,7 +177,7 @@ struct au_cc_options cc;
 
 void setup() {{
     au_cc_options_default(&cc);
-    cc._stdlib_cache = strdup("{os.path.join(source_path, "./build/libau_runtime.a")}");
+    cc._stdlib_cache = strdup("{os.path.join(source_path, "../build/libau_runtime.a")}");
 }}
 
 void cleanup() {{

@@ -1,0 +1,2 @@
+interpreter error(1) in -: incompatible values for binary operation
+1 | print 1 + 'a';
