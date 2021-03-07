@@ -407,7 +407,7 @@ static int parser_exec_import_statement(struct au_parser *p,
                 .type = AU_PARSER_RES_DUPLICATE_MODULE,
                 .data.duplicate_module.name_token = module_tok,
             };
-            return 1;
+            return 0;
         }
 
         const struct au_program_import import = (struct au_program_import){
@@ -783,7 +783,7 @@ static int parser_exec_def_statement(struct au_parser *p,
             .data.wrong_args.expected_args = expected_num_args,
             .data.wrong_args.at_token = id_tok,
         };
-        return 1;
+        return 0;
     }
     func_p.self_num_args = bcs.num_args;
 
