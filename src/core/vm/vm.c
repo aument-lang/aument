@@ -420,10 +420,10 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const uint8_t res = frame.bc[3];                                  \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        au_value_deref(result);                                           \
-        if (_Unlikely(au_value_is_op_error(frame.regs[res]))) {           \
+        if (_Unlikely(au_value_is_op_error(result))) {                    \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
+        au_value_deref(result);                                           \
         frame.regs[res] = result;                                         \
         DISPATCH;                                                         \
     }
@@ -436,7 +436,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const uint8_t res = frame.bc[3];                                  \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (_Unlikely(au_value_is_op_error(frame.regs[res]))) {           \
+        if (_Unlikely(au_value_is_op_error(result))) {                    \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         MOVE_VALUE(frame.regs[res], result);                              \
@@ -889,6 +889,9 @@ _AU_OP_JNIF:;
                                           });
                     abort();
                 }
+
+                program.data.tl_constant_start = tl->const_len;
+                au_vm_thread_local_add_const_cache(tl, program.data.data_val.len);
 
                 if (!au_split_path(abspath, &program.data.file,
                                    &program.data.cwd))
