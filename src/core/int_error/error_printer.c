@@ -8,11 +8,18 @@
 #include "../parser/lexer.h"
 #include "error_printer.h"
 
+#ifdef AU_TEST_EXE
+static const char *error_path(const char *path) {
+    (void)path;
+    return "-";
+}
+#else
 static const char *error_path(const char *path) {
     if (path == 0)
         return "(source)";
     return path;
 }
+#endif
 
 static void print_source(struct au_error_location loc, size_t error_pos,
                          size_t error_len) {
@@ -34,22 +41,22 @@ static void print_source(struct au_error_location loc, size_t error_pos,
         max_cols++;
     }
     int line_len = (int)(line_end - line_begin);
-    int padding = printf("%d | ", lines);
-    printf("%.*s\n", line_len, &loc.src[line_begin]);
+    int padding = fprintf(stderr, "%d | ", lines);
+    fprintf(stderr, "%.*s\n", line_len, &loc.src[line_begin]);
     if (error_len > 0) {
         for (int i = 0; i < (padding + cols); i++)
-            printf(" ");
+            fprintf(stderr, " ");
         if ((int)error_len < max_cols)
             max_cols = (int)error_len;
         for (int i = 0; i < max_cols; i++)
-            printf("^");
-        printf("\n");
+            fprintf(stderr, "^");
+        fprintf(stderr, "\n");
     }
 }
 
 void au_print_parser_error(struct au_parser_result res,
                            struct au_error_location loc) {
-    printf("parser error(%d) in %s: ", res.type, error_path(loc.path));
+    fprintf(stderr, "parser error(%d) in %s: ", res.type, error_path(loc.path));
     struct au_token errored_token;
     errored_token.type = AU_TOK_EOF;
 #define X(NAME) AU_PARSER_RES_##NAME
@@ -58,62 +65,62 @@ void au_print_parser_error(struct au_parser_result res,
         return;
     }
     case X(UNEXPECTED_TOKEN): {
-        printf("unexpected token '%.*s'",
+        fprintf(stderr, "unexpected token '%.*s'",
                (int)res.data.unexpected_token.got_token.len,
                res.data.unexpected_token.got_token.src);
         if (res.data.unexpected_token.expected != 0) {
-            printf(", expected %s", res.data.unexpected_token.expected);
+            fprintf(stderr, ", expected %s", res.data.unexpected_token.expected);
         }
         errored_token = res.data.unexpected_token.got_token;
         break;
     }
     case X(BYTECODE_GEN): {
-        printf("bytecode generation failure\n");
+        fprintf(stderr, "bytecode generation failure\n");
         return;
     }
     case X(UNKNOWN_FUNCTION): {
-        printf("unknown function %.*s",
+        fprintf(stderr, "unknown function %.*s",
                (int)res.data.unknown_id.name_token.len,
                res.data.unknown_id.name_token.src);
         errored_token = res.data.unknown_id.name_token;
         break;
     }
     case X(WRONG_ARGS): {
-        printf("wrong number of arguments (expected %d, got %d)",
+        fprintf(stderr, "wrong number of arguments (expected %d, got %d)",
                res.data.wrong_args.expected_args,
                res.data.wrong_args.got_args);
         errored_token = res.data.wrong_args.at_token;
         break;
     }
     case X(UNKNOWN_VAR): {
-        printf("unknown variable '%.*s'",
+        fprintf(stderr, "unknown variable '%.*s'",
                (int)res.data.unknown_id.name_token.len,
                res.data.unknown_id.name_token.src);
         errored_token = res.data.unknown_id.name_token;
         break;
     }
     case X(EXPECT_GLOBAL_SCOPE): {
-        printf("this statement must be used in the global scope");
+        fprintf(stderr, "this statement must be used in the global scope");
         errored_token = res.data.expect_global.at_token;
         break;
     }
     case X(DUPLICATE_CLASS): {
-        printf("this class is already declared");
+        fprintf(stderr, "this class is already declared");
         errored_token = res.data.duplicate_class.name_token;
         break;
     }
     case X(CLASS_SCOPE_ONLY): {
-        printf("this variable can only be accessed in a method");
+        fprintf(stderr, "this variable can only be accessed in a method");
         errored_token = res.data.class_scope.at_token;
         break;
     }
     case X(DUPLICATE_MODULE): {
-        printf("this module is already imported");
+        fprintf(stderr, "this module is already imported");
         errored_token = res.data.duplicate_module.name_token;
         break;
     }
     case X(UNKNOWN_CLASS): {
-        printf("unknown class %.*s",
+        fprintf(stderr, "unknown class %.*s",
                (int)res.data.unknown_id.name_token.len,
                res.data.unknown_id.name_token.src);
         errored_token = res.data.unknown_id.name_token;
@@ -121,7 +128,7 @@ void au_print_parser_error(struct au_parser_result res,
     }
     }
 #undef X
-    printf("\n");
+    fprintf(stderr, "\n");
     if (errored_token.type != AU_TOK_EOF) {
         print_source(loc, errored_token.src - loc.src, errored_token.len);
     }
@@ -129,23 +136,20 @@ void au_print_parser_error(struct au_parser_result res,
 
 void au_print_interpreter_error(struct au_interpreter_result res,
                                 struct au_error_location loc) {
-    printf("interpreter error(%d) in %s: ", res.type,
+    fprintf(stderr, "interpreter error(%d) in %s: ", res.type,
            error_path(loc.path));
     switch (res.type) {
     case AU_INT_ERR_INCOMPAT_BIN_OP: {
-        printf("incompatible values for binary operation: ");
-        au_value_print(res.data.incompat_bin_op.left);
-        printf(" and ");
-        au_value_print(res.data.incompat_bin_op.right);
+        fprintf(stderr, "incompatible values for binary operation");
         break;
     }
     case AU_INT_ERR_INCOMPAT_CALL: {
-        printf("incompatible call");
+        fprintf(stderr, "incompatible call");
         break;
     }
     default:
         break;
     }
-    printf("\n");
+    fprintf(stderr, "\n");
     print_source(loc, res.pos, 0);
 }

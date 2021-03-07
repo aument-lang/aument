@@ -7,14 +7,11 @@ has_leak_mem_feature = get_option('leak_mem')
 is_static_exe = get_option('static_exe')
 
 compiler = meson.get_compiler('c')
+prog_python = import('python').find_installation('python3')
 
 au_hdr_cflags = []
 
 # Flag configs
-
-if is_testing
-    add_project_arguments('-DTEST', language : ['c'])
-endif
 
 if target_machine.system() != 'windows'
     code = '''#include <sys/mman.h>
@@ -164,8 +161,6 @@ sources = [
 ]
 
 if has_compile_feature
-    prog_python = import('python').find_installation('python3')
-
     rt_hdr_depends = files(
         'src/core/rt/malloc.h',
         'src/platform/platform.h',
@@ -188,7 +183,7 @@ if has_compile_feature
     rt_hdr_src = custom_target(
         'comp_hdr.c',
         output : 'comp_hdr.c',
-        input : 'gen_rt.py',
+        input : './build-scripts/gen_rt.py',
         depend_files : rt_hdr_depends + stdlib_begin_hdr,
         command : [
             prog_python,
@@ -211,7 +206,7 @@ if has_compile_feature
     rt_code_src = custom_target(
         'comp_code.c',
         output : 'comp_code.c',
-        input : 'gen_rt.py',
+        input : './build-scripts/gen_rt.py',
         depend_files : rt_code_depends,
         command : [
             prog_python, '@INPUT@',
@@ -272,15 +267,36 @@ if has_compile_feature
 endif
 
 if is_testing
-    e = executable('aulang-tests-feature', sources + ['build/tests.c'], include_directories: incs)
+    e = executable('aulang-tests-feature',
+       sources + [join_paths(meson.build_root(), 'tests.c')],
+       include_directories: incs,
+       c_args: ['-DAU_TEST_RT_CODE'])
     test('language feature test', e)
+
     if has_compile_feature
-        e = executable('aulang-tests-comp', sources + ['build/tests_comp.c'], include_directories: incs)
+        e = executable('aulang-tests-comp',
+           sources + [join_paths(meson.build_root(), 'tests_comp.c')],
+           include_directories: incs,
+           c_args: ['-DAU_TEST_RT_CODE'])
         test('c compiler test', e)
     endif
+
+    aulang_exe = executable('aulang', sources + ['src/main.c'], include_directories: incs, c_args: ['-DAU_TEST_EXE'])
+    test('imports', prog_python,
+        args: files('./build-scripts/check_output.py') + [
+            '--binary', join_paths(meson.build_root(), 'aulang'),
+            '--path', join_paths(meson.source_root(), 'tests/imports'),
+        ],
+        depends: [aulang_exe])
+    test('error output', prog_python,
+        args: files('./build-scripts/check_errors.py') + [
+            '--binary', join_paths(meson.build_root(), 'aulang'),
+            '--path', join_paths(meson.source_root(), 'tests/errors'),
+        ],
+        depends: [aulang_exe])
 else
     link_args = []
-    if is_static_exe
+    if is_static_exe and get_option('b_sanitize') == 'none'
         link_args += ['-static']
     endif
     executable('aulang', sources + ['src/main.c'], include_directories: incs, link_args: link_args)

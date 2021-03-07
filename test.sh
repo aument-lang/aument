@@ -7,7 +7,7 @@
 
 rm -rf build
 mkdir -p build
-python3 gen_tests.py
-meson setup build $MESONARG -Dtests=true -Dc_args="$CCFLAGS"
+python3 ./build-scripts/gen_tests.py
+meson setup build $MESONARG -Dtests=true -Dc_args="$CCFLAGS" || exit 1
 cd build
 meson test

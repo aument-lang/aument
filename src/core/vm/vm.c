@@ -423,8 +423,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         if (_Unlikely(au_value_is_op_error(result))) {                    \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
-        au_value_deref(result);                                           \
         frame.regs[res] = result;                                         \
+        au_value_deref(result);                                           \
         DISPATCH;                                                         \
     }
 #else
@@ -469,7 +469,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
         const au_value_t rhs = frame.regs[frame.bc[2]];                   \
         const uint8_t res = frame.bc[3];                                  \
-        if (_Unlikely((au_value_get_type(lhs) != VALUE_INT) |             \
+        if (_Unlikely((au_value_get_type(lhs) != VALUE_INT) ||            \
                       (au_value_get_type(rhs) != VALUE_INT))) {           \
             frame.bc[0] = NAME;                                           \
             goto _##NAME;                                                 \
@@ -504,7 +504,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
         const au_value_t rhs = frame.regs[frame.bc[2]];                   \
         const uint8_t res = frame.bc[3];                                  \
-        if (_Unlikely((au_value_get_type(lhs) != VALUE_DOUBLE) |          \
+        if (_Unlikely((au_value_get_type(lhs) != VALUE_DOUBLE) ||         \
                       (au_value_get_type(rhs) != VALUE_DOUBLE))) {        \
             frame.bc[0] = NAME;                                           \
             goto _##NAME;                                                 \

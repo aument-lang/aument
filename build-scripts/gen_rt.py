@@ -8,7 +8,6 @@ import sys
 import subprocess
 import argparse
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--global-file', type=str)
 parser.add_argument('--output', type=str)

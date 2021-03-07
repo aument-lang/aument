@@ -1,0 +1,3 @@
+parser error(4) in -: wrong number of arguments (expected 3, got 1)
+3 | f(10)
+    ^

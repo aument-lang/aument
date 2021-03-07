@@ -1,0 +1,3 @@
+parser error(3) in -: unknown function abc
+1 | print abc();
+          ^^^

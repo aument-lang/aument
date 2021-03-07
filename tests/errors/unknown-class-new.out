@@ -1,0 +1,3 @@
+parser error(10) in -: unknown class A
+1 | new A;
+        ^
