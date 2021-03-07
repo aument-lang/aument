@@ -1509,6 +1509,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             p->res = (struct au_parser_result){
                 .type = AU_PARSER_RES_UNEXPECTED_TOKEN,
                 .data.unexpected_token.got_token = t,
+                .data.unexpected_token.expected = 0,
             };
             return 0;
         }

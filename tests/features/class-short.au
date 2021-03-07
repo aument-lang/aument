@@ -1,0 +1,8 @@
+class A;
+
+def (self: A) dispatch() {
+    print 1;
+}
+
+a = new A;
+dispatch(a);

@@ -1,0 +1,5 @@
+class A{}
+
+def (self: A) fn() {
+    fn(1,2,3);
+}

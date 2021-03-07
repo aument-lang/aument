@@ -1,0 +1,5 @@
+class A{}
+
+def (self: A) a() {
+    @a;
+}
