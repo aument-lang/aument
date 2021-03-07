@@ -462,7 +462,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #else
 #define FAST_MOVE_VALUE(dest, src) MOVE_VALUE(dest, src)
 #endif
-#define BIN_OP(NAME, OP)                                                  \
+#define BIN_OP(NAME, OP, TYPE)                                            \
     CASE(NAME##_INT) : {                                                  \
         _##NAME##_INT:;                                                   \
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
@@ -474,21 +474,21 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             goto _##NAME;                                                 \
         }                                                                 \
         const au_value_t result =                                         \
-            au_value_int(au_value_get_int(lhs) OP au_value_get_int(rhs)); \
+            TYPE(au_value_get_int(lhs) OP au_value_get_int(rhs));         \
         FAST_MOVE_VALUE(frame.regs[res], result);                         \
         DISPATCH;                                                         \
     }
-            BIN_OP(AU_OP_MUL, *)
-            BIN_OP(AU_OP_DIV, /)
-            BIN_OP(AU_OP_ADD, +)
-            BIN_OP(AU_OP_SUB, -)
-            BIN_OP(AU_OP_MOD, %)
-            BIN_OP(AU_OP_EQ, ==)
-            BIN_OP(AU_OP_NEQ, !=)
-            BIN_OP(AU_OP_LT, <)
-            BIN_OP(AU_OP_GT, >)
-            BIN_OP(AU_OP_LEQ, <=)
-            BIN_OP(AU_OP_GEQ, >=)
+            BIN_OP(AU_OP_MUL, *, au_value_int)
+            BIN_OP(AU_OP_DIV, /, au_value_int)
+            BIN_OP(AU_OP_ADD, +, au_value_int)
+            BIN_OP(AU_OP_SUB, -, au_value_int)
+            BIN_OP(AU_OP_MOD, %, au_value_int)
+            BIN_OP(AU_OP_EQ, ==, au_value_bool)
+            BIN_OP(AU_OP_NEQ, !=, au_value_bool)
+            BIN_OP(AU_OP_LT, <, au_value_bool)
+            BIN_OP(AU_OP_GT, >, au_value_bool)
+            BIN_OP(AU_OP_LEQ, <=, au_value_bool)
+            BIN_OP(AU_OP_GEQ, >=, au_value_bool)
 #undef BIN_OP
 #undef FAST_MOVE_VALUE
             // Binary operations (specialized on float)
@@ -497,7 +497,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #else
 #define FAST_MOVE_VALUE(dest, src) MOVE_VALUE(dest, src)
 #endif
-#define BIN_OP(NAME, OP)                                                  \
+#define BIN_OP(NAME, OP, TYPE)                                            \
     CASE(NAME##_DOUBLE) : {                                               \
         _##NAME##_DOUBLE:;                                                \
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
@@ -508,21 +508,21 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             frame.bc[0] = NAME;                                           \
             goto _##NAME;                                                 \
         }                                                                 \
-        const au_value_t result = au_value_double(                        \
-            au_value_get_double(lhs) OP au_value_get_double(rhs));        \
+        const au_value_t result =                                         \
+            TYPE(au_value_get_double(lhs) OP au_value_get_double(rhs));   \
         FAST_MOVE_VALUE(frame.regs[res], result);                         \
         DISPATCH;                                                         \
     }
-            BIN_OP(AU_OP_MUL, *)
-            BIN_OP(AU_OP_DIV, /)
-            BIN_OP(AU_OP_ADD, +)
-            BIN_OP(AU_OP_SUB, -)
-            BIN_OP(AU_OP_EQ, ==)
-            BIN_OP(AU_OP_NEQ, !=)
-            BIN_OP(AU_OP_LT, <)
-            BIN_OP(AU_OP_GT, >)
-            BIN_OP(AU_OP_LEQ, <=)
-            BIN_OP(AU_OP_GEQ, >=)
+            BIN_OP(AU_OP_MUL, *, au_value_double)
+            BIN_OP(AU_OP_DIV, /, au_value_double)
+            BIN_OP(AU_OP_ADD, +, au_value_double)
+            BIN_OP(AU_OP_SUB, -, au_value_double)
+            BIN_OP(AU_OP_EQ, ==, au_value_bool)
+            BIN_OP(AU_OP_NEQ, !=, au_value_bool)
+            BIN_OP(AU_OP_LT, <, au_value_bool)
+            BIN_OP(AU_OP_GT, >, au_value_bool)
+            BIN_OP(AU_OP_LEQ, <=, au_value_bool)
+            BIN_OP(AU_OP_GEQ, >=, au_value_bool)
 #undef BIN_OP
 #undef FAST_MOVE_VALUE
             // Jump instructions

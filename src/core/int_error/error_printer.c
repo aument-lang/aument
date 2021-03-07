@@ -73,28 +73,50 @@ void au_print_parser_error(struct au_parser_result res,
     }
     case X(UNKNOWN_FUNCTION): {
         printf("unknown function %.*s",
-               (int)res.data.unknown_function.name_token.len,
-               res.data.unknown_function.name_token.src);
-        errored_token = res.data.unknown_function.name_token;
+               (int)res.data.unknown_id.name_token.len,
+               res.data.unknown_id.name_token.src);
+        errored_token = res.data.unknown_id.name_token;
         break;
     }
     case X(WRONG_ARGS): {
         printf("wrong number of arguments (expected %d, got %d)",
                res.data.wrong_args.expected_args,
                res.data.wrong_args.got_args);
-        errored_token = res.data.wrong_args.call_token;
+        errored_token = res.data.wrong_args.at_token;
         break;
     }
     case X(UNKNOWN_VAR): {
         printf("unknown variable '%.*s'",
-               (int)res.data.unknown_var.name_token.len,
-               res.data.unknown_var.name_token.src);
-        errored_token = res.data.unknown_var.name_token;
+               (int)res.data.unknown_id.name_token.len,
+               res.data.unknown_id.name_token.src);
+        errored_token = res.data.unknown_id.name_token;
         break;
     }
     case X(EXPECT_GLOBAL_SCOPE): {
         printf("this statement must be used in the global scope");
         errored_token = res.data.expect_global.at_token;
+        break;
+    }
+    case X(DUPLICATE_CLASS): {
+        printf("this class is already declared");
+        errored_token = res.data.duplicate_class.name_token;
+        break;
+    }
+    case X(CLASS_SCOPE_ONLY): {
+        printf("this variable can only be accessed in a method");
+        errored_token = res.data.class_scope.at_token;
+        break;
+    }
+    case X(DUPLICATE_MODULE): {
+        printf("this module is already imported");
+        errored_token = res.data.duplicate_module.name_token;
+        break;
+    }
+    case X(UNKNOWN_CLASS): {
+        printf("unknown class %.*s",
+               (int)res.data.unknown_id.name_token.len,
+               res.data.unknown_id.name_token.src);
+        errored_token = res.data.unknown_id.name_token;
         break;
     }
     }

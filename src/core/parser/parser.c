@@ -222,6 +222,16 @@ static void parser_emit_pad8(struct au_parser *p) {
         }                                                                 \
     } while (0)
 
+#define EXPECT_BYTECODE(CONDITION)                                        \
+    do {                                                                  \
+        if (!(CONDITION)) {                                               \
+            p->res = (struct au_parser_result){                           \
+                .type = AU_PARSER_RES_BYTECODE_GEN,                       \
+            };                                                            \
+            return 0;                                                     \
+        }                                                                 \
+    } while (0)
+
 static int parser_exec_statement(struct au_parser *p, struct au_lexer *l);
 
 static int parser_exec_expr(struct au_parser *p, struct au_lexer *l);
@@ -392,7 +402,13 @@ static int parser_exec_import_statement(struct au_parser *p,
         const struct au_hm_var_value *old_value =
             au_hm_vars_add(&p->p_data->imported_module_map, module_tok.src,
                            module_tok.len, AU_HM_VAR_VALUE(module_idx));
-        assert(old_value == 0);
+        if (old_value != 0) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_DUPLICATE_MODULE,
+                .data.duplicate_module.name_token = module_tok,
+            };
+            return 1;
+        }
 
         const struct au_program_import import = (struct au_program_import){
             .path = path_dup,
@@ -442,7 +458,13 @@ static int parser_exec_class_statement(struct au_parser *p,
     };
     struct au_hm_var_value *old_value = au_hm_vars_add(
         &p->p_data->class_map, id_tok.src, id_tok.len, class_value);
-    assert(old_value == 0);
+    if (old_value != 0) {
+        p->res = (struct au_parser_result){
+            .type = AU_PARSER_RES_DUPLICATE_CLASS,
+            .data.duplicate_class.name_token = id_tok,
+        };
+        return 0;
+    }
     au_class_interface_ptr_array_add(&p->p_data->classes, 0);
 
     struct au_class_interface *interface =
@@ -552,7 +574,13 @@ static int parser_exec_def_statement(struct au_parser *p,
         } else {
             const struct au_hm_var_value *class_val = au_hm_vars_get(
                 &p->p_data->class_map, name_tok.src, name_tok.len);
-            assert(class_val != 0);
+            if (class_val == 0) {
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNKNOWN_CLASS,
+                    .data.unknown_id.name_token = name_tok,
+                };
+                return 0;
+            }
             class_idx = class_val->idx;
             class_interface = p->p_data->classes.data[class_idx];
         }
@@ -717,7 +745,7 @@ static int parser_exec_def_statement(struct au_parser *p,
             &func_p.vars, tok.src, tok.len, AU_HM_VAR_VALUE(bcs.num_args));
         assert(old == NULL);
         func_p.locals_len++;
-        assert(func_p.locals_len < AU_MAX_LOCALS);
+        EXPECT_BYTECODE(func_p.locals_len <= AU_MAX_LOCALS);
         bcs.num_args++;
         while (1) {
             tok = au_lexer_peek(l, 0);
@@ -748,8 +776,15 @@ static int parser_exec_def_statement(struct au_parser *p,
         EXPECT_TOKEN(0, tok, "arguments");
     }
 
-    if (expected_num_args != -1)
-        assert(bcs.num_args == expected_num_args);
+    if (expected_num_args != -1 && bcs.num_args != expected_num_args) {
+        p->res = (struct au_parser_result){
+            .type = AU_PARSER_RES_WRONG_ARGS,
+            .data.wrong_args.got_args = bcs.num_args,
+            .data.wrong_args.expected_args = expected_num_args,
+            .data.wrong_args.at_token = id_tok,
+        };
+        return 1;
+    }
     func_p.self_num_args = bcs.num_args;
 
     if ((fn_flags & AU_FN_FLAG_HAS_CLASS) != 0) {
@@ -851,12 +886,7 @@ static int parser_exec_if_statement(struct au_parser *p,
             // Else jump
             if (else_replace_idx != (size_t)-1) {
                 const size_t offset = (end_len - else_len) / 4;
-                if (offset > (uint16_t)-1) {
-                    p->res = (struct au_parser_result){
-                        .type = AU_PARSER_RES_BYTECODE_GEN,
-                    };
-                    return 0;
-                }
+                EXPECT_BYTECODE(offset <= (uint16_t)-1);
                 parser_replace_bc_u16(p, else_replace_idx,
                                       (uint16_t)offset);
             }
@@ -864,12 +894,7 @@ static int parser_exec_if_statement(struct au_parser *p,
             // Condition jump
             {
                 const size_t offset = (else_start - c_len) / 4;
-                if (offset > (uint16_t)-1) {
-                    p->res = (struct au_parser_result){
-                        .type = AU_PARSER_RES_BYTECODE_GEN,
-                    };
-                    return 0;
-                }
+                EXPECT_BYTECODE(offset <= (uint16_t)-1);
                 parser_replace_bc_u16(p, c_replace_idx, (uint16_t)offset);
             }
         }
@@ -880,40 +905,29 @@ static int parser_exec_if_statement(struct au_parser *p,
     // Condition jump
     if (!has_else_part) {
         const size_t offset = (end_len - c_len) / 4;
-        if (offset > (uint16_t)-1) {
-            p->res = (struct au_parser_result){
-                .type = AU_PARSER_RES_BYTECODE_GEN,
-            };
-            return 0;
-        }
+        EXPECT_BYTECODE(offset <= (uint16_t)-1);
         parser_replace_bc_u16(p, c_replace_idx, (uint16_t)offset);
     }
 
     // Block jump
     if (body_replace_idx != (size_t)-1) {
         const size_t offset = (end_len - body_len) / 4;
-        if (offset > (uint16_t)-1) {
-            p->res = (struct au_parser_result){
-                .type = AU_PARSER_RES_BYTECODE_GEN,
-            };
-            return 0;
-        }
+        EXPECT_BYTECODE(offset <= (uint16_t)-1);
         parser_replace_bc_u16(p, body_replace_idx, (uint16_t)offset);
     }
 
-    /*
-    condition:
-        ...
-        jnif [cond], else
-    body:
-        ...
-        jmp if_end
-    else:
-        ...
-        jmp if_end
-    if_end:
-        ...
-    */
+    // The resulting bytecode should look like this:
+    //   condition:
+    //       ...
+    //       jnif [cond], else
+    //   body:
+    //       ...
+    //       jmp if_end
+    //   else:
+    //       ...
+    //       jmp if_end
+    //   if_end:
+    //       ...
     return 1;
 }
 
@@ -948,35 +962,24 @@ static int parser_exec_while_statement(struct au_parser *p,
     // Condition jump
     {
         const size_t offset = (end_len - c_len) / 4;
-        if (offset > (uint16_t)-1) {
-            p->res = (struct au_parser_result){
-                .type = AU_PARSER_RES_BYTECODE_GEN,
-            };
-            return 0;
-        }
+        EXPECT_BYTECODE(offset <= (uint16_t)-1);
         parser_replace_bc_u16(p, c_replace_idx, (uint16_t)offset);
     }
 
     // Block jump
     if (body_replace_idx != (size_t)-1) {
         const size_t offset = (body_len - cond_part) / 4;
-        if (offset > (uint16_t)-1) {
-            p->res = (struct au_parser_result){
-                .type = AU_PARSER_RES_BYTECODE_GEN,
-            };
-            return 0;
-        }
+        EXPECT_BYTECODE(offset <= (uint16_t)-1);
         parser_replace_bc_u16(p, body_replace_idx, (uint16_t)offset);
     }
 
-    /*
-    condition:
-        ...
-        jnif [cond], end
-    block:
-        jrelb condition
-    end
-    */
+    // The resulting bytecode should look like this:
+    //   condition:
+    //       ...
+    //       jnif [cond], end
+    //   block:
+    //       jrelb condition
+    //   end
     return 1;
 }
 
@@ -1090,10 +1093,23 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
             if (t.type == AU_TOK_AT_IDENTIFIER) {
                 const struct au_class_interface *interface =
                     p->class_interface;
-                assert(interface != 0);
+                if (interface == 0) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_CLASS_SCOPE_ONLY,
+                        .data.class_scope.at_token = t,
+                    };
+                    return 0;
+                }
+
                 const struct au_hm_var_value *value =
                     au_hm_vars_get(&interface->map, &t.src[1], t.len - 1);
-                assert(value != 0);
+                if (value == 0) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_UNKNOWN_VAR,
+                        .data.unknown_id.name_token = t,
+                    };
+                    return 0;
+                }
 
                 if (!(op.len == 1 && op.src[0] == '=')) {
                     const uint8_t reg = parser_new_reg(p);
@@ -1152,7 +1168,7 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                 parser_emit_bc_u16(p, old_value->idx);
             } else {
                 p->locals_len++;
-                assert(p->locals_len < AU_MAX_LOCALS);
+                EXPECT_BYTECODE(p->locals_len <= AU_MAX_LOCALS);
                 parser_emit_bc_u16(p, var_value.idx);
             }
             return 1;
@@ -1203,7 +1219,7 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
             parser_replace_bc_u16(p, right_replace_idx,
                                   (end_label - right_len) / 4);
 
-            // Our final bytecode should look like this:
+            // The resulting bytecode should look like this:
             //   register = 0
             //   (eval left)
             //   jnif end
@@ -1258,7 +1274,7 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
             parser_replace_bc_u16(p, right_replace_idx,
                                   (truth_len - right_len) / 4);
 
-            // Our final bytecode should look like this:
+            // The resulting bytecode should look like this:
             //   (eval left)
             //   jif end
             //   (eval right)
@@ -1613,7 +1629,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                         .type = AU_PARSER_RES_WRONG_ARGS,
                         .data.wrong_args.got_args = n_args,
                         .data.wrong_args.expected_args = p->self_num_args,
-                        .data.wrong_args.call_token = t,
+                        .data.wrong_args.at_token = t,
                     };
                     return 0;
                 }
@@ -1625,7 +1641,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                         .type = AU_PARSER_RES_WRONG_ARGS,
                         .data.wrong_args.got_args = n_args,
                         .data.wrong_args.expected_args = expected_n_args,
-                        .data.wrong_args.call_token = t,
+                        .data.wrong_args.at_token = t,
                     };
                     return 0;
                 }
@@ -1657,7 +1673,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             if (val == NULL) {
                 p->res = (struct au_parser_result){
                     .type = AU_PARSER_RES_UNKNOWN_VAR,
-                    .data.unknown_var.name_token = t,
+                    .data.unknown_id.name_token = t,
                 };
                 return 0;
             }
@@ -1712,12 +1728,24 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
     }
     case AU_TOK_AT_IDENTIFIER: {
         const struct au_class_interface *interface = p->class_interface;
-        assert(interface != 0);
+        if (interface == 0) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_CLASS_SCOPE_ONLY,
+                .data.class_scope.at_token = t,
+            };
+            return 0;
+        }
         parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
         parser_emit_bc_u8(p, parser_new_reg(p));
         const struct au_hm_var_value *value =
             au_hm_vars_get(&interface->map, &t.src[1], t.len - 1);
-        assert(value != 0);
+        if (value == 0) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_UNKNOWN_VAR,
+                .data.unknown_id.name_token = t,
+            };
+            return 0;
+        }
         parser_emit_bc_u16(p, value->idx);
         break;
     }
@@ -1789,7 +1817,7 @@ static int parser_exec_array_or_tuple(struct au_parser *p,
                 parser_emit_bc_u8(p, capacity);
                 parser_emit_bc_u8(p, value_reg);
                 capacity++;
-                assert(capacity < AU_MAX_STATIC_IDX);
+                EXPECT_BYTECODE(capacity < AU_MAX_STATIC_IDX);
             } else {
                 parser_emit_bc_u8(p, AU_OP_ARRAY_PUSH);
                 parser_emit_bc_u8(p, array_reg);
@@ -1800,7 +1828,7 @@ static int parser_exec_array_or_tuple(struct au_parser *p,
                 }
             }
         } else {
-            assert(0);
+            EXPECT_TOKEN(0, tok, "',' or ']'");
         }
     }
 
@@ -1814,6 +1842,14 @@ static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
 
     const struct au_hm_var_value *class_value =
         au_hm_vars_get(&p->p_data->class_map, id_tok.src, id_tok.len);
+    if (class_value == 0) {
+        p->res = (struct au_parser_result){
+            .type = AU_PARSER_RES_UNKNOWN_CLASS,
+            .data.unknown_id.name_token = id_tok,
+        };
+        return 0;
+    }
+
     size_t class_idx = class_value->idx;
 
     parser_emit_bc_u8(p, AU_OP_CLASS_NEW);
@@ -1851,7 +1887,7 @@ struct au_parser_result au_parse(const char *src, size_t len,
             au_program_data_del(&p_data);
             return (struct au_parser_result){
                 .type = AU_PARSER_RES_UNKNOWN_FUNCTION,
-                .data.unknown_function.name_token = name_token,
+                .data.unknown_id.name_token = name_token,
             };
         }
     }
