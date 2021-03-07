@@ -511,7 +511,6 @@ static int parser_exec_class_statement(struct au_parser *p,
         }
         au_class_interface_deref(interface);
         EXPECT_TOKEN(0, t, "'}'");
-        return 0;
     }
 
     au_class_interface_ptr_array_set(&p->p_data->classes, class_value.idx,
@@ -1064,7 +1063,7 @@ static int parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
             (*n_args)++;
             continue;
         } else {
-            return 0;
+            EXPECT_TOKEN(0, t, "',' or ')'");
         }
     }
     return 1;
