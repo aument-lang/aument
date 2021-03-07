@@ -966,10 +966,6 @@ end:
 #endif
     free(frame->locals);
 #endif
-    for (size_t i = 0; i < frame.arg_stack.len; i++) {
-        au_value_deref(frame.arg_stack.data[i]);
-    }
-    free(frame.arg_stack.data);
 
 #ifndef AU_FEAT_DELAYED_RC
     if (frame.self)
