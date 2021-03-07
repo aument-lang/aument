@@ -48,6 +48,8 @@ void au_vm_thread_local_del(struct au_vm_thread_local *tl) {
 
 void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
                                         size_t len) {
+    if(len == 0)
+        return;
     tl->const_cache = realloc(tl->const_cache,
                               sizeof(au_value_t) * (tl->const_len + len));
     au_value_clear(&tl->const_cache[tl->const_len], len);
