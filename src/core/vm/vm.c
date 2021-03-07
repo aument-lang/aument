@@ -30,6 +30,7 @@
 #include "stdlib/au_stdlib.h"
 #include "vm.h"
 
+#include "core/int_error/error_printer.h"
 #include "core/rt/au_array.h"
 #include "core/rt/au_class.h"
 #include "core/rt/au_string.h"
@@ -877,9 +878,17 @@ _AU_OP_JNIF:;
                 }
 
                 struct au_program program;
-                assert(au_parse(mmap.bytes, mmap.size, &program).type ==
-                       AU_PARSER_RES_OK);
-                au_mmap_del(&mmap);
+                struct au_parser_result parse_res =
+                    au_parse(mmap.bytes, mmap.size, &program);
+                if (parse_res.type != AU_PARSER_RES_OK) {
+                    au_print_parser_error(parse_res,
+                                          (struct au_error_location){
+                                              .src = mmap.bytes,
+                                              .len = mmap.size,
+                                              .path = p_data->file,
+                                          });
+                    abort();
+                }
 
                 if (!au_split_path(abspath, &program.data.file,
                                    &program.data.cwd))
