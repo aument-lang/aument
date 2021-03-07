@@ -57,6 +57,15 @@ const char *au_opcode_dbg[256] = {"load_self",
                                   "class_new",
                                   "call_1"};
 
+#ifdef AU_COVERAGE
+void au_bc_dbg(const struct au_bc_storage *bcs,
+               const struct au_program_data *data) {
+    (void)bcs;
+    (void)data;
+}
+
+void au_program_dbg(const struct au_program *p) { (void)p; }
+#else
 void au_bc_dbg(const struct au_bc_storage *bcs,
                const struct au_program_data *data) {
 #define bc(x) au_bc_buf_at(&bcs->bc, x)
@@ -304,3 +313,4 @@ void au_program_dbg(const struct au_program *p) {
         }
     }
 }
+#endif

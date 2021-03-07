@@ -40,8 +40,10 @@
 
 #include "core/int_error/error_printer.h"
 
+#ifndef AU_COVERAGE
 #include "help.h"
 #include "version.h"
+#endif
 
 enum au_action { ACTION_BUILD, ACTION_RUN };
 
@@ -82,7 +84,9 @@ int main(int argc, char **argv) {
     }
 
     if (!action) {
+#ifndef AU_COVERAGE
         fputs(AU_HELP_MAIN, stdout);
+#endif
         return 0;
     }
 
@@ -105,7 +109,9 @@ int main(int argc, char **argv) {
         if (!output_file) {
             au_fatal("no output file\n");
         }
-    } else if (strcmp(action, "help") == 0) {
+    }
+#ifndef AU_COVERAGE
+    else if (strcmp(action, "help") == 0) {
         if (!input_file) {
             fputs(AU_HELP_MAIN, stdout);
         } else {
@@ -115,8 +121,12 @@ int main(int argc, char **argv) {
     } else if (strcmp(action, "version") == 0) {
         fputs("aulang " AU_VERSION "\n", stdout);
         return 0;
-    } else {
+    }
+#endif
+    else {
+#ifndef AU_COVERAGE
         fputs(AU_HELP_MAIN, stdout);
+#endif
         return 0;
     }
 
@@ -196,6 +206,11 @@ int main(int argc, char **argv) {
 
             au_str_array_add(&cc.cflags, "-flto");
             au_str_array_add(&cc.cflags, "-O2");
+
+#ifdef AU_COVERAGE
+            au_str_array_add(&cc.cflags, "-fprofile-arcs");
+            au_str_array_add(&cc.cflags, "-ftest-coverage");
+#endif
 
             int retval = au_spawn_cc(&cc, output_file, tmp.path);
             if (retval != 0) {
