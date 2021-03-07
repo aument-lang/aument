@@ -568,7 +568,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(func_id, 1)
             const struct au_fn *fn =
                 au_fn_array_at_ptr(&p_data->fns, func_id);
-            int n_args;
+            int n_args = 0;
             switch (fn->type) {
             case AU_FN_DISPATCH:
             case AU_FN_BC: {

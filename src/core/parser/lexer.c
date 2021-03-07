@@ -53,6 +53,7 @@ void au_lexer_del(struct au_lexer *l) {
 
 static struct au_token au_lexer_next_(struct au_lexer *l) {
     if (l->lh_read < l->lh_write) {
+        assert(l->lh_read >= 0 && l->lh_read <= LOOKAHEAD_MAX);
         struct au_token_lookahead lh = l->lh[l->lh_read];
         l->lh_read++;
         if (l->lh_read == l->lh_write) {
@@ -95,15 +96,15 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
     const char start_ch = l->src[l->pos];
     if (start_ch == '"' || start_ch == '\'') {
         l->pos++;
+        size_t len = 0;
         while (!L_EOF()) {
             if (l->src[l->pos] == start_ch) {
                 l->pos++;
                 break;
             }
             l->pos++;
+            len++;
         }
-        // Subtract 1 for the final quote character
-        const size_t len = l->pos - start - 2;
         return (struct au_token){
             .type = AU_TOK_STRING,
             .src = l->src + start + 1,
@@ -111,28 +112,30 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
         };
     } else if (l_isdigit(start_ch)) {
         l->pos++;
+            size_t len = 1;
         while (!L_EOF()) {
             if (!l_isdigit(l->src[l->pos])) {
                 break;
             }
             l->pos++;
+            len++;
         }
         if (!L_EOF() && l->src[l->pos] == '.') {
             l->pos++;
+            len++;
             while (!L_EOF()) {
                 if (!l_isdigit(l->src[l->pos])) {
                     break;
                 }
                 l->pos++;
+                len++;
             }
-            const size_t len = l->pos - start;
             return (struct au_token){
                 .type = AU_TOK_DOUBLE,
                 .src = l->src + start,
                 .len = len,
             };
         }
-        const size_t len = l->pos - start;
         return (struct au_token){
             .type = AU_TOK_INT,
             .src = l->src + start,
@@ -140,13 +143,14 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
         };
     } else if (is_id_start(start_ch)) {
         l->pos++;
+        size_t len = 1;
         while (!L_EOF()) {
             if (!is_id_cont(l->src[l->pos])) {
                 break;
             }
             l->pos++;
+            len++;
         }
-        const size_t len = l->pos - start;
         return (struct au_token){
             .type = AU_TOK_IDENTIFIER,
             .src = l->src + start,
@@ -154,15 +158,17 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
         };
     } else if (start_ch == '@') {
         l->pos++;
+        size_t len = 1;
         if (!L_EOF() && is_id_start(l->src[l->pos])) {
             l->pos++;
+            len++;
             while (!L_EOF()) {
                 if (!is_id_cont(l->src[l->pos])) {
                     break;
                 }
                 l->pos++;
+                len++;
             }
-            const size_t len = l->pos - start;
             return (struct au_token){
                 .type = AU_TOK_AT_IDENTIFIER,
                 .src = l->src + start,
