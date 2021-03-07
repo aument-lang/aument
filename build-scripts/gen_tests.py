@@ -129,7 +129,8 @@ static void test_{i}_check(au_value_t value) {{ switch(test_{i}_idx) {{
     test_src = f"""
 #include <assert.h>
 {test_src}
-void au_value_print(au_value_t v) {{ test_{i}_check(v); }}
+__attribute__ ((alias ("au_value_print"))) void _au_value_print(au_value_t v)
+{{ test_{i}_check(v); }}
 """
     test_srcs.append(test_src)
 
@@ -201,9 +202,11 @@ void run_gcc(const char *source, const size_t source_len) {{
     au_c_comp(&c_state, &program, (struct au_c_comp_options){{0}});
     au_c_comp_state_del(&c_state);
     au_program_del(&program);
-    
+
+#ifdef AU_COVERAGE
     au_str_array_add(&cc.cflags, "-fprofile-arcs");
     au_str_array_add(&cc.cflags, "-ftest-coverage");
+#endif
 
     int status = au_spawn_cc(&cc, c_file_out.path, c_file.path);
     assert(status == 0);

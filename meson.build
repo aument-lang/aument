@@ -1,6 +1,7 @@
 project('aulang', 'c')
 
 is_testing = get_option('tests')
+is_coverage = get_option('b_coverage')
 has_compile_feature = get_option('compiler')
 has_delayed_rc_feature = get_option('delayed_rc')
 has_leak_mem_feature = get_option('leak_mem')
@@ -126,8 +127,6 @@ sources = [
 'src/core/rt/includes/stdlib_end.h',
 'src/core/rt/malloc.h',
 'src/core/rt/struct/coerce.h',
-'src/core/rt/struct/helper.c',
-'src/core/rt/struct/helper.h',
 'src/core/rt/struct/main.h',
 'src/core/rt/struct/vdata.h',
 'src/core/rt/value.h',
@@ -199,10 +198,8 @@ if has_compile_feature
         'src/core/rt/au_array.c',
         'src/core/rt/au_tuple.c',
         'src/core/rt/struct/helper.c',
+        'src/core/rt/value/print.c',
     )
-    if not is_testing
-        rt_code_depends += files('src/core/rt/value/print.c')
-    endif
     rt_code_src = custom_target(
         'comp_code.c',
         output : 'comp_code.c',
@@ -240,6 +237,10 @@ if has_leak_mem_feature
     add_project_arguments('-DAU_FEAT_LEAK_MEM', language : ['c'])
 endif
 
+if is_coverage
+    add_project_arguments('-DAU_COVERAGE', language : ['c'])
+endif
+
 au_runtime_sources = [
     'src/core/rt/exception.c',
     'src/stdlib/io.c',
@@ -262,11 +263,15 @@ endif
 
 incs = include_directories('src')
 
-if has_compile_feature
-    static_library('au_runtime', au_runtime_sources, include_directories: incs, c_args: ['-DAU_IS_STDLIB'])
-endif
-
 if is_testing
+    if has_compile_feature
+        static_library('au_runtime', au_runtime_sources,
+            include_directories: incs,
+            c_args: ['-DAU_IS_STDLIB', '-DAU_TEST_RT_CODE'])
+    endif
+
+    aulang_exe = executable('aulang', sources + ['src/main.c'], include_directories: incs, c_args: ['-DAU_TEST_EXE'])
+
     e = executable('aulang-tests-feature',
        sources + [join_paths(meson.build_root(), 'tests.c')],
        include_directories: incs,
@@ -281,13 +286,22 @@ if is_testing
         test('c compiler test', e)
     endif
 
-    aulang_exe = executable('aulang', sources + ['src/main.c'], include_directories: incs, c_args: ['-DAU_TEST_EXE'])
     test('imports', prog_python,
         args: files('./build-scripts/check_output.py') + [
             '--binary', join_paths(meson.build_root(), 'aulang'),
             '--path', join_paths(meson.source_root(), 'tests/imports'),
         ],
         depends: [aulang_exe])
+
+    if has_compile_feature
+        test('imports compiled', prog_python,
+            args: files('./build-scripts/check_output_comp.py') + [
+                '--binary', join_paths(meson.build_root(), 'aulang'),
+                '--path', join_paths(meson.source_root(), 'tests/imports'),
+            ],
+            depends: [aulang_exe])
+    endif
+
     test('error output', prog_python,
         args: files('./build-scripts/check_errors.py') + [
             '--binary', join_paths(meson.build_root(), 'aulang'),
@@ -295,6 +309,10 @@ if is_testing
         ],
         depends: [aulang_exe])
 else
+    if has_compile_feature
+        static_library('au_runtime', au_runtime_sources, include_directories: incs, c_args: ['-DAU_IS_STDLIB'])
+    endif
+
     link_args = []
     if is_static_exe and get_option('b_sanitize') == 'none'
         link_args += ['-static']

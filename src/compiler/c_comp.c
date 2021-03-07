@@ -48,6 +48,8 @@ static void create_line_info_array(struct line_info_array *array,
 struct au_c_comp_module {
     struct au_hm_vars fn_map;
     struct au_fn_array fns;
+    struct au_class_interface_ptr_array classes;
+    struct au_hm_vars class_map;
     struct line_info_array line_info;
     char *c_source;
 };
@@ -751,8 +753,13 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                     (struct au_c_comp_module){0};
                 comp_module.fns = program.data.fns;
                 comp_module.fn_map = program.data.fn_map;
+                comp_module.classes = program.data.classes;
+                comp_module.class_map = program.data.class_map;
                 program.data.fns = (struct au_fn_array){0};
                 program.data.fn_map = (struct au_hm_vars){0};
+                program.data.classes =
+                    (struct au_class_interface_ptr_array){0};
+                program.data.class_map = (struct au_hm_vars){0};
                 au_program_del(&program);
 
                 au_char_array_add(&mod_state.as.str, 0);
@@ -795,7 +802,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                      key);
                         struct au_fn *fn =
                             &loaded_module->fns.data[fn_idx->idx];
-                        if ((fn->flags & AU_FN_FLAG_EXPORTED) != 0)
+                        if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
                             au_fatal("this function is not exported");
                         if (au_fn_num_args(fn) != import_func->num_args)
                             au_fatal("unexpected number of arguments");
@@ -820,6 +827,31 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                         fn_idx->idx);
                         }
                     })
+#define X(FMT)                                                            \
+    do {                                                                  \
+        comp_printf(&g_state->header_file, FMT, module_idx, entry->idx,   \
+                    imported_module_idx_in_source, class_idx->idx);       \
+    } while (0)
+                AU_HM_VARS_FOREACH_PAIR(
+                    &relative_module->class_map, key, entry, {
+                        assert(p_data->classes.data[entry->idx] == 0);
+                        const struct au_hm_var_value *class_idx =
+                            au_hm_vars_get(&loaded_module->class_map, key,
+                                           key_len);
+                        if (class_idx == 0)
+                            au_fatal("unknown class %.*s", key_len, key);
+                        struct au_class_interface *class_interface =
+                            loaded_module->classes.data[class_idx->idx];
+                        if ((class_interface->flags &
+                             AU_CLASS_FLAG_EXPORTED) == 0)
+                            au_fatal("this class is not exported");
+                        X("#define _M%ld_%ld _M%ld_%ld\n");
+                        X("#define _struct_M%ld_%ld_vdata"
+                          " _struct_M%ld_%ld_vdata\n");
+                        X("#define _struct_M%ld_%ld_del_fn"
+                          " _struct_M%ld_%ld_del_fn\n");
+                    })
+#undef X
             }
 
             break;
@@ -971,7 +1003,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
         const struct au_fn *fn = &program->data.fns.data[i];
         switch (fn->type) {
         case AU_FN_BC: {
-            if ((fn->flags & AU_FN_FLAG_EXPORTED) != 0) {
+            if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0) {
                 comp_printf(state, "static ");
             }
             if (fn->as.bc_func.num_args > 0) {

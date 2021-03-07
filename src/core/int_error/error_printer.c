@@ -56,7 +56,8 @@ static void print_source(struct au_error_location loc, size_t error_pos,
 
 void au_print_parser_error(struct au_parser_result res,
                            struct au_error_location loc) {
-    fprintf(stderr, "parser error(%d) in %s: ", res.type, error_path(loc.path));
+    fprintf(stderr, "parser error(%d) in %s: ", res.type,
+            error_path(loc.path));
     struct au_token errored_token;
     errored_token.type = AU_TOK_EOF;
 #define X(NAME) AU_PARSER_RES_##NAME
@@ -66,10 +67,11 @@ void au_print_parser_error(struct au_parser_result res,
     }
     case X(UNEXPECTED_TOKEN): {
         fprintf(stderr, "unexpected token '%.*s'",
-               (int)res.data.unexpected_token.got_token.len,
-               res.data.unexpected_token.got_token.src);
+                (int)res.data.unexpected_token.got_token.len,
+                res.data.unexpected_token.got_token.src);
         if (res.data.unexpected_token.expected != 0) {
-            fprintf(stderr, ", expected %s", res.data.unexpected_token.expected);
+            fprintf(stderr, ", expected %s",
+                    res.data.unexpected_token.expected);
         }
         errored_token = res.data.unexpected_token.got_token;
         break;
@@ -80,22 +82,22 @@ void au_print_parser_error(struct au_parser_result res,
     }
     case X(UNKNOWN_FUNCTION): {
         fprintf(stderr, "unknown function %.*s",
-               (int)res.data.unknown_id.name_token.len,
-               res.data.unknown_id.name_token.src);
+                (int)res.data.unknown_id.name_token.len,
+                res.data.unknown_id.name_token.src);
         errored_token = res.data.unknown_id.name_token;
         break;
     }
     case X(WRONG_ARGS): {
         fprintf(stderr, "wrong number of arguments (expected %d, got %d)",
-               res.data.wrong_args.expected_args,
-               res.data.wrong_args.got_args);
+                res.data.wrong_args.expected_args,
+                res.data.wrong_args.got_args);
         errored_token = res.data.wrong_args.at_token;
         break;
     }
     case X(UNKNOWN_VAR): {
         fprintf(stderr, "unknown variable '%.*s'",
-               (int)res.data.unknown_id.name_token.len,
-               res.data.unknown_id.name_token.src);
+                (int)res.data.unknown_id.name_token.len,
+                res.data.unknown_id.name_token.src);
         errored_token = res.data.unknown_id.name_token;
         break;
     }
@@ -121,8 +123,8 @@ void au_print_parser_error(struct au_parser_result res,
     }
     case X(UNKNOWN_CLASS): {
         fprintf(stderr, "unknown class %.*s",
-               (int)res.data.unknown_id.name_token.len,
-               res.data.unknown_id.name_token.src);
+                (int)res.data.unknown_id.name_token.len,
+                res.data.unknown_id.name_token.src);
         errored_token = res.data.unknown_id.name_token;
         break;
     }
@@ -137,7 +139,7 @@ void au_print_parser_error(struct au_parser_result res,
 void au_print_interpreter_error(struct au_interpreter_result res,
                                 struct au_error_location loc) {
     fprintf(stderr, "interpreter error(%d) in %s: ", res.type,
-           error_path(loc.path));
+            error_path(loc.path));
     switch (res.type) {
     case AU_INT_ERR_INCOMPAT_BIN_OP: {
         fprintf(stderr, "incompatible values for binary operation");

@@ -891,7 +891,8 @@ _AU_OP_JNIF:;
                 }
 
                 program.data.tl_constant_start = tl->const_len;
-                au_vm_thread_local_add_const_cache(tl, program.data.data_val.len);
+                au_vm_thread_local_add_const_cache(
+                    tl, program.data.data_val.len);
 
                 if (!au_split_path(abspath, &program.data.file,
                                    &program.data.cwd))
