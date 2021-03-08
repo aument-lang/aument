@@ -1,5 +1,5 @@
 class A {
-    val a;
+    var a;
 }
 
 def (self: A) init() {

@@ -139,7 +139,7 @@ You can define a compound data-type, a *class* using the `class` keyword:
 
 ```
 class Human {
-    val name;
+    var name;
 }
 ```
 

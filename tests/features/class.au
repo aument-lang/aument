@@ -1,6 +1,6 @@
 class Class {
-    val a;
-    val b;
+    var a;
+    var b;
 }
 
 def (self: Class) init() {

@@ -486,7 +486,7 @@ static int parser_exec_class_statement(struct au_parser *p,
 
     while (1) {
         t = au_lexer_next(l);
-        if (token_keyword_cmp(&t, "val")) {
+        if (token_keyword_cmp(&t, "var")) {
             const struct au_token name_tok = au_lexer_next(l);
             EXPECT_TOKEN(name_tok.type == AU_TOK_IDENTIFIER, name_tok,
                          "identifier");

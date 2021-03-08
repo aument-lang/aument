@@ -1,5 +1,5 @@
 class Counter {
-    val number;
+    var number;
 }
 
 def (self: Counter) reset() {
