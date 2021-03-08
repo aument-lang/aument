@@ -46,7 +46,9 @@ typedef union {
     (0x7ff0000000000000UL |                                               \
      ((((uint64_t)TAG) << 48) | ((POINTER)&0xffffffffffffUL)))
 #define AU_REPR_GET_POINTER(x) ((x)&0x0000ffffffffffffUL)
-#define AU_REPR_OP_ERROR 0x7ff0ffffffffffff
+
+#define AU_REPR_OP_ERROR (0x7ff0ffffffffffffUL)
+#define AU_REPR_CANONICAL_NAN (0x7ff0000000000001UL)
 
 #define AU_REPR_MAGIC_BITMASK (0x7fffffffffffffffUL)
 #define AU_REPR_MAGIC_THRESHOLD (0x7ff0000000000002UL)
@@ -86,10 +88,15 @@ static _AlwaysInline int32_t au_value_get_int(const au_value_t v) {
 }
 
 static _AlwaysInline au_value_t au_value_double(double n) {
-    if (_Unlikely(isnan(n)))
-        return au_value_op_error();
     au_value_t v;
-    v.d = n;
+    if (_Unlikely(isnan(n))) {
+        v.raw = AU_REPR_CANONICAL_NAN;
+        if(n < 0) {
+            v.raw |= (1UL<<63UL);
+        }
+    } else {
+        v.d = n;
+    }
     return v;
 }
 static _AlwaysInline double au_value_get_double(const au_value_t v) {
