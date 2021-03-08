@@ -21,6 +21,9 @@ enum au_parser_result_type {
     X(CLASS_SCOPE_ONLY) = 8,
     X(DUPLICATE_MODULE) = 9,
     X(UNKNOWN_CLASS) = 10,
+    X(UNKNOWN_MODULE) = 11,
+    X(DUPLICATE_PROP) = 12,
+    X(DUPLICATE_ARG) = 13,
 };
 #undef X
 
@@ -30,9 +33,14 @@ struct au_parser_result {
             struct au_token got_token;
             const char *expected;
         } unexpected_token;
+        // For UNKNOWN_FUNCTION, UNKNOWN_VAR, UNKNOWN_CLASS, UNKNOWN_MODULE
         struct {
             struct au_token name_token;
         } unknown_id;
+        // For DUPLICATE_CLASS, DUPLICATE_PROP, DUPLICATE_ARG
+        struct {
+            struct au_token name_token;
+        } duplicate_id;
         struct {
             int got_args;
             int expected_args;
@@ -42,14 +50,8 @@ struct au_parser_result {
             struct au_token at_token;
         } expect_global;
         struct {
-            struct au_token name_token;
-        } duplicate_class;
-        struct {
             struct au_token at_token;
         } class_scope;
-        struct {
-            struct au_token name_token;
-        } duplicate_module;
     } data;
     enum au_parser_result_type type;
 };

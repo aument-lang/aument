@@ -1,0 +1,2 @@
+class A{}
+def (self: A) a(self) {}
