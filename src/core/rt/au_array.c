@@ -60,6 +60,7 @@ int au_obj_array_get(struct au_obj_array *obj_array, const au_value_t idx,
     const size_t index = au_value_get_int(idx);
     if (index > obj_array->array.len)
         return 0;
+    au_value_ref(obj_array->array.data[index]);
     *result = obj_array->array.data[index];
     return 1;
 }
@@ -71,6 +72,7 @@ int au_obj_array_set(struct au_obj_array *obj_array, au_value_t idx_val,
         return 0;
     au_value_ref(value);
     obj_array->array.data[idx] = value;
+    au_value_deref(obj_array->array.data[idx]);
     return 1;
 }
 

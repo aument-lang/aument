@@ -158,17 +158,27 @@ void au_print_interpreter_error(struct au_interpreter_result res,
     fprintf(stderr, "interpreter error(%d) in %s: ", res.type,
             error_path(loc.path));
     switch (res.type) {
-    case AU_INT_ERR_INCOMPAT_BIN_OP: {
+#define X(NAME) AU_INT_ERR_##NAME
+    case X(INCOMPAT_BIN_OP): {
         fprintf(stderr, "incompatible values for binary operation");
         break;
     }
-    case AU_INT_ERR_INCOMPAT_CALL: {
+    case X(INCOMPAT_CALL): {
         fprintf(stderr, "incompatible call");
+        break;
+    }
+    case X(INVALID_INDEX): {
+        fprintf(stderr, "trying to index a key that doesn't exist");
+        break;
+    }
+    case X(INDEXING_NON_COLLECTION): {
+        fprintf(stderr, "trying to index a value that isn't a collection");
         break;
     }
     default:
         break;
     }
+#undef X
     fprintf(stderr, "\n");
     print_source(loc, res.pos, 0);
 }

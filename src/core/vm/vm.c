@@ -140,6 +140,32 @@ static void call_error(const struct au_program_data *p_data,
         p_data, frame);
 }
 
+static void
+indexing_non_collection_error(au_value_t value,
+                              const struct au_program_data *p_data,
+                              struct au_vm_frame *frame) {
+    au_vm_error(
+        (struct au_interpreter_result){
+            .type = AU_INT_ERR_INDEXING_NON_COLLECTION,
+            .data.invalid_collection.value = value,
+            .pos = 0,
+        },
+        p_data, frame);
+}
+
+static void invalid_index_error(au_value_t collection, au_value_t idx,
+                                const struct au_program_data *p_data,
+                                struct au_vm_frame *frame) {
+    au_vm_error(
+        (struct au_interpreter_result){
+            .type = AU_INT_ERR_INVALID_INDEX,
+            .data.invalid_index.collection = collection,
+            .data.invalid_index.idx = idx,
+            .pos = 0,
+        },
+        p_data, frame);
+}
+
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
                                  const struct au_program_data *p_data,
@@ -747,9 +773,12 @@ _AU_OP_JNIF:;
                     au_value_t value;
                     if (!collection->vdata->idx_get_fn(collection, idx_val,
                                                        &value)) {
-                        au_fatal("invalid index");
+                        invalid_index_error(col_val, idx_val, p_data,
+                                            &frame);
                     }
                     COPY_VALUE(frame.regs[ret_reg], value);
+                } else {
+                    indexing_non_collection_error(col_val, p_data, &frame);
                 }
                 DISPATCH;
             }
@@ -759,10 +788,14 @@ _AU_OP_JNIF:;
                 const au_value_t value_val = frame.regs[frame.bc[3]];
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
-                    if (!collection->vdata->idx_set_fn(collection, idx_val,
-                                                       value_val)) {
-                        au_fatal("invalid index");
+                    if (_Unlikely(collection->vdata->idx_set_fn(
+                                      collection, idx_val, value_val) ==
+                                  0)) {
+                        invalid_index_error(col_val, idx_val, p_data,
+                                            &frame);
                     }
+                } else {
+                    indexing_non_collection_error(col_val, p_data, &frame);
                 }
                 DISPATCH;
             }
@@ -788,10 +821,14 @@ _AU_OP_JNIF:;
                 const au_value_t value_val = frame.regs[frame.bc[3]];
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
-                    if (!collection->vdata->idx_set_fn(collection, idx_val,
-                                                       value_val)) {
-                        au_fatal("invalid index");
+                    if (_Unlikely(collection->vdata->idx_set_fn(
+                                      collection, idx_val, value_val) ==
+                                  0)) {
+                        invalid_index_error(col_val, idx_val, p_data,
+                                            &frame);
                     }
+                } else {
+                    indexing_non_collection_error(col_val, p_data, &frame);
                 }
                 DISPATCH;
             }

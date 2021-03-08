@@ -16,6 +16,8 @@ enum au_interpreter_result_type {
     X(OK),
     X(INCOMPAT_BIN_OP),
     X(INCOMPAT_CALL),
+    X(INDEXING_NON_COLLECTION),
+    X(INVALID_INDEX),
 };
 #undef X
 
@@ -25,6 +27,13 @@ struct au_interpreter_result {
             au_value_t left;
             au_value_t right;
         } incompat_bin_op;
+        struct {
+            au_value_t value;
+        } invalid_collection;
+        struct {
+            au_value_t collection;
+            au_value_t idx;
+        } invalid_index;
     } data;
     size_t pos;
     enum au_interpreter_result_type type;
