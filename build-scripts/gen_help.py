@@ -1,5 +1,5 @@
-# This source file is part of the aulang project
-# Copyright (c) 2021 the aulang contributors
+# This source file is part of the Aument language
+# Copyright (c) 2021 the aument contributors
 #
 # Licensed under Apache License v2.0 with Runtime Library Exception
 # See LICENSE.txt for license information
@@ -14,19 +14,19 @@ commands = [
         """\
 Builds *input-file* into an executable binary named *output-file*.
 
-aulang compiles code by invoking a C compiler. By default, this is *gcc*,
-however you can have aulang use another compiler by specifying it in
+aument compiles code by invoking a C compiler. By default, this is *gcc*,
+however you can have aument use another compiler by specifying it in
 the `CC` environment variable.
 
-aulang invokes the C compiler with the following arguments:
+aument invokes the C compiler with the following arguments:
 
 ```
 -flto -O2
 ```
 
-Passing `-b` will make aulang output bytecode before it is compiled to C.
+Passing `-b` will make aument output bytecode before it is compiled to C.
 
-Passing `-c` will make aulang write C code into *output-file* instead
+Passing `-c` will make aument write C code into *output-file* instead
 of outputting a compiled binary.
 
 Passing `-g` will add the `-g` flag to the C compiler call.\
@@ -39,7 +39,7 @@ Passing `-g` will add the `-g` flag to the C compiler call.\
         """\
 Runs *input-file* through an interpreter.
 
-Passing `-b` will make aulang output bytecode before it is interpreted.\
+Passing `-b` will make aument output bytecode before it is interpreted.\
 """,
     ),
     (
@@ -53,9 +53,9 @@ Else, a general help screen is shown.\
     ),
     (
         "version",
-        "print aulang version",
+        "print aument version",
         "",
-        "Prints aulang's current version number."
+        "Prints aument's current version number."
     )
 ]
 commands.sort(key=lambda x: x[0])
@@ -64,14 +64,14 @@ text = {}
 
 main_template = """\
 Usage:
-    aulang [command] [options] file...
+    aument [command] [options] file...
 
 Commands:
 %s
 
-Use aulang help [command] for more information.
+Use aument help [command] for more information.
 
-Copyright (c) 2021 the aulang contributors.
+Copyright (c) 2021 the aument contributors.
 Project link: https://github.com/chm8d/aulang
 """
 
@@ -81,7 +81,7 @@ for cmd in commands:
     name, summary, args, doc = cmd
     text[name] = f"""\
 Usage:
-    aulang {name} {args} {args}
+    aument {name} {args} {args}
 
 Summary:
     {doc}
@@ -102,13 +102,13 @@ with open("src/help.h", "w") as f:
 md_src = """\
 # Command line options
 
-aulang can be invoked in the following way:
+aument can be invoked in the following way:
 
 ```
-aulang [command] [options] file...
+aument [command] [options] file...
 ```
 
-This section documents aulang's commands.
+This section documents aument's commands.
 
 The section below was generated automatically (devs: *gen_help.py*).
 Please don't modify it by hand!
@@ -122,7 +122,7 @@ for cmd in commands:
 ### Usage
 
 ```
-aulang {name} {args}
+aument {name} {args}
 ```
 
 ### Description

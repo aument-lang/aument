@@ -1,4 +1,4 @@
-project('aulang', 'c')
+project('aument', 'c')
 
 is_testing = get_option('tests')
 is_coverage = get_option('b_coverage')
@@ -270,16 +270,16 @@ if is_testing
             c_args: ['-DAU_IS_STDLIB', '-DAU_TEST_RT_CODE'])
     endif
 
-    aulang_exe = executable('aulang', sources + ['src/main.c'], include_directories: incs, c_args: ['-DAU_TEST_EXE'])
+    aument_exe = executable('aument', sources + ['src/main.c'], include_directories: incs, c_args: ['-DAU_TEST_EXE'])
 
-    e = executable('aulang-tests-feature',
+    e = executable('aument-tests-feature',
        sources + [join_paths(meson.build_root(), 'tests.c')],
        include_directories: incs,
        c_args: ['-DAU_TEST_RT_CODE'])
     test('language feature test', e)
 
     if has_compile_feature
-        e = executable('aulang-tests-comp',
+        e = executable('aument-tests-comp',
            sources + [join_paths(meson.build_root(), 'tests_comp.c')],
            include_directories: incs,
            c_args: ['-DAU_TEST_RT_CODE'])
@@ -288,33 +288,33 @@ if is_testing
 
     test('features with input', prog_python,
         args: files('./build-scripts/check_output_with_input.py') + [
-            '--binary', join_paths(meson.build_root(), 'aulang'),
+            '--binary', join_paths(meson.build_root(), 'aument'),
             '--path', join_paths(meson.source_root(), 'tests/features-with-input'),
         ],
-        depends: [aulang_exe])
+        depends: [aument_exe])
 
     test('imports', prog_python,
         args: files('./build-scripts/check_output.py') + [
-            '--binary', join_paths(meson.build_root(), 'aulang'),
+            '--binary', join_paths(meson.build_root(), 'aument'),
             '--path', join_paths(meson.source_root(), 'tests/imports'),
         ],
-        depends: [aulang_exe])
+        depends: [aument_exe])
 
     if has_compile_feature
         test('imports compiled', prog_python,
             args: files('./build-scripts/check_output_comp.py') + [
-                '--binary', join_paths(meson.build_root(), 'aulang'),
+                '--binary', join_paths(meson.build_root(), 'aument'),
                 '--path', join_paths(meson.source_root(), 'tests/imports'),
             ],
-            depends: [aulang_exe])
+            depends: [aument_exe])
     endif
 
     test('error output', prog_python,
         args: files('./build-scripts/check_errors.py') + [
-            '--binary', join_paths(meson.build_root(), 'aulang'),
+            '--binary', join_paths(meson.build_root(), 'aument'),
             '--path', join_paths(meson.source_root(), 'tests/errors'),
         ],
-        depends: [aulang_exe])
+        depends: [aument_exe])
 else
     if has_compile_feature
         static_library('au_runtime', au_runtime_sources, include_directories: incs, c_args: ['-DAU_IS_STDLIB'])
@@ -324,5 +324,5 @@ else
     if is_static_exe and get_option('b_sanitize') == 'none'
         link_args += ['-static']
     endif
-    executable('aulang', sources + ['src/main.c'], include_directories: incs, link_args: link_args)
+    executable('aument', sources + ['src/main.c'], include_directories: incs, link_args: link_args)
 endif

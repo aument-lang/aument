@@ -1,5 +1,5 @@
-// This source file is part of the aulang project
-// Copyright (c) 2021 the aulang contributors
+// This source file is part of the Aument language
+// Copyright (c) 2021 the aument contributors
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
         }
         return 0;
     } else if (strcmp(action, "version") == 0) {
-        fputs("aulang " AU_VERSION "\n", stdout);
+        fputs("aument " AU_VERSION "\n", stdout);
         return 0;
     }
 #endif
