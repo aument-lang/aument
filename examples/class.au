@@ -1,5 +1,5 @@
 class Human {
-	val name;
+	var name;
 }
 
 def (self: Human) init(name) {
