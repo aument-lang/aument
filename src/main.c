@@ -36,7 +36,6 @@
 #define FLAG_GENERATE_C (1 << 0)
 #define FLAG_DUMP_BYTECODE (1 << 1)
 #define FLAG_GENERATE_DEBUG (1 << 2)
-#define has_flag(FLAG, MASK) (((FLAG) & (MASK)) != 0)
 
 #include "core/int_error/error_printer.h"
 
@@ -137,6 +136,9 @@ int main(int argc, char **argv) {
     struct au_program program;
     struct au_parser_result parse_res =
         au_parse(mmap.bytes, mmap.size, &program);
+#ifdef AU_FUZZ_PARSER
+    return 0;
+#endif
     if (parse_res.type != AU_PARSER_RES_OK) {
         au_print_parser_error(parse_res, (struct au_error_location){
                                              .src = mmap.bytes,
@@ -153,7 +155,7 @@ int main(int argc, char **argv) {
     if (!au_split_path(input_file, &program.data.file, &program.data.cwd))
         au_perror("au_split_path");
 
-    if (has_flag(flags, FLAG_DUMP_BYTECODE))
+    if ((flags & FLAG_DUMP_BYTECODE) != 0)
         au_program_dbg(&program);
 
     if (action_id == ACTION_RUN) {
@@ -179,8 +181,8 @@ int main(int argc, char **argv) {
 #ifdef AU_FEAT_COMPILER
     else if (action_id == ACTION_BUILD) {
         struct au_c_comp_options options = {0};
-        options.with_debug = has_flag(flags, FLAG_GENERATE_DEBUG);
-        if (has_flag(flags, FLAG_GENERATE_C)) {
+        options.with_debug = (flags & FLAG_GENERATE_DEBUG) != 0;
+        if ((flags & FLAG_GENERATE_C) != 0) {
             struct au_c_comp_state c_state = {
                 .as.f = fopen(output_file, "w"),
                 .type = AU_C_COMP_FILE,

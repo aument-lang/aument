@@ -108,7 +108,7 @@ void au_print_parser_error(struct au_parser_result res,
     }
     case X(DUPLICATE_CLASS): {
         fprintf(stderr, "this class is already declared");
-        errored_token = res.data.duplicate_class.name_token;
+        errored_token = res.data.duplicate_id.name_token;
         break;
     }
     case X(CLASS_SCOPE_ONLY): {
@@ -118,7 +118,7 @@ void au_print_parser_error(struct au_parser_result res,
     }
     case X(DUPLICATE_MODULE): {
         fprintf(stderr, "this module is already imported");
-        errored_token = res.data.duplicate_module.name_token;
+        errored_token = res.data.duplicate_id.name_token;
         break;
     }
     case X(UNKNOWN_CLASS): {
@@ -126,6 +126,23 @@ void au_print_parser_error(struct au_parser_result res,
                 (int)res.data.unknown_id.name_token.len,
                 res.data.unknown_id.name_token.src);
         errored_token = res.data.unknown_id.name_token;
+        break;
+    }
+    case X(UNKNOWN_MODULE): {
+        fprintf(stderr, "unknown module %.*s",
+                (int)res.data.unknown_id.name_token.len,
+                res.data.unknown_id.name_token.src);
+        errored_token = res.data.unknown_id.name_token;
+        break;
+    }
+    case X(DUPLICATE_ARG): {
+        fprintf(stderr, "this argument is already declared");
+        errored_token = res.data.duplicate_id.name_token;
+        break;
+    }
+    case X(DUPLICATE_PROP): {
+        fprintf(stderr, "this property is already declared");
+        errored_token = res.data.duplicate_id.name_token;
         break;
     }
     }

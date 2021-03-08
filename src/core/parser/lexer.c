@@ -112,7 +112,7 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
         };
     } else if (l_isdigit(start_ch)) {
         l->pos++;
-            size_t len = 1;
+        size_t len = 1;
         while (!L_EOF()) {
             if (!l_isdigit(l->src[l->pos])) {
                 break;

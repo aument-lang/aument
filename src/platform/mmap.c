@@ -20,6 +20,10 @@ int au_mmap_read(const char *path, struct au_mmap_info *info) {
     if (info->_fd < 0)
         return 0;
     info->size = lseek(info->_fd, 0, SEEK_END);
+    if (info->size == 0) {
+        info->bytes = 0;
+        return 1;
+    }
     char *bytes =
         mmap(NULL, info->size, PROT_READ, MAP_PRIVATE, info->_fd, 0);
     if (bytes == (char *)-1)
@@ -30,6 +34,11 @@ int au_mmap_read(const char *path, struct au_mmap_info *info) {
     fseek(file, 0, SEEK_END);
     info->size = ftell(file);
     fseek(file, 0, SEEK_SET);
+    if (info->size == 0) {
+        info->bytes = 0;
+        fclose(file);
+        return 1;
+    }
     char *bytes = malloc(info->size);
     fread(bytes, 1, info->size, file);
     fclose(file);

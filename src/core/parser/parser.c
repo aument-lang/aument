@@ -405,7 +405,7 @@ static int parser_exec_import_statement(struct au_parser *p,
         if (old_value != 0) {
             p->res = (struct au_parser_result){
                 .type = AU_PARSER_RES_DUPLICATE_MODULE,
-                .data.duplicate_module.name_token = module_tok,
+                .data.duplicate_id.name_token = module_tok,
             };
             return 0;
         }
@@ -461,7 +461,7 @@ static int parser_exec_class_statement(struct au_parser *p,
     if (old_value != 0) {
         p->res = (struct au_parser_result){
             .type = AU_PARSER_RES_DUPLICATE_CLASS,
-            .data.duplicate_class.name_token = id_tok,
+            .data.duplicate_id.name_token = id_tok,
         };
         return 0;
     }
@@ -493,9 +493,16 @@ static int parser_exec_class_statement(struct au_parser *p,
             struct au_hm_var_value prop_value = (struct au_hm_var_value){
                 .idx = interface->map.entries_occ,
             };
+
             const struct au_hm_var_value *old_prop_value = au_hm_vars_add(
                 &interface->map, name_tok.src, name_tok.len, prop_value);
-            assert(old_prop_value == 0);
+            if (old_prop_value != 0) {
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_DUPLICATE_PROP,
+                    .data.duplicate_id.name_token = name_tok,
+                };
+                return 0;
+            }
 
             const struct au_token semicolon = au_lexer_next(l);
             if (semicolon.type == AU_TOK_OPERATOR && semicolon.len == 1) {
@@ -555,7 +562,13 @@ static int parser_exec_def_statement(struct au_parser *p,
             const struct au_hm_var_value *module_val =
                 au_hm_vars_get(&p->p_data->imported_module_map,
                                module_tok.src, module_tok.len);
-            assert(module_val != 0);
+            if (module_val == 0) {
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNKNOWN_MODULE,
+                    .data.unknown_id.name_token = module_tok,
+                };
+                return 0;
+            }
             const uint32_t module_idx = module_val->idx;
             struct au_imported_module *module =
                 &p->p_data->imported_modules.data[module_idx];
@@ -740,9 +753,17 @@ static int parser_exec_def_statement(struct au_parser *p,
     tok = au_lexer_peek(l, 0);
     if (tok.type == AU_TOK_IDENTIFIER) {
         au_lexer_next(l);
+
         const struct au_hm_var_value *old = au_hm_vars_add(
             &func_p.vars, tok.src, tok.len, AU_HM_VAR_VALUE(bcs.num_args));
-        assert(old == NULL);
+        if (old != NULL) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_DUPLICATE_ARG,
+                .data.duplicate_id.name_token = tok,
+            };
+            return 0;
+        }
+
         func_p.locals_len++;
         EXPECT_BYTECODE(func_p.locals_len <= AU_MAX_LOCALS);
         bcs.num_args++;
@@ -761,7 +782,13 @@ static int parser_exec_def_statement(struct au_parser *p,
                 const struct au_hm_var_value *old =
                     au_hm_vars_add(&func_p.vars, tok.src, tok.len,
                                    AU_HM_VAR_VALUE(bcs.num_args));
-                assert(old == NULL);
+                if (old != NULL) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_DUPLICATE_ARG,
+                        .data.duplicate_id.name_token = tok,
+                    };
+                    return 0;
+                }
                 func_p.locals_len++;
                 assert(func_p.locals_len < AU_MAX_LOCALS);
                 bcs.num_args++;
@@ -1559,7 +1586,13 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                 const struct au_hm_var_value *module_val =
                     au_hm_vars_get(&p->p_data->imported_module_map,
                                    module_tok.src, module_tok.len);
-                assert(module_val != 0);
+                if (module_val == 0) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_UNKNOWN_MODULE,
+                        .data.unknown_id.name_token = module_tok,
+                    };
+                    return 0;
+                }
                 const uint32_t module_idx = module_val->idx;
                 struct au_imported_module *module =
                     &p->p_data->imported_modules.data[module_idx];
@@ -1586,7 +1619,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                     func_idx = value.idx;
                     struct au_hm_var_value *old = au_hm_vars_add(
                         &module->fn_map, t.src, t.len, value);
-                    assert(old == 0);
+                    EXPECT_BYTECODE(old == 0);
                     val = au_hm_vars_get(&module->fn_map, t.src, t.len);
                 } else {
                     func_idx = val->idx;
