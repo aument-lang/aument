@@ -1,5 +1,5 @@
-// This source file is part of the aulang project
-// Copyright (c) 2021 the aulang contributors
+// This source file is part of the Aument language
+// Copyright (c) 2021 the aument contributors
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
@@ -91,8 +91,8 @@ static _AlwaysInline au_value_t au_value_double(double n) {
     au_value_t v;
     if (_Unlikely(isnan(n))) {
         v.raw = AU_REPR_CANONICAL_NAN;
-        if(n < 0) {
-            v.raw |= (1UL<<63UL);
+        if (n < 0) {
+            v.raw |= (1UL << 63UL);
         }
     } else {
         v.d = n;

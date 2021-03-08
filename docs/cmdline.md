@@ -1,12 +1,12 @@
 # Command line options
 
-aulang can be invoked in the following way:
+aument can be invoked in the following way:
 
 ```
-aulang [command] [options] file...
+aument [command] [options] file...
 ```
 
-This section documents aulang's commands.
+This section documents aument's commands.
 
 The section below was generated automatically (devs: *gen_help.py*).
 Please don't modify it by hand!
@@ -16,26 +16,26 @@ Please don't modify it by hand!
 ### Usage
 
 ```
-aulang build input-file output-file
+aument build input-file output-file
 ```
 
 ### Description
 
 Builds *input-file* into an executable binary named *output-file*.
 
-aulang compiles code by invoking a C compiler. By default, this is *gcc*,
-however you can have aulang use another compiler by specifying it in
+aument compiles code by invoking a C compiler. By default, this is *gcc*,
+however you can have aument use another compiler by specifying it in
 the `CC` environment variable.
 
-aulang invokes the C compiler with the following arguments:
+aument invokes the C compiler with the following arguments:
 
 ```
 -flto -O2
 ```
 
-Passing `-b` will make aulang output bytecode before it is compiled to C.
+Passing `-b` will make aument output bytecode before it is compiled to C.
 
-Passing `-c` will make aulang write C code into *output-file* instead
+Passing `-c` will make aument write C code into *output-file* instead
 of outputting a compiled binary.
 
 Passing `-g` will add the `-g` flag to the C compiler call.
@@ -45,7 +45,7 @@ Passing `-g` will add the `-g` flag to the C compiler call.
 ### Usage
 
 ```
-aulang help [command]
+aument help [command]
 ```
 
 ### Description
@@ -58,24 +58,24 @@ Else, a general help screen is shown.
 ### Usage
 
 ```
-aulang run input-file
+aument run input-file
 ```
 
 ### Description
 
 Runs *input-file* through an interpreter.
 
-Passing `-b` will make aulang output bytecode before it is interpreted.
+Passing `-b` will make aument output bytecode before it is interpreted.
 
-## `version`: print aulang version
+## `version`: print aument version
 
 ### Usage
 
 ```
-aulang version 
+aument version 
 ```
 
 ### Description
 
-Prints aulang's current version number.
+Prints aument's current version number.
 

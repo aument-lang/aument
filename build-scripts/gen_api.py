@@ -1,5 +1,5 @@
-# This source file is part of the aulang project
-# Copyright (c) 2021 the aulang contributors
+# This source file is part of the Aument language
+# Copyright (c) 2021 the aument contributors
 #
 # Licensed under Apache License v2.0 with Runtime Library Exception
 # See LICENSE.txt for license information
@@ -125,7 +125,7 @@ Please don't modify it by hand!
 """
 
 au_std_md_src = """\
-# aulang standard library reference
+# aument standard library reference
 
 The section below was generated automatically (devs: *gen_api.py*).
 Please don't modify it by hand!

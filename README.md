@@ -1,10 +1,12 @@
-# aulang
+# The Aument Language
 
-Welcome to **aulang** (name subject to change), a work-in-progress dynamically-typed scripting language with
+The **Aument** language is a work-in-progress dynamically-typed scripting language with
 
   * **performance first:** this scripting language is designed with performance in mind.
   * **fast development time:** like Python and Javascript, you can write code and run it directly.
   * **fast deployment:** once finished, you can compile your code into a native, lightweight executable. You don't even need any *external* runtime to run it!
+
+(Previously named the aulang language. The current name comes from the Italian word *aumento*, meaning growth, augment. It's pronounced /ˈɔː.mənt/.)
 
 ## Syntax
 
@@ -25,23 +27,23 @@ See [a brief tour](./docs/tour.md) for more.
 
 ## Usage
 
-Once aulang is compiled, you can run a program in interpreter mode with `aulang run [file]`
+Once Aument is compiled, you can run a program in interpreter mode with `aument run [file]`
 
 ```
 $ cat hello.au
 print "Hello World\n";
-$ ./aulang run hello.au
+$ ./aument run hello.au
 Hello World
 ```
 
-You can also build the program as an executable with `aulang build [file] [output]`
+You can also build the program as an executable with `aument build [file] [output]`
 
 ```
-$ ./aulang build hello.au /tmp/hello && /tmp/hello
+$ ./aument build hello.au /tmp/hello && /tmp/hello
 Hello World
 ```
 
-The file `libau_runtime.a` must be in the same directory as `aulang`. This will be statically linked to your executable.
+The file `libau_runtime.a` must be in the same directory as `aument`. This will be statically linked to your executable.
 
 The build command requires a C compiler in the environment's `PATH` (default is `gcc`). If the environment variable `CC` is specified, it will use that instead.
 
@@ -67,7 +69,7 @@ For release builds, do:
 ./build.sh release
 ```
 
-An executable `aulang` will appear in the `build` directory.
+An executable `aument` will appear in the `build` directory.
 
 ### Windows
 
@@ -87,12 +89,12 @@ If you're cross-compiling for Windows (64-bit), use the command:
 
   * [brief tour](./docs/tour.md)
   * [command line reference](./docs/cmdline.md)
-  * [aulang standard library reference](./docs/au-stdlib.md)
-  * [aulang C API reference](./docs/c-api.md)
+  * [aument standard library reference](./docs/au-stdlib.md)
+  * [aument C API reference](./docs/c-api.md)
 
 ## Contributing
 
-aulang is in alpha development, so feel free to ask any questions or suggest features in the repository's [issues page](https://github.com/chm8d/aulang/issues/).
+This language is in alpha development, so feel free to ask any questions or suggest features in the repository's [issues page](https://github.com/chm8d/aulang/issues/).
 
 ## Changelog
 
@@ -102,7 +104,7 @@ See `CHANGELOG.md`.
 
 ## License
 
-This implementation of aulang is licensed under Apache License v2.0 with Runtime Library Exception. See `LICENSE.txt` for more details.
+This implementation of aument is licensed under Apache License v2.0 with Runtime Library Exception. See `LICENSE.txt` for more details.
 
 ## Authors
 

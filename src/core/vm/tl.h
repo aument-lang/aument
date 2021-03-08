@@ -1,5 +1,5 @@
-// This source file is part of the aulang project
-// Copyright (c) 2021 the aulang contributors
+// This source file is part of the Aument language
+// Copyright (c) 2021 the aument contributors
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
@@ -31,7 +31,7 @@ struct au_vm_thread_local *au_vm_thread_local_get();
 
 /// [func] Sets the current thread's au_vm_thread_local instance.
 ///     The caller must ensure that tl lasts for the lifetime
-///     of an executed aulang program.
+///     of an executed aument program.
 /// @param tl the current thread's au_vm_thread_local instance
 void au_vm_thread_local_set(struct au_vm_thread_local *tl);
 

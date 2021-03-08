@@ -3,34 +3,34 @@
 #include <string.h>
 
 static const char *AU_HELP_MAIN =
-    "Usage:\n    aulang [command] [options] file...\n\nCommands:\n    "
+    "Usage:\n    aument [command] [options] file...\n\nCommands:\n    "
     "build       builds source code into a single binary\n    help        "
     "shows this help screen\n    run         runs a program\n    version  "
-    "   print aulang version\n\nUse aulang help [command] for more "
-    "information.\n\nCopyright (c) 2021 the aulang contributors.\nProject "
+    "   print aument version\n\nUse aument help [command] for more "
+    "information.\n\nCopyright (c) 2021 the aument contributors.\nProject "
     "link: https://github.com/chm8d/aulang\n";
 static const char *AU_HELP_BUILD =
-    "Usage:\n    aulang build input-file output-file input-file "
+    "Usage:\n    aument build input-file output-file input-file "
     "output-file\n\nSummary:\n    Builds *input-file* into an executable "
-    "binary named *output-file*.\n\naulang compiles code by invoking a C "
-    "compiler. By default, this is *gcc*,\nhowever you can have aulang "
+    "binary named *output-file*.\n\naument compiles code by invoking a C "
+    "compiler. By default, this is *gcc*,\nhowever you can have aument "
     "use another compiler by specifying it in\nthe `CC` environment "
-    "variable.\n\naulang invokes the C compiler with the following "
-    "arguments:\n\n```\n-flto -O2\n```\n\nPassing `-b` will make aulang "
+    "variable.\n\naument invokes the C compiler with the following "
+    "arguments:\n\n```\n-flto -O2\n```\n\nPassing `-b` will make aument "
     "output bytecode before it is compiled to C.\n\nPassing `-c` will "
-    "make aulang write C code into *output-file* instead\nof outputting a "
+    "make aument write C code into *output-file* instead\nof outputting a "
     "compiled binary.\n\nPassing `-g` will add the `-g` flag to the C "
     "compiler call.\n";
 static const char *AU_HELP_HELP =
-    "Usage:\n    aulang help [command] [command]\n\nSummary:\n    Shows "
+    "Usage:\n    aument help [command] [command]\n\nSummary:\n    Shows "
     "the documentation for a specified command if given.\nElse, a general "
     "help screen is shown.\n";
 static const char *AU_HELP_RUN =
-    "Usage:\n    aulang run input-file input-file\n\nSummary:\n    Runs "
+    "Usage:\n    aument run input-file input-file\n\nSummary:\n    Runs "
     "*input-file* through an interpreter.\n\nPassing `-b` will make "
-    "aulang output bytecode before it is interpreted.\n";
+    "aument output bytecode before it is interpreted.\n";
 static const char *AU_HELP_VERSION =
-    "Usage:\n    aulang version  \n\nSummary:\n    Prints aulang's "
+    "Usage:\n    aument version  \n\nSummary:\n    Prints aument's "
     "current version number.\n";
 static const char *help_text(const char *action) {
     if (strcmp(action, "main") == 0)

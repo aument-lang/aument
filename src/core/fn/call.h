@@ -1,5 +1,5 @@
-// This source file is part of the aulang project
-// Copyright (c) 2021 the aulang contributors
+// This source file is part of the Aument language
+// Copyright (c) 2021 the aument contributors
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
@@ -8,7 +8,7 @@
 #include "main.h"
 #include "platform/platform.h"
 
-/// [func] Calls another aulang function. If the called function
+/// [func] Calls another aument function. If the called function
 ///     lies in another module, it will recursively search
 ///     for the real module that holds the function.
 /// @param fn function to be called

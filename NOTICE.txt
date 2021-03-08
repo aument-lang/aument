@@ -1,3 +1,4 @@
-the aulang programming language
-Copyright (c) 2021 the aulang contributors
+the aument programming language
+* previously named "the aulang language"
+Copyright (c) 2021 the aument contributors
 Project link: https://github.com/chm8d/aulang

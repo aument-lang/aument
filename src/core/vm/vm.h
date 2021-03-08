@@ -1,5 +1,5 @@
-// This source file is part of the aulang project
-// Copyright (c) 2021 the aulang contributors
+// This source file is part of the Aument language
+// Copyright (c) 2021 the aument contributors
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
@@ -40,7 +40,7 @@ struct au_vm_frame {
 /// @param p_data global program data
 /// @param args argument array
 /// @param link link to previous frame or imported program
-/// @return return value specified by interpreted aulang's
+/// @return return value specified by interpreted aument's
 ///      return statement
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
