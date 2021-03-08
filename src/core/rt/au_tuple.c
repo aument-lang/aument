@@ -54,6 +54,7 @@ int au_obj_tuple_get(struct au_obj_tuple *obj_tuple, const au_value_t idx,
     const size_t index = au_value_get_int(idx);
     if (index > obj_tuple->len)
         return 0;
+    au_value_ref(obj_tuple->data[index]);
     *result = obj_tuple->data[index];
     return 1;
 }
@@ -65,6 +66,7 @@ int au_obj_tuple_set(struct au_obj_tuple *obj_tuple, au_value_t idx_val,
         return 0;
     au_value_ref(value);
     obj_tuple->data[idx] = value;
+    au_value_deref(obj_tuple->data[idx]);
     return 1;
 }
 

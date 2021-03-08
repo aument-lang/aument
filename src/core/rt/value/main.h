@@ -6,6 +6,7 @@
 #ifdef AU_IS_INTERPRETER
 #pragma once
 
+#include <math.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -85,6 +86,8 @@ static _AlwaysInline int32_t au_value_get_int(const au_value_t v) {
 }
 
 static _AlwaysInline au_value_t au_value_double(double n) {
+    if (_Unlikely(isnan(n)))
+        return au_value_op_error();
     au_value_t v;
     v.d = n;
     return v;
