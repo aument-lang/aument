@@ -25,9 +25,9 @@ void au_class_interface_ref(struct au_class_interface *interface) {
 void au_class_interface_deref(struct au_class_interface *interface) {
     interface->rc--;
     if (interface->rc == 0) {
-        free(interface->name);
+        au_data_free(interface->name);
         au_hm_vars_del(&interface->map);
-        free(interface);
+        au_data_free(interface);
     }
 }
 

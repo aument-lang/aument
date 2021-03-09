@@ -14,7 +14,7 @@
 AU_EXTERN_FUNC_DECL(au_std_len) {
     const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
-    case VALUE_STRUCT: {
+    case AU_VALUE_STRUCT: {
         struct au_struct *s = au_value_get_struct(value);
         const struct au_struct_vdata *vdata = s->vdata;
         if (vdata->len_fn != 0) {
@@ -25,7 +25,7 @@ AU_EXTERN_FUNC_DECL(au_std_len) {
         au_value_deref(value);
         return au_value_int(0);
     }
-    case VALUE_STR: {
+    case AU_VALUE_STR: {
         struct au_string *s = au_value_get_string(value);
         int32_t utf8_len = 0;
         for (size_t i = 0; i < s->len;) {

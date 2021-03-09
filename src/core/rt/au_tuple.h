@@ -22,7 +22,7 @@ int au_obj_tuple_set(struct au_obj_tuple *obj_tuple, au_value_t idx,
 int32_t au_obj_tuple_len(struct au_obj_tuple *obj_tuple);
 
 static inline struct au_obj_tuple *au_obj_tuple_coerce(au_value_t value) {
-    if (au_value_get_type(value) != VALUE_STRUCT ||
+    if (au_value_get_type(value) != AU_VALUE_STRUCT ||
         au_value_get_struct(value)->vdata != &au_obj_tuple_vdata)
         return 0;
     return (struct au_obj_tuple *)au_value_get_struct(value);

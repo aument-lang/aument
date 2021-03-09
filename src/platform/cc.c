@@ -17,6 +17,7 @@
 #endif
 
 #include "cc.h"
+#include "core/rt/malloc.h"
 #include "spawn.h"
 
 void au_cc_options_default(struct au_cc_options *cc) {
@@ -25,8 +26,8 @@ void au_cc_options_default(struct au_cc_options *cc) {
 }
 
 void au_cc_options_del(struct au_cc_options *cc) {
-    free(cc->_stdlib_cache);
-    free(cc->cflags.data);
+    au_data_free(cc->_stdlib_cache);
+    au_data_free(cc->cflags.data);
 }
 
 char *au_get_cc() {
@@ -87,7 +88,7 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
 #endif
             size_t my_len = strlen(my_path);
             size_t stdlib_cache_len = my_len + sizeof(au_lib_file);
-            cc->_stdlib_cache = malloc(stdlib_cache_len + 1);
+            cc->_stdlib_cache = au_data_malloc(stdlib_cache_len + 1);
             snprintf(cc->_stdlib_cache, stdlib_cache_len, "%s%s", my_path,
                      au_lib_file);
             cc->_stdlib_cache[stdlib_cache_len] = 0;
@@ -96,10 +97,10 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
     }
 
     int retval = au_spawn(&args);
-    free(args.data);
+    au_data_free(args.data);
     return retval;
 
 fail:
-    free(args.data);
+    au_data_free(args.data);
     return 1;
 }

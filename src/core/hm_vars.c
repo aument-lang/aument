@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "core/rt/malloc.h"
 #include "hash.h"
 #include "hm_vars.h"
 #include "rt/exception.h"
@@ -23,17 +24,19 @@ void au_hm_vars_init(struct au_hm_vars *vars) {
 void au_hm_vars_del(struct au_hm_vars *vars) {
     for (size_t i = 0; i < vars->buckets_len; i++) {
         struct au_hm_bucket *bucket = &vars->buckets[i];
-        free(bucket->data);
+        au_data_free(bucket->data);
     }
-    free(vars->buckets);
-    free(vars->var_name);
+    au_data_free(vars->buckets);
+    au_data_free(vars->var_name);
     memset(vars, 0, sizeof(struct au_hm_vars));
 }
 
 static void rehash_table(struct au_hm_vars *vars) {
     const int new_len = vars->buckets_len * 2;
     struct au_hm_bucket *new_buckets =
-        calloc(new_len, sizeof(struct au_hm_bucket));
+        au_data_malloc(new_len * sizeof(struct au_hm_bucket));
+    for (int i = 0; i < new_len; i++)
+        new_buckets[i] = (struct au_hm_bucket){0};
     for (size_t i = 0; i < vars->buckets_len; i++) {
         const struct au_hm_bucket *old_bucket = &vars->buckets[i];
         for (size_t i = 0; i < old_bucket->len; i++) {
@@ -41,12 +44,12 @@ static void rehash_table(struct au_hm_vars *vars) {
             const int new_bucket_idx = el->key_hash & (new_len - 1);
             struct au_hm_bucket *bucket = &new_buckets[new_bucket_idx];
             if (bucket->cap == 0) {
-                bucket->data = malloc(sizeof(struct au_hm_var_el));
+                bucket->data = au_data_malloc(sizeof(struct au_hm_var_el));
                 bucket->cap = 1;
             } else if (bucket->len == bucket->cap) {
-                bucket->data =
-                    realloc(bucket->data,
-                            bucket->cap * 2 * sizeof(struct au_hm_var_el));
+                bucket->data = au_data_realloc(
+                    bucket->data,
+                    bucket->cap * 2 * sizeof(struct au_hm_var_el));
                 bucket->cap *= 2;
             }
             bucket->data[bucket->len++] = *el;
@@ -55,9 +58,9 @@ static void rehash_table(struct au_hm_vars *vars) {
 
     for (size_t i = 0; i < vars->buckets_len; i++) {
         struct au_hm_bucket *bucket = &vars->buckets[i];
-        free(bucket->data);
+        au_data_free(bucket->data);
     }
-    free(vars->buckets);
+    au_data_free(vars->buckets);
     vars->buckets = new_buckets;
     vars->buckets_len = new_len;
 }
@@ -82,7 +85,8 @@ au_hm_vars_add(struct au_hm_vars *vars, const char *key, size_t len,
     }
 
     const size_t key_idx = vars->var_name_len;
-    vars->var_name = realloc(vars->var_name, vars->var_name_len + len);
+    vars->var_name =
+        au_data_realloc(vars->var_name, vars->var_name_len + len);
     memcpy(&vars->var_name[vars->var_name_len], key, len);
     vars->var_name_len += len;
 
@@ -94,11 +98,11 @@ au_hm_vars_add(struct au_hm_vars *vars, const char *key, size_t len,
     };
 
     if (vars->buckets_len == 0) {
-        vars->buckets = malloc(sizeof(struct au_hm_bucket));
+        vars->buckets = au_data_malloc(sizeof(struct au_hm_bucket));
         vars->buckets_len = 1;
 
         struct au_hm_bucket *bucket = &vars->buckets[0];
-        bucket->data = malloc(sizeof(struct au_hm_var_el));
+        bucket->data = au_data_malloc(sizeof(struct au_hm_var_el));
         bucket->data[0] = el;
         bucket->len = 1;
         bucket->cap = 1;
@@ -108,12 +112,12 @@ au_hm_vars_add(struct au_hm_vars *vars, const char *key, size_t len,
         const int bucket_idx = hash & (vars->buckets_len - 1);
         struct au_hm_bucket *bucket = &vars->buckets[bucket_idx];
         if (bucket->cap == 0) {
-            bucket->data = malloc(sizeof(struct au_hm_var_el));
+            bucket->data = au_data_malloc(sizeof(struct au_hm_var_el));
             bucket->cap = 1;
         } else if (bucket->len == bucket->cap) {
-            bucket->data =
-                realloc(bucket->data,
-                        bucket->cap * 2 * sizeof(struct au_hm_var_el));
+            bucket->data = au_data_realloc(
+                bucket->data,
+                bucket->cap * 2 * sizeof(struct au_hm_var_el));
             bucket->cap *= 2;
         }
         bucket->data[bucket->len++] = el;

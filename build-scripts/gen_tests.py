@@ -56,13 +56,13 @@ extern size_t TEST_RT_CODE_LEN;
 
 def gen_check_value(item, val_type, val_contents):
     if val_type == 'int':
-        return f"assert(au_value_get_type({item}) == VALUE_INT && au_value_get_int({item}) == {val_contents});"
+        return f"assert(au_value_get_type({item}) == AU_VALUE_INT && au_value_get_int({item}) == {val_contents});"
     elif val_type == 'float':
-        return f"assert(au_value_get_type({item}) == VALUE_DOUBLE && au_value_get_double({item}) == {val_contents});"
+        return f"assert(au_value_get_type({item}) == AU_VALUE_DOUBLE && au_value_get_double({item}) == {val_contents});"
     elif val_type == 'bool':
-        return f"assert(au_value_get_type({item}) == VALUE_BOOL && au_value_get_bool({item}) == {'1' if val_contents == 'true' else '0'});"
+        return f"assert(au_value_get_type({item}) == AU_VALUE_BOOL && au_value_get_bool({item}) == {'1' if val_contents == 'true' else '0'});"
     elif val_type == 'str':
-        return f"char *s={val_contents};assert(au_value_get_type({item}) == VALUE_STR && au_value_get_string({item})->len == strlen(s) && memcmp(au_value_get_string({item})->data, s, strlen(s)) == 0);\n"
+        return f"char *s={val_contents};assert(au_value_get_type({item}) == AU_VALUE_STR && au_value_get_string({item})->len == strlen(s) && memcmp(au_value_get_string({item})->data, s, strlen(s)) == 0);\n"
     raise NotImplementedError(val_type)
 
 def bytes_to_c_array(x):
@@ -89,7 +89,7 @@ static void test_{i}_check(au_value_t value) {{ switch(test_{i}_idx) {{
             array_contents = value.split(';')[1:]
             test_src += f"  case {val_idx}: {{\n"
             test_src += """\
-    assert(au_value_get_type(value) == VALUE_STRUCT && au_value_get_struct(value)->vdata == &au_obj_array_vdata);
+    assert(au_value_get_type(value) == AU_VALUE_STRUCT && au_value_get_struct(value)->vdata == &au_obj_array_vdata);
     struct au_obj_array *array = (struct au_obj_array *)au_value_get_struct(value);
 """
             for item_idx in range(len(array_contents)):
@@ -104,7 +104,7 @@ static void test_{i}_check(au_value_t value) {{ switch(test_{i}_idx) {{
             array_contents = value.split(';')[1:]
             test_src += f"  case {val_idx}: {{\n"
             test_src += """\
-    assert(au_value_get_type(value) == VALUE_STRUCT && au_value_get_struct(value)->vdata == &au_obj_tuple_vdata);
+    assert(au_value_get_type(value) == AU_VALUE_STRUCT && au_value_get_struct(value)->vdata == &au_obj_tuple_vdata);
     struct au_obj_tuple *tuple = (struct au_obj_tuple *)au_value_get_struct(value);
 """
             for item_idx in range(len(array_contents)):
@@ -143,15 +143,17 @@ static void test_{i}() {{
     struct au_program program;
     assert(au_parse(source, {input_src_len}, &program).type == AU_PARSER_RES_OK);
     struct au_vm_thread_local tl;
-    au_obj_malloc_init();
+    au_malloc_init();
     au_vm_thread_local_init(&tl, &program.data);
     au_vm_thread_local_set(&tl);
     tl.print_fn = test_{i}_check;
+    au_malloc_set_collect(1);
     au_vm_exec_unverified_main(&tl, &program);
 #ifdef AU_FEAT_DELAYED_RC
     au_vm_thread_local_del_const_cache(&tl);
     au_obj_malloc_collect();
 #endif
+    au_malloc_set_collect(0);
     au_program_del(&program);
     au_vm_thread_local_del(&tl);
     au_vm_thread_local_set(0);
@@ -178,7 +180,7 @@ struct au_cc_options cc;
 
 void setup() {{
     au_cc_options_default(&cc);
-    cc._stdlib_cache = strdup("{os.path.join(source_path, "../build/libau_runtime.a")}");
+    cc._stdlib_cache = au_data_strdup("{os.path.join(source_path, "../build/libau_runtime.a")}");
 }}
 
 void cleanup() {{
@@ -215,7 +217,7 @@ void run_gcc(const char *source, const size_t source_len) {{
     au_str_array_add(&args, c_file_out.path);
     status = au_spawn(&args);
     assert(status == 0);
-    free(args.data);
+    au_data_free(args.data);
 
     au_tmpfile_del(&c_file);
     au_tmpfile_del(&c_file_out);

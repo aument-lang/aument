@@ -35,7 +35,8 @@ self_call:
     }
     case AU_FN_BC: {
         if ((fn->flags & AU_FN_FLAG_HAS_CLASS) != 0) {
-            const struct au_obj_class *obj_class = au_obj_class_coerce(args[0]);
+            const struct au_obj_class *obj_class =
+                au_obj_class_coerce(args[0]);
             if (_Unlikely((obj_class == 0) ||
                           (fn->as.bc_func.class_interface_cache !=
                            obj_class->interface))) {
@@ -53,7 +54,8 @@ self_call:
         goto self_call;
     }
     case AU_FN_DISPATCH: {
-        const struct au_obj_class *obj_class = au_obj_class_coerce(args[0]);
+        const struct au_obj_class *obj_class =
+            au_obj_class_coerce(args[0]);
         if (_Unlikely(obj_class == 0)) {
             return au_value_op_error();
         }
@@ -86,5 +88,5 @@ _Unused au_value_t au_fn_call(const struct au_fn *fn,
                               struct au_vm_thread_local *tl,
                               const struct au_program_data *p_data,
                               const au_value_t *args) {
-    return au_fn_call_internal(fn, tl, p_data, args, (int*)0);
+    return au_fn_call_internal(fn, tl, p_data, args, (int *)0);
 }

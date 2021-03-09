@@ -7,12 +7,14 @@
 #include <stdio.h>
 
 #include "core/rt/extern_fn.h"
+#include "core/rt/malloc.h"
 #include "core/rt/value.h"
 #include "core/vm/vm.h"
 
 AU_EXTERN_FUNC_DECL(au_std_input) {
     int ch = -1;
-    struct au_string *header = malloc(sizeof(struct au_string) + 1);
+    struct au_string *header =
+        au_data_malloc(sizeof(struct au_string) + 1);
     header->rc = 1;
     header->len = 1;
     uint32_t pos = 0, cap = 1;
@@ -21,7 +23,8 @@ AU_EXTERN_FUNC_DECL(au_std_input) {
             break;
         if (pos == cap) {
             cap *= 2;
-            header = realloc(header, sizeof(struct au_string) + cap);
+            header =
+                au_data_realloc(header, sizeof(struct au_string) + cap);
         }
         header->data[pos] = ch;
         pos++;

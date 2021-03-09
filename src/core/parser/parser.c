@@ -13,6 +13,7 @@
 #include "core/program.h"
 #include "core/rt/au_class.h"
 #include "core/rt/exception.h"
+#include "core/rt/malloc.h"
 #include "platform/mmap.h"
 
 #include "lexer.h"
@@ -21,13 +22,6 @@
 #define CLASS_ID_NONE ((size_t)-1)
 
 ARRAY_TYPE_COPY(size_t, size_t_array, 1)
-
-static char *copy_string(const char *str, size_t len) {
-    char *output = malloc(len + 1);
-    memcpy(output, str, len);
-    output[len] = 0;
-    return output;
-}
 
 struct au_parser {
     /// Bytecode buffer that the parser is outputting to
@@ -115,9 +109,9 @@ static void parser_init(struct au_parser *p,
 }
 
 static void parser_del(struct au_parser *p) {
-    free(p->bc.data);
+    au_data_free(p->bc.data);
     au_hm_vars_del(&p->vars);
-    free(p->self_fill_call.data);
+    au_data_free(p->self_fill_call.data);
     memset(p, 0, sizeof(struct au_parser));
 }
 
@@ -384,7 +378,7 @@ static int parser_exec_import_statement(struct au_parser *p,
     const struct au_token path_tok = au_lexer_next(l);
     EXPECT_TOKEN(path_tok.type == AU_TOK_STRING, path_tok, "string");
 
-    char *path_dup = malloc(path_tok.len + 1);
+    char *path_dup = au_data_malloc(path_tok.len + 1);
     memcpy(path_dup, path_tok.src, path_tok.len);
     path_dup[path_tok.len] = 0;
 
@@ -468,9 +462,9 @@ static int parser_exec_class_statement(struct au_parser *p,
     au_class_interface_ptr_array_add(&p->p_data->classes, 0);
 
     struct au_class_interface *interface =
-        malloc(sizeof(struct au_class_interface));
+        au_data_malloc(sizeof(struct au_class_interface));
     au_class_interface_init(interface,
-                            copy_string(id_tok.src, id_tok.len));
+                            au_data_strndup(id_tok.src, id_tok.len));
     interface->flags = class_flags;
 
     struct au_token t = au_lexer_next(l);
@@ -681,7 +675,7 @@ static int parser_exec_def_statement(struct au_parser *p,
             };
             au_fn_array_add(&p->p_data->fns, none_func);
             au_str_array_add(&p->p_data->fn_names,
-                             copy_string(id_tok.src, id_tok.len));
+                             au_data_strndup(id_tok.src, id_tok.len));
         }
         // If the old function is already a multi-dispatch function,
         // add it to the dispatch list
@@ -705,7 +699,7 @@ static int parser_exec_def_statement(struct au_parser *p,
             };
             au_fn_array_add(&p->p_data->fns, none_func);
             au_str_array_add(&p->p_data->fn_names,
-                             copy_string(id_tok.src, id_tok.len));
+                             au_data_strndup(id_tok.src, id_tok.len));
         } else {
             func_value.idx = old_value->idx;
             au_fn_del(old);
@@ -723,7 +717,7 @@ static int parser_exec_def_statement(struct au_parser *p,
         };
         au_fn_array_add(&p->p_data->fns, none_func);
         au_str_array_add(&p->p_data->fn_names,
-                         copy_string(id_tok.src, id_tok.len));
+                         au_data_strndup(id_tok.src, id_tok.len));
     }
 
     struct au_parser func_p = {0};
@@ -1603,7 +1597,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                         (struct au_hm_var_value){
                             .idx = p->p_data->fns.len,
                         };
-                    char *import_name = malloc(t.len);
+                    char *import_name = au_data_malloc(t.len);
                     memcpy(import_name, t.src, t.len);
                     struct au_fn fn = (struct au_fn){
                         .type = AU_FN_IMPORTER,
@@ -1652,7 +1646,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                 };
                 au_fn_array_add(&p->p_data->fns, none_func);
                 au_str_array_add(&p->p_data->fn_names,
-                                 copy_string(t.src, t.len));
+                                 au_data_strndup(t.src, t.len));
                 func_idx = func_value.idx;
             }
 
@@ -1728,7 +1722,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             }
             if (in_escape) {
                 if (formatted_string == 0) {
-                    formatted_string = malloc(t.len);
+                    formatted_string = au_data_malloc(t.len);
                     formatted_string_len = i - 1;
                     memcpy(formatted_string, t.src, i - 1);
                 }
@@ -1749,7 +1743,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             idx = au_program_data_add_data(p->p_data, au_value_string(0),
                                            (uint8_t *)formatted_string,
                                            formatted_string_len);
-            free(formatted_string);
+            au_data_free(formatted_string);
         } else {
             idx = au_program_data_add_data(p->p_data, au_value_string(0),
                                            (uint8_t *)t.src, t.len);

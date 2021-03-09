@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "core/rt/malloc.h"
 #include "platform/platform.h"
 #include "rt/exception.h"
 #endif
@@ -21,10 +22,11 @@
     };                                                                    \
     static _Unused void NAME##_add(struct NAME *array, INNER el) {        \
         if (array->cap == 0) {                                            \
-            array->data = (INNER *)malloc(sizeof(INNER) * IN_CAP);        \
+            array->data =                                                 \
+                (INNER *)au_data_malloc(sizeof(INNER) * IN_CAP);          \
             array->cap = IN_CAP;                                          \
         } else if (array->len == array->cap) {                            \
-            array->data = (INNER *)realloc(                               \
+            array->data = (INNER *)au_data_realloc(                       \
                 array->data, array->cap * 2 * sizeof(INNER));             \
             array->cap *= 2;                                              \
         }                                                                 \

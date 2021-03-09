@@ -13,6 +13,6 @@ void au_bc_storage_init(struct au_bc_storage *bc_storage) {
 }
 
 void au_bc_storage_del(struct au_bc_storage *bc_storage) {
-    free(bc_storage->bc.data);
+    au_data_free(bc_storage->bc.data);
     memset(bc_storage, 0, sizeof(struct au_bc_storage));
 }

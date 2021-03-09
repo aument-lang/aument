@@ -20,6 +20,10 @@
 #define ALLOCA_MAX_VALUES 256
 #endif
 
+#ifdef AU_FEAT_LIBDL
+#include <dlfcn.h>
+#endif
+
 #include "platform/mmap.h"
 #include "platform/path.h"
 #include "platform/platform.h"
@@ -27,6 +31,7 @@
 #include "core/fn.h"
 #include "core/parser/parser.h"
 #include "exception.h"
+#include "module.h"
 #include "stdlib/au_stdlib.h"
 #include "vm.h"
 
@@ -41,19 +46,19 @@
 #ifdef DEBUG_VM
 static void debug_value(au_value_t v) {
     switch (au_value_get_type(v)) {
-    case VALUE_NONE: {
+    case AU_VALUE_NONE: {
         printf("(none)");
         break;
     }
-    case VALUE_INT: {
+    case AU_VALUE_INT: {
         printf("%d", au_value_get_int(v));
         break;
     }
-    case VALUE_BOOL: {
+    case AU_VALUE_BOOL: {
         printf("%s\n", au_value_get_bool(v) ? "(true)" : "(false)");
         break;
     }
-    case VALUE_STR: {
+    case AU_VALUE_STR: {
         printf("(string %p)\n", au_value_get_string(v));
         break;
     }
@@ -65,7 +70,7 @@ static void debug_value(au_value_t v) {
 static void debug_frame(struct au_vm_frame *frame) {
     printf("registers:\n");
     for (int i = 0; i < AU_REGS; i++) {
-        if (au_value_get_type(frame->regs[i]) == VALUE_NONE)
+        if (au_value_get_type(frame->regs[i]) == AU_VALUE_NONE)
             continue;
         printf("  %d: ", i);
         debug_value(frame->regs[i]);
@@ -380,14 +385,14 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const size_t abs_c = rel_c + p_data->tl_constant_start;
                 au_value_t v;
                 if (au_value_get_type(tl->const_cache[abs_c]) !=
-                    VALUE_NONE) {
+                    AU_VALUE_NONE) {
                     v = tl->const_cache[abs_c];
                 } else {
                     const struct au_program_data_val *data_val =
                         &p_data->data_val.data[rel_c];
                     v = data_val->real_value;
                     switch (au_value_get_type(v)) {
-                    case VALUE_STR: {
+                    case AU_VALUE_STR: {
                         v = au_value_string(au_string_from_const(
                             (const char
                                  *)(&p_data->data_buf[data_val->buf_idx]),
@@ -406,7 +411,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(AU_OP_NOT) : {
                 const uint8_t reg = frame.bc[1];
                 if (_Likely(au_value_get_type(frame.regs[reg]) ==
-                            VALUE_BOOL)) {
+                            AU_VALUE_BOOL)) {
                     frame.regs[reg] =
                         au_value_bool(!au_value_get_bool(frame.regs[reg]));
                 } else {
@@ -424,16 +429,16 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             // Binary operations
 #ifdef AU_FEAT_DELAYED_RC
 #define SPECIALIZED_INT_ONLY(NAME)                                        \
-    if ((au_value_get_type(lhs) == VALUE_INT) &&                          \
-        (au_value_get_type(rhs) == VALUE_INT)) {                          \
+    if ((au_value_get_type(lhs) == AU_VALUE_INT) &&                       \
+        (au_value_get_type(rhs) == AU_VALUE_INT)) {                       \
         frame.bc[0] = NAME##_INT;                                         \
         goto _##NAME##_INT;                                               \
     }
 
 #define SPECIALIZED_INT_AND_DOUBLE(NAME)                                  \
     SPECIALIZED_INT_ONLY(NAME)                                            \
-    else if ((au_value_get_type(lhs) == VALUE_DOUBLE) &&                  \
-             (au_value_get_type(rhs) == VALUE_DOUBLE)) {                  \
+    else if ((au_value_get_type(lhs) == AU_VALUE_DOUBLE) &&               \
+             (au_value_get_type(rhs) == AU_VALUE_DOUBLE)) {               \
         frame.bc[0] = NAME##_DOUBLE;                                      \
         goto _##NAME##_DOUBLE;                                            \
     }
@@ -495,8 +500,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
         const au_value_t rhs = frame.regs[frame.bc[2]];                   \
         const uint8_t res = frame.bc[3];                                  \
-        if (_Unlikely((au_value_get_type(lhs) != VALUE_INT) ||            \
-                      (au_value_get_type(rhs) != VALUE_INT))) {           \
+        if (_Unlikely((au_value_get_type(lhs) != AU_VALUE_INT) ||         \
+                      (au_value_get_type(rhs) != AU_VALUE_INT))) {        \
             frame.bc[0] = NAME;                                           \
             goto _##NAME;                                                 \
         }                                                                 \
@@ -530,8 +535,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t lhs = frame.regs[frame.bc[1]];                   \
         const au_value_t rhs = frame.regs[frame.bc[2]];                   \
         const uint8_t res = frame.bc[3];                                  \
-        if (_Unlikely((au_value_get_type(lhs) != VALUE_DOUBLE) ||         \
-                      (au_value_get_type(rhs) != VALUE_DOUBLE))) {        \
+        if (_Unlikely((au_value_get_type(lhs) != AU_VALUE_DOUBLE) ||      \
+                      (au_value_get_type(rhs) != AU_VALUE_DOUBLE))) {     \
             frame.bc[0] = NAME;                                           \
             goto _##NAME;                                                 \
         }                                                                 \
@@ -558,7 +563,7 @@ _AU_OP_JIF:;
                 const au_value_t cmp = frame.regs[frame.bc[1]];
                 const uint16_t n = *(uint16_t *)(&frame.bc[2]);
                 const size_t offset = ((size_t)n) * 4;
-                if (au_value_get_type(cmp) == VALUE_BOOL) {
+                if (au_value_get_type(cmp) == AU_VALUE_BOOL) {
                     frame.bc[0] = AU_OP_JIF_BOOL;
                 }
                 if (au_value_is_truthy(cmp)) {
@@ -573,7 +578,7 @@ _AU_OP_JNIF:;
                 const au_value_t cmp = frame.regs[frame.bc[1]];
                 const uint16_t n = *(uint16_t *)(&frame.bc[2]);
                 const size_t offset = ((size_t)n) * 4;
-                if (au_value_get_type(cmp) == VALUE_BOOL) {
+                if (au_value_get_type(cmp) == AU_VALUE_BOOL) {
                     frame.bc[0] = AU_OP_JNIF_BOOL;
                 }
                 if (!au_value_is_truthy(cmp)) {
@@ -600,7 +605,7 @@ _AU_OP_JNIF:;
                 const au_value_t cmp = frame.regs[frame.bc[1]];
                 const uint16_t n = *(uint16_t *)(&frame.bc[2]);
                 const size_t offset = ((size_t)n) * 4;
-                if (_Unlikely(au_value_get_type(cmp) != VALUE_BOOL)) {
+                if (_Unlikely(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
                     frame.bc[0] = AU_OP_JIF;
                     goto _AU_OP_JIF;
                 }
@@ -615,7 +620,7 @@ _AU_OP_JNIF:;
                 const au_value_t cmp = frame.regs[frame.bc[1]];
                 const uint16_t n = *(uint16_t *)(&frame.bc[2]);
                 const size_t offset = ((size_t)n) * 4;
-                if (_Unlikely(au_value_get_type(cmp) != VALUE_BOOL)) {
+                if (_Unlikely(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
                     frame.bc[0] = AU_OP_JNIF;
                     goto _AU_OP_JNIF;
                 }
@@ -867,24 +872,15 @@ _AU_OP_JNIF:;
                     p_data->imports.data[idx].module_idx;
                 const char *relpath = p_data->imports.data[idx].path;
 
-                struct au_mmap_info mmap;
                 char *abspath = 0;
-
-                if (relpath[0] == '.' && relpath[1] == '/') {
-                    const char *relpath_canon = &relpath[2];
-                    const size_t abspath_len =
-                        strlen(p_data->cwd) + strlen(relpath_canon) + 2;
-                    abspath = malloc(abspath_len);
-                    snprintf(abspath, abspath_len, "%s/%s", p_data->cwd,
-                             relpath_canon);
-                } else {
-                    assert(0);
-                }
+                if ((abspath = au_module_resolve(relpath, p_data->cwd)) ==
+                    0)
+                    au_fatal("abspath is null\n");
 
                 struct au_program_data *loaded_module =
                     au_vm_thread_local_get_module(tl, abspath);
                 if (loaded_module != 0) {
-                    free(abspath);
+                    au_data_free(abspath);
                     link_to_imported(p_data, relative_module_idx,
                                      loaded_module);
                     DISPATCH;
@@ -898,7 +894,7 @@ _AU_OP_JNIF:;
                         tl, abspath);
                     if (rmod_retval ==
                         AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
-                        free(abspath);
+                        au_data_free(abspath);
                         DISPATCH;
                     }
                 } else {
@@ -907,53 +903,79 @@ _AU_OP_JNIF:;
                 }
 
                 if (rmod_retval == AU_TL_RESMOD_RETVAL_FAIL) {
-                    au_fatal("circular import detected");
+                    au_fatal("circular import detected\n");
                 }
 
-                if (!au_mmap_read(abspath, &mmap)) {
-                    au_perror("mmap");
+                struct au_module module;
+                const int retval = au_module_import(&module, abspath);
+                if (retval == 0) {
+                    au_fatal("unable to import %s\n", abspath);
                 }
-
-                struct au_program program;
-                struct au_parser_result parse_res =
-                    au_parse(mmap.bytes, mmap.size, &program);
-                if (parse_res.type != AU_PARSER_RES_OK) {
-                    au_print_parser_error(parse_res,
-                                          (struct au_error_location){
-                                              .src = mmap.bytes,
-                                              .len = mmap.size,
-                                              .path = p_data->file,
-                                          });
-                    abort();
+#ifdef AU_FEAT_LIBDL
+                else if (retval == -1) {
+                    au_fatal("dlerror: %s\n", dlerror());
                 }
+#endif
 
-                program.data.tl_constant_start = tl->const_len;
-                au_vm_thread_local_add_const_cache(
-                    tl, program.data.data_val.len);
+                switch (module.type) {
+                case AU_MODULE_SOURCE: {
+                    struct au_mmap_info mmap = module.data.source;
 
-                if (!au_split_path(abspath, &program.data.file,
-                                   &program.data.cwd))
-                    au_perror("au_split_path");
-                free(abspath);
+                    struct au_program program;
+                    struct au_parser_result parse_res =
+                        au_parse(mmap.bytes, mmap.size, &program);
+                    if (parse_res.type != AU_PARSER_RES_OK) {
+                        au_print_parser_error(parse_res,
+                                              (struct au_error_location){
+                                                  .src = mmap.bytes,
+                                                  .len = mmap.size,
+                                                  .path = p_data->file,
+                                              });
+                        abort();
+                    }
 
-                if (rmod_retval != AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
-                    au_vm_exec_unverified_main(tl, &program);
+                    program.data.tl_constant_start = tl->const_len;
+                    au_vm_thread_local_add_const_cache(
+                        tl, program.data.data_val.len);
+
+                    if (!au_split_path(abspath, &program.data.file,
+                                       &program.data.cwd))
+                        au_perror("au_split_path");
+                    au_data_free(abspath);
+
+                    if (rmod_retval !=
+                        AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
+                        au_vm_exec_unverified_main(tl, &program);
+                    }
+
+                    if (relative_module_idx ==
+                        AU_PROGRAM_IMPORT_NO_MODULE) {
+                        au_program_del(&program);
+                    } else {
+                        au_bc_storage_del(&program.main);
+
+                        struct au_program_data *loaded_module =
+                            au_data_malloc(sizeof(struct au_program_data));
+                        memcpy(loaded_module, &program.data,
+                               sizeof(struct au_program_data));
+                        au_vm_thread_local_add_module(tl, tl_module_idx,
+                                                      loaded_module);
+
+                        link_to_imported(p_data, relative_module_idx,
+                                         loaded_module);
+                    }
+                    break;
                 }
-
-                if (relative_module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
-                    au_program_del(&program);
-                } else {
-                    au_bc_storage_del(&program.main);
-
+                case AU_MODULE_LIB: {
                     struct au_program_data *loaded_module =
-                        malloc(sizeof(struct au_program_data));
-                    memcpy(loaded_module, &program.data,
-                           sizeof(struct au_program_data));
+                        module.data.lib.lib;
+                    module.data.lib.lib = 0;
                     au_vm_thread_local_add_module(tl, tl_module_idx,
                                                   loaded_module);
-
                     link_to_imported(p_data, relative_module_idx,
                                      loaded_module);
+                    break;
+                }
                 }
                 DISPATCH;
             }
@@ -987,8 +1009,8 @@ end:
             au_value_deref(frame.locals[i]);
         }
 #endif
-        free(frame.regs);
-        free(frame.locals);
+        au_data_free(frame.regs);
+        au_data_free(frame.locals);
         frame.regs = 0;
         frame.locals = 0;
     }
@@ -1001,7 +1023,7 @@ end:
         au_value_deref(frame->locals[i]);
     }
 #endif
-    free(frame->locals);
+    au_data_free(frame->locals);
 #endif
 
 #ifndef AU_FEAT_DELAYED_RC
