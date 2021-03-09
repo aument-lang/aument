@@ -71,6 +71,10 @@ For release builds, do:
 
 An executable `aument` will appear in the `build` directory.
 
+#### Install
+
+You can use the `install.sh` script to install aument into `/usr/local`.
+
 ### Windows
 
 If your build machine is Windows, install [Python](https://www.python.org/downloads/) and [Meson](https://mesonbuild.com/SimpleStart.html#windows1).

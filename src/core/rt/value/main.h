@@ -213,7 +213,7 @@ static _AlwaysInline au_value_t au_value_string(struct au_string *data) {
 }
 static _AlwaysInline struct au_string *
 au_value_get_string(const au_value_t v) {
-    return v._data.d_ptr;
+    return (struct au_string *)v._data.d_ptr;
 }
 
 static _AlwaysInline au_value_t au_value_fn(uint32_t n) {
@@ -234,7 +234,7 @@ static _AlwaysInline au_value_t au_value_struct(struct au_struct *data) {
 }
 static _AlwaysInline struct au_struct *
 au_value_get_struct(const au_value_t v) {
-    return v._data.d_ptr;
+    return (struct au_struct *)v._data.d_ptr;
 }
 #endif
 
@@ -263,7 +263,7 @@ static _AlwaysInline void au_value_clear(au_value_t *a, int size) {
 }
 
 static _AlwaysInline au_value_t *au_value_calloc(size_t len) {
-    au_value_t *array = malloc(sizeof(au_value_t) * len);
+    au_value_t *array = (au_value_t *)malloc(sizeof(au_value_t) * len);
     au_value_clear(array, len);
     return array;
 }

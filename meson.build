@@ -317,12 +317,90 @@ if is_testing
         depends: [aument_exe])
 else
     if has_compile_feature
-        static_library('au_runtime', au_runtime_sources, include_directories: incs, c_args: ['-DAU_IS_STDLIB'])
+        static_library('au_runtime',
+            au_runtime_sources,
+            include_directories: incs,
+            c_args: ['-DAU_IS_STDLIB'],
+            install: true,
+            install_dir: get_option('bindir'))
     endif
+
+    # These header files must be ordered by hand
+    header_files = [
+# Platform-specific
+'src/platform/platform.h',
+'src/core/rt/exception.h',
+
+# Data structure defs
+'src/core/array.h',
+'src/core/str_array.h',
+'src/core/char_array.h',
+'src/core/bit_array.h',
+'src/core/hash.h',
+'src/core/hm_vars.h',
+
+# Token/bc defs
+'src/core/parser/lexer.h',
+'src/core/bc.h',
+
+# Runtime part
+'src/core/rt/struct/main.h',
+'src/core/rt/malloc.h',
+'src/core/rt/au_struct.h',
+'src/core/rt/au_string.h',
+'src/core/rt/value/main.h',
+'src/core/value_array.h',
+'src/core/rt/struct/coerce.h',
+'src/core/rt/au_array.h',
+'src/core/rt/au_class.h',
+'src/core/rt/au_tuple.h',
+'src/core/rt/struct/vdata.h',
+'src/core/rt/value/ref.h',
+'src/core/rt/extern_fn.h',
+'src/core/fn.h',
+'src/core/fn/main.h',
+'src/core/rt/struct/helper.h',
+
+# Everything else
+'src/core/parser/parser.h',
+'src/core/int_error/error_location.h',
+'src/core/vm/exception.h',
+'src/core/int_error/error_printer.h',
+'src/core/parser/exception.h',
+'src/core/program.h',
+'src/core/vm/frame_link.h',
+'src/core/vm/tl.h',
+'src/core/vm/vm.h',
+'src/core/fn/call.h',
+'src/platform/cc.h',
+'src/platform/mmap.h',
+'src/platform/path.h',
+'src/platform/spawn.h',
+'src/platform/tmpfile.h',
+'src/stdlib/au_stdlib.h',
+'src/version.h',
+    ]
+    header = custom_target(
+        'aument.h',
+        output : 'aument.h',
+        input : './build-scripts/gen_unified_header.py',
+        depend_files : header_files,
+        command : [
+            prog_python, '@INPUT@',
+            '--output', '@OUTPUT@',
+            '--files'
+        ] + header_files + ['--cpp'] + au_hdr_cflags,
+        install: true,
+        install_dir: get_option('includedir')
+    )
 
     link_args = []
     if is_static_exe and get_option('b_sanitize') == 'none'
         link_args += ['-static']
     endif
-    executable('aument', sources + ['src/main.c'], include_directories: incs, link_args: link_args)
+    executable('aument',
+        sources + ['src/main.c'],
+        include_directories: incs,
+        link_args: link_args,
+        install: true)
 endif

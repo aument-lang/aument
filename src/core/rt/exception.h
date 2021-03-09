@@ -6,6 +6,7 @@
 #ifdef AU_IS_INTERPRETER
 #pragma once
 #include "platform/platform.h"
+#include <stdlib.h>
 #endif
 
 /// Print fatal exception and abort
