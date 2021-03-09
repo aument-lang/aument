@@ -58,3 +58,9 @@ AU_EXTERN_FUNC_DECL(au_std_str);
 /// @param collection The collection (an array, string,...)
 /// @return The length of the collection.
 AU_EXTERN_FUNC_DECL(au_std_len);
+
+// ** gc.c **
+/// [func-au] Get the size of the heap.
+/// @name gc_memsize
+/// @return size of the heap
+AU_EXTERN_FUNC_DECL(au_std_gc_heap_size);

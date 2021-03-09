@@ -168,6 +168,7 @@ sources = [
 'src/stdlib/au_stdlib.c',
 'src/stdlib/au_stdlib.h',
 'src/stdlib/io.c',
+'src/stdlib/gc.c',
 'src/stdlib/types.c',
 'src/version.h',
 ]
@@ -257,6 +258,7 @@ endif
 au_runtime_sources = [
     'src/core/rt/exception.c',
     'src/stdlib/io.c',
+    'src/stdlib/gc.c',
     'src/stdlib/types.c',
     'src/stdlib/array.c',
     'src/core/rt/struct/helper.c',

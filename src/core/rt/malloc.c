@@ -12,6 +12,7 @@
 #include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
+// #include <stdio.h>
 
 struct au_obj_rc {
     uint32_t rc;
@@ -69,6 +70,8 @@ void au_malloc_init() {
 void au_malloc_set_collect(int do_collect) {
     malloc_data.do_collect = do_collect;
 }
+
+size_t au_malloc_heap_size() { return malloc_data.heap_size; }
 
 static void collect_if_needed(size_t size) {
     if (malloc_data.do_collect &&
@@ -144,6 +147,8 @@ static int should_free(struct au_obj_malloc_header *header) {
 }
 
 void au_obj_malloc_collect() {
+    // fprintf(stderr, "collecting heap of %ld bytes\n",
+    // malloc_data.heap_size);
     struct au_vm_thread_local *tl = au_vm_thread_local_get();
     {
         struct au_obj_malloc_header *cur = malloc_data.obj_list;
@@ -189,6 +194,7 @@ void au_obj_malloc_collect() {
             cur = cur->next;
         }
     }
+    // fprintf(stderr, "heap is now %ld bytes\n", malloc_data.heap_size);
 }
 
 void *au_data_malloc(size_t size) {
