@@ -4,6 +4,7 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #include "tmpfile.h"
+#include "core/rt/malloc.h"
 #include "platform.h"
 
 #include <stdlib.h>
@@ -19,7 +20,7 @@
 void au_tmpfile_del(struct au_tmpfile *tmp) {
     if (tmp->f != 0)
         fclose(tmp->f);
-    free(tmp->path);
+    au_data_free(tmp->path);
 }
 
 #ifdef _WIN32
@@ -61,7 +62,7 @@ static int new_tmpfile(_Unused struct au_tmpfile *tmp,
 
         int fd = _open_osfhandle((intptr_t)hfile, _O_TEXT);
         tmp->f = _fdopen(fd, "w");
-        tmp->path = strdup(name);
+        tmp->path = au_data_strdup(name);
         return 1;
     }
 
@@ -86,7 +87,7 @@ int au_tmpfile_new(struct au_tmpfile *tmp) {
         return 0;
     *tmp = (struct au_tmpfile){
         .f = fdopen(fd, "w"),
-        .path = strdup(c_file),
+        .path = au_data_strdup(c_file),
     };
     return 1;
 }
@@ -99,7 +100,7 @@ int au_tmpfile_exec(struct au_tmpfile *tmp) {
     close(fd);
     *tmp = (struct au_tmpfile){
         .f = 0,
-        .path = strdup(exe_file),
+        .path = au_data_strdup(exe_file),
     };
     return 1;
 }

@@ -6,10 +6,12 @@
 #include "main.h"
 #include "core/program.h"
 
-void au_imported_func_del(struct au_imported_func *fn) { free(fn->name); }
+void au_imported_func_del(struct au_imported_func *fn) {
+    au_data_free(fn->name);
+}
 
 void au_dispatch_func_del(struct au_dispatch_func *fn) {
-    free(fn->data.data);
+    au_data_free(fn->data.data);
 }
 
 void au_fn_del(struct au_fn *fn) {

@@ -13,10 +13,10 @@
 AU_EXTERN_FUNC_DECL(au_std_int) {
     const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
-    case VALUE_INT: {
+    case AU_VALUE_INT: {
         return value;
     }
-    case VALUE_STR: {
+    case AU_VALUE_STR: {
         const struct au_string *header = au_value_get_string(value);
         int num = 0;
         for (size_t i = 0; i < header->len; i++) {
@@ -43,15 +43,15 @@ AU_EXTERN_FUNC_DECL(au_std_bool) {
 AU_EXTERN_FUNC_DECL(au_std_str) {
     const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
-    case VALUE_STR: {
+    case AU_VALUE_STR: {
         au_string_ref(au_value_get_string(value));
         return value;
     }
-    case VALUE_BOOL: {
+    case AU_VALUE_BOOL: {
         const char *repr = au_value_get_bool(value) ? "(true)" : "(false)";
         return au_value_string(au_string_from_const(repr, strlen(repr)));
     }
-    case VALUE_INT: {
+    case AU_VALUE_INT: {
         int32_t abs_num = au_value_get_int(value);
         struct au_string *header =
             au_obj_malloc(sizeof(struct au_string) + 1, 0);

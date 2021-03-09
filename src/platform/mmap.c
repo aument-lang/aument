@@ -4,6 +4,7 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #include "mmap.h"
+#include "core/rt/malloc.h"
 
 #ifdef AU_USE_MMAP
 #include <fcntl.h>
@@ -39,7 +40,7 @@ int au_mmap_read(const char *path, struct au_mmap_info *info) {
         fclose(file);
         return 1;
     }
-    char *bytes = malloc(info->size);
+    char *bytes = au_data_malloc(info->size);
     fread(bytes, 1, info->size, file);
     fclose(file);
     info->bytes = bytes;
@@ -52,6 +53,6 @@ void au_mmap_del(struct au_mmap_info *info) {
     munmap(info->bytes, info->size);
     close(info->_fd);
 #else
-    free(info->bytes);
+    au_data_free(info->bytes);
 #endif
 }

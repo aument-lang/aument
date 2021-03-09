@@ -6,6 +6,7 @@
 #include "tl.h"
 #include "core/program.h"
 #include "core/rt/exception.h"
+#include "core/rt/malloc.h"
 #include "platform/platform.h"
 
 static _TLStorage struct au_vm_thread_local *current_tl = 0;
@@ -40,9 +41,9 @@ void au_vm_thread_local_del(struct au_vm_thread_local *tl) {
         if (ptr == 0)
             continue;
         au_program_data_del(ptr);
-        free(ptr);
+        au_data_free(ptr);
     }
-    free(tl->loaded_modules.data);
+    au_data_free(tl->loaded_modules.data);
     memset(tl, 0, sizeof(struct au_vm_thread_local));
 }
 
@@ -50,8 +51,8 @@ void au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
                                         size_t len) {
     if (len == 0)
         return;
-    tl->const_cache = realloc(tl->const_cache,
-                              sizeof(au_value_t) * (tl->const_len + len));
+    tl->const_cache = au_data_realloc(
+        tl->const_cache, sizeof(au_value_t) * (tl->const_len + len));
     au_value_clear(&tl->const_cache[tl->const_len], len);
     tl->const_len += len;
 }
@@ -62,7 +63,7 @@ void au_vm_thread_local_del_const_cache(struct au_vm_thread_local *tl) {
     for (size_t i = 0; i < tl->const_len; i++) {
         au_value_deref(tl->const_cache[i]);
     }
-    free(tl->const_cache);
+    au_data_free(tl->const_cache);
     tl->const_cache = 0;
     tl->const_len = 0;
 }

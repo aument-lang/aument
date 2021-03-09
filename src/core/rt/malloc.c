@@ -8,21 +8,35 @@
 #include "core/vm/vm.h"
 #include "platform/platform.h"
 
+#include <assert.h>
+#include <stdalign.h>
+#include <stddef.h>
 #include <stdint.h>
-
-#define PTR_TO_HEADER(PTR)                                                \
-    (struct au_obj_malloc_header *)((uintptr_t)PTR -                      \
-                                    sizeof(struct au_obj_malloc_header))
 
 struct au_obj_rc {
     uint32_t rc;
 };
 
+#define PTR_TO_OBJ_HEADER(PTR)                                            \
+    (struct au_obj_malloc_header *)((uintptr_t)PTR -                      \
+                                    sizeof(struct au_obj_malloc_header))
+
 struct au_obj_malloc_header {
     struct au_obj_malloc_header *next;
     au_obj_del_fn_t del_fn;
-    int32_t marked;
-    uint32_t size;
+    size_t marked;
+    size_t size;
+    char data[];
+};
+
+#define PTR_TO_DATA_HEADER(PTR)                                           \
+    (struct au_data_malloc_header *)((uintptr_t)PTR -                     \
+                                     sizeof(                              \
+                                         struct au_data_malloc_header))
+
+struct au_data_malloc_header {
+    size_t size;
+    size_t _align;
     char data[];
 };
 
@@ -33,24 +47,42 @@ struct malloc_data {
     struct au_obj_malloc_header *obj_list;
     size_t heap_size;
     size_t heap_threshold;
+    int do_collect;
 };
 
 static _TLStorage struct malloc_data malloc_data;
 
-void au_obj_malloc_init() {
+void au_malloc_init() {
+    static_assert(
+        sizeof(struct au_obj_malloc_header) % alignof(max_align_t) == 0,
+        "struct au_obj_malloc_header must divisible by the maximum "
+        "alignment");
+    static_assert(
+        sizeof(struct au_data_malloc_header) % alignof(max_align_t) == 0,
+        "struct au_data_malloc_header must divisible by the maximum "
+        "alignment");
     malloc_data = (struct malloc_data){0};
     malloc_data.heap_threshold = INITIAL_HEAP_THRESHOLD;
+    malloc_data.do_collect = 0;
 }
 
-void *au_obj_malloc(size_t size, au_obj_del_fn_t del_fn) {
-    if (size > UINT32_MAX)
-        return 0;
-    if (malloc_data.heap_size + size > malloc_data.heap_threshold) {
+void au_malloc_set_collect(int do_collect) {
+    malloc_data.do_collect = do_collect;
+}
+
+static void collect_if_needed(size_t size) {
+    if (malloc_data.do_collect &&
+        malloc_data.heap_size + size > malloc_data.heap_threshold) {
         au_obj_malloc_collect();
         if (malloc_data.heap_size + size > malloc_data.heap_threshold) {
             malloc_data.heap_threshold *= HEAP_THRESHOLD_GROWTH;
         }
     }
+}
+
+void *au_obj_malloc(size_t size, au_obj_del_fn_t del_fn) {
+    collect_if_needed(size);
+
     struct au_obj_malloc_header *header =
         malloc(sizeof(struct au_obj_malloc_header) + size);
     header->next = 0;
@@ -62,8 +94,7 @@ void *au_obj_malloc(size_t size, au_obj_del_fn_t del_fn) {
     header->next = malloc_data.obj_list;
     malloc_data.obj_list = header;
 
-    void *ptr = (void *)(header->data);
-    return ptr;
+    return (void *)(header->data);
 }
 
 void *au_obj_realloc(void *ptr, size_t size) {
@@ -71,7 +102,7 @@ void *au_obj_realloc(void *ptr, size_t size) {
         return 0;
     }
 
-    struct au_obj_malloc_header *old_header = PTR_TO_HEADER(ptr);
+    struct au_obj_malloc_header *old_header = PTR_TO_OBJ_HEADER(ptr);
     if (size <= old_header->size) {
         return old_header;
     }
@@ -89,15 +120,15 @@ void au_obj_free(void *ptr) {
 
 static void mark(au_value_t value) {
     switch (au_value_get_type(value)) {
-    case VALUE_STR: {
+    case AU_VALUE_STR: {
         struct au_obj_malloc_header *header =
-            PTR_TO_HEADER(au_value_get_string(value));
+            PTR_TO_OBJ_HEADER(au_value_get_string(value));
         header->marked = 1;
         break;
     }
-    case VALUE_STRUCT: {
+    case AU_VALUE_STRUCT: {
         struct au_obj_malloc_header *header =
-            PTR_TO_HEADER(au_value_get_struct(value));
+            PTR_TO_OBJ_HEADER(au_value_get_struct(value));
         header->marked = 1;
         break;
     }
@@ -126,7 +157,7 @@ void au_obj_malloc_collect() {
     while (link.frame != 0) {
         if (link.frame->self) {
             struct au_obj_malloc_header *header =
-                PTR_TO_HEADER(link.frame->self);
+                PTR_TO_OBJ_HEADER(link.frame->self);
             header->marked = 1;
         }
         mark(link.frame->retval);
@@ -158,4 +189,38 @@ void au_obj_malloc_collect() {
             cur = cur->next;
         }
     }
+}
+
+void *au_data_malloc(size_t size) {
+    collect_if_needed(size);
+    malloc_data.heap_size += size;
+
+    struct au_data_malloc_header *header =
+        malloc(sizeof(struct au_data_malloc_header) + size);
+    header->size = size;
+    return (void *)header->data;
+}
+
+void *au_data_realloc(void *ptr, size_t size) {
+    if (ptr == 0)
+        return au_data_malloc(size);
+    struct au_data_malloc_header *old_header = PTR_TO_DATA_HEADER(ptr);
+    const size_t old_size = old_header->size;
+    struct au_data_malloc_header *header =
+        realloc(old_header, sizeof(struct au_data_malloc_header) + size);
+    header->size = size;
+    if (header != old_header) {
+        malloc_data.heap_size -= old_size;
+        malloc_data.heap_size += size;
+        collect_if_needed(0);
+    }
+    return (void *)header->data;
+}
+
+void au_data_free(void *ptr) {
+    if (ptr == 0)
+        return;
+    struct au_data_malloc_header *header = PTR_TO_DATA_HEADER(ptr);
+    malloc_data.heap_size -= header->size;
+    free(header);
 }

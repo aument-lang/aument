@@ -159,12 +159,13 @@ int main(int argc, char **argv) {
         au_program_dbg(&program);
 
     if (action_id == ACTION_RUN) {
-        au_obj_malloc_init();
+        au_malloc_init();
 
         struct au_vm_thread_local tl;
         au_vm_thread_local_init(&tl, &program.data);
         au_vm_thread_local_set(&tl);
 
+        au_malloc_set_collect(1);
         au_vm_exec_unverified_main(&tl, &program);
 
 #ifndef AU_FEAT_LEAK_MEM
@@ -172,6 +173,7 @@ int main(int argc, char **argv) {
         au_vm_thread_local_del_const_cache(&tl);
         au_obj_malloc_collect();
 #endif
+        au_malloc_set_collect(0);
 
         au_program_del(&program);
         au_vm_thread_local_del(&tl);

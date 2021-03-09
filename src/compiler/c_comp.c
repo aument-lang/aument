@@ -18,6 +18,7 @@
 #include "core/parser/parser.h"
 #include "core/program.h"
 #include "core/rt/exception.h"
+#include "core/rt/malloc.h"
 
 #include "c_comp.h"
 
@@ -76,7 +77,7 @@ void au_c_comp_state_del(struct au_c_comp_state *state) {
         break;
     }
     case AU_C_COMP_STR: {
-        free(state->as.str.data);
+        au_data_free(state->as.str.data);
         break;
     }
     }
@@ -243,7 +244,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     assert(pos + OFFSET + 2 <= bcs->bc.len);                              \
     uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));
 
-    au_bit_array labelled_lines = calloc(1, AU_BA_LEN(bcs->bc.len / 4));
+    au_bit_array labelled_lines =
+        au_data_malloc(AU_BA_LEN(bcs->bc.len / 4));
+    memset(labelled_lines, 0, AU_BA_LEN(bcs->bc.len / 4));
 
     int arg_stack_max = 0;
     int arg_stack_len = 0;
@@ -689,7 +692,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 const char *relpath_canon = &relpath[2];
                 const size_t abspath_len =
                     strlen(p_data->cwd) + strlen(relpath_canon) + 2;
-                abspath = malloc(abspath_len);
+                abspath = au_data_malloc(abspath_len);
                 snprintf(abspath, abspath_len, "%s/%s", p_data->cwd,
                          relpath_canon);
             } else {
@@ -740,7 +743,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 program.data.cwd = 0;
                 au_split_path(abspath, &program.data.file,
                               &program.data.cwd);
-                free(abspath);
+                au_data_free(abspath);
 
                 struct au_c_comp_state mod_state = {
                     .as.str = (struct au_char_array){0},
@@ -958,7 +961,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         pos += 3;
     }
 
-    free(labelled_lines);
+    au_data_free(labelled_lines);
 }
 
 void au_c_comp_module(struct au_c_comp_state *state,
@@ -971,7 +974,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
         comp_printf(state, "static inline au_value_t _M%ld_c%ld() {\n",
                     module_idx, i);
         switch (au_value_get_type(val->real_value)) {
-        case VALUE_STR: {
+        case AU_VALUE_STR: {
             comp_printf(
                 state, INDENT
                 "return au_value_string(au_string_from_const((const "
@@ -983,12 +986,12 @@ void au_c_comp_module(struct au_c_comp_state *state,
             comp_printf(state, "}, %d));\n", val->buf_len);
             break;
         }
-        case VALUE_INT: {
+        case AU_VALUE_INT: {
             comp_printf(state, "return au_value_int(%d);\n",
                         au_value_get_int(val->real_value));
             break;
         }
-        case VALUE_DOUBLE: {
+        case AU_VALUE_DOUBLE: {
             comp_printf(state, "return au_value_double(%f);\n",
                         au_value_get_double(val->real_value));
             break;
@@ -1243,12 +1246,12 @@ void au_c_comp(struct au_c_comp_state *state,
         for (size_t i = 0; i < module->fns.len; i++) {
             au_fn_del(&module->fns.data[i]);
         }
-        free(module->fns.data);
-        free(module->c_source);
-        free(module->line_info.data);
+        au_data_free(module->fns.data);
+        au_data_free(module->c_source);
+        au_data_free(module->line_info.data);
     }
-    free(g_state.modules.data);
+    au_data_free(g_state.modules.data);
     au_hm_vars_del(&g_state.modules_map);
-    free(g_state.main_line_info.data);
+    au_data_free(g_state.main_line_info.data);
     au_c_comp_state_del(&g_state.header_file);
 }

@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "core/rt/malloc.h"
 #include "platform/platform.h"
 
 #include "../au_string.h"
@@ -17,18 +18,18 @@
 #endif
 
 enum au_vtype {
-    // VALUE_DOUBLE must be zero because the zero tag in
+    // AU_VALUE_DOUBLE must be zero because the zero tag in
     // our nan value representation represents actual
     // floating-point infinities and nans
-    VALUE_DOUBLE = 0,
-    VALUE_NONE = 1,
-    VALUE_INT = 2,
-    VALUE_BOOL = 3,
-    VALUE_FN = 4,
-    VALUE_STR = 5,
-    VALUE_STRUCT = 6,
+    AU_VALUE_DOUBLE = 0,
+    AU_VALUE_NONE = 1,
+    AU_VALUE_INT = 2,
+    AU_VALUE_BOOL = 3,
+    AU_VALUE_FN = 4,
+    AU_VALUE_STR = 5,
+    AU_VALUE_STRUCT = 6,
     // ...
-    VALUE_OP_ERROR = 15,
+    AU_VALUE_OP_ERROR = 15,
 };
 
 struct au_string;
@@ -74,13 +75,13 @@ static _AlwaysInline int au_value_is_op_error(au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_none() {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(VALUE_NONE, 0);
+    v.raw = AU_REPR_BOXED(AU_VALUE_NONE, 0);
     return v;
 }
 
 static _AlwaysInline au_value_t au_value_int(int32_t n) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(VALUE_INT, (uint64_t)n);
+    v.raw = AU_REPR_BOXED(AU_VALUE_INT, (uint64_t)n);
     return v;
 }
 static _AlwaysInline int32_t au_value_get_int(const au_value_t v) {
@@ -105,7 +106,7 @@ static _AlwaysInline double au_value_get_double(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_bool(int32_t n) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(VALUE_BOOL, n != 0);
+    v.raw = AU_REPR_BOXED(AU_VALUE_BOOL, n != 0);
     return v;
 }
 static _AlwaysInline int32_t au_value_get_bool(const au_value_t v) {
@@ -114,7 +115,7 @@ static _AlwaysInline int32_t au_value_get_bool(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_string(struct au_string *data) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(VALUE_STR, (uint64_t)data);
+    v.raw = AU_REPR_BOXED(AU_VALUE_STR, (uint64_t)data);
     return v;
 }
 static _AlwaysInline struct au_string *
@@ -124,7 +125,7 @@ au_value_get_string(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_fn(uint32_t n) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(VALUE_FN, (uint64_t)n);
+    v.raw = AU_REPR_BOXED(AU_VALUE_FN, (uint64_t)n);
     return v;
 }
 static _AlwaysInline uint32_t au_value_get_fn(const au_value_t v) {
@@ -133,7 +134,7 @@ static _AlwaysInline uint32_t au_value_get_fn(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_struct(struct au_struct *data) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(VALUE_STRUCT, (uint64_t)data);
+    v.raw = AU_REPR_BOXED(AU_VALUE_STRUCT, (uint64_t)data);
     return v;
 }
 static _AlwaysInline struct au_struct *
@@ -161,23 +162,23 @@ static _AlwaysInline enum au_vtype au_value_get_type(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_none() {
     au_value_t v = {0};
-    v._type = VALUE_NONE;
+    v._type = AU_VALUE_NONE;
     return v;
 }
 
 static _AlwaysInline au_value_t au_value_op_error() {
     au_value_t v = {0};
-    v._type = VALUE_OP_ERROR;
+    v._type = AU_VALUE_OP_ERROR;
     return v;
 }
 
 static _AlwaysInline int au_value_is_op_error(au_value_t v) {
-    return v._type == VALUE_OP_ERROR;
+    return v._type == AU_VALUE_OP_ERROR;
 }
 
 static _AlwaysInline au_value_t au_value_int(int32_t n) {
     au_value_t v = {0};
-    v._type = VALUE_INT;
+    v._type = AU_VALUE_INT;
     v._data.d_int = n;
     return v;
 }
@@ -187,7 +188,7 @@ static _AlwaysInline int32_t au_value_get_int(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_double(double n) {
     au_value_t v = {0};
-    v._type = VALUE_DOUBLE;
+    v._type = AU_VALUE_DOUBLE;
     v._data.d_double = n;
     return v;
 }
@@ -197,7 +198,7 @@ static _AlwaysInline double au_value_get_double(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_bool(int32_t n) {
     au_value_t v = {0};
-    v._type = VALUE_BOOL;
+    v._type = AU_VALUE_BOOL;
     v._data.d_int = n;
     return v;
 }
@@ -207,7 +208,7 @@ static _AlwaysInline int32_t au_value_get_bool(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_string(struct au_string *data) {
     au_value_t v = {0};
-    v._type = VALUE_STR;
+    v._type = AU_VALUE_STR;
     v._data.d_ptr = data;
     return v;
 }
@@ -218,7 +219,7 @@ au_value_get_string(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_fn(uint32_t n) {
     au_value_t v = {0};
-    v._type = VALUE_FN;
+    v._type = AU_VALUE_FN;
     v._data.d_fn_idx = n;
     return v;
 }
@@ -228,7 +229,7 @@ static _AlwaysInline uint32_t au_value_get_fn(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_struct(struct au_struct *data) {
     au_value_t v = {0};
-    v._type = VALUE_STRUCT;
+    v._type = AU_VALUE_STRUCT;
     v._data.d_ptr = data;
     return v;
 }
@@ -263,23 +264,24 @@ static _AlwaysInline void au_value_clear(au_value_t *a, int size) {
 }
 
 static _AlwaysInline au_value_t *au_value_calloc(size_t len) {
-    au_value_t *array = (au_value_t *)malloc(sizeof(au_value_t) * len);
+    au_value_t *array =
+        (au_value_t *)au_data_malloc(sizeof(au_value_t) * len);
     au_value_clear(array, len);
     return array;
 }
 
 static _AlwaysInline int au_value_is_truthy(const au_value_t v) {
     switch (au_value_get_type(v)) {
-    case VALUE_INT: {
+    case AU_VALUE_INT: {
         return au_value_get_int(v) > 0;
     }
-    case VALUE_DOUBLE: {
+    case AU_VALUE_DOUBLE: {
         return au_value_get_double(v) > 0;
     }
-    case VALUE_BOOL: {
+    case AU_VALUE_BOOL: {
         return au_value_get_bool(v);
     }
-    case VALUE_STR: {
+    case AU_VALUE_STR: {
         return au_value_get_string(v)->len > 0;
     }
     default:
@@ -292,14 +294,14 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
     if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))
         return au_value_op_error();
     switch (au_value_get_type(lhs)) {
-    case VALUE_INT: {
+    case AU_VALUE_INT: {
         return au_value_int(au_value_get_int(lhs) + au_value_get_int(rhs));
     }
-    case VALUE_DOUBLE: {
+    case AU_VALUE_DOUBLE: {
         return au_value_double(au_value_get_double(lhs) +
                                au_value_get_double(rhs));
     }
-    case VALUE_STR: {
+    case AU_VALUE_STR: {
         return au_value_string(au_string_add(au_value_get_string(lhs),
                                              au_value_get_string(rhs)));
     }
@@ -315,11 +317,11 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
         if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))  \
             return au_value_op_error();                                   \
         switch (au_value_get_type(lhs)) {                                 \
-        case VALUE_INT: {                                                 \
+        case AU_VALUE_INT: {                                              \
             return au_value_int(au_value_get_int(lhs)                     \
                                     OP au_value_get_int(rhs));            \
         }                                                                 \
-        case VALUE_DOUBLE: {                                              \
+        case AU_VALUE_DOUBLE: {                                           \
             return au_value_double(au_value_get_double(lhs)               \
                                        OP au_value_get_double(rhs));      \
         }                                                                 \
@@ -337,7 +339,7 @@ static _AlwaysInline au_value_t au_value_mod(au_value_t lhs,
     if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))
         return au_value_op_error();
     switch (au_value_get_type(lhs)) {
-    case VALUE_INT: {
+    case AU_VALUE_INT: {
         return au_value_int(au_value_get_int(lhs) % au_value_get_int(rhs));
     }
     default:
@@ -352,11 +354,11 @@ static _AlwaysInline au_value_t au_value_mod(au_value_t lhs,
         if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))  \
             return au_value_bool(0);                                      \
         switch (au_value_get_type(lhs)) {                                 \
-        case VALUE_INT: {                                                 \
+        case AU_VALUE_INT: {                                              \
             return au_value_bool(au_value_get_int(lhs)                    \
                                      OP au_value_get_int(rhs));           \
         }                                                                 \
-        case VALUE_STR: {                                                 \
+        case AU_VALUE_STR: {                                              \
             return au_value_bool(au_string_cmp(au_value_get_string(lhs),  \
                                                au_value_get_string(rhs))  \
                                      OP 0);                               \
@@ -377,15 +379,15 @@ static _AlwaysInline au_value_t au_value_eq(au_value_t lhs,
     if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))
         return au_value_bool(0);
     switch (au_value_get_type(lhs)) {
-    case VALUE_INT: {
+    case AU_VALUE_INT: {
         return au_value_bool(au_value_get_int(lhs) ==
                              au_value_get_int(rhs));
     }
-    case VALUE_BOOL: {
+    case AU_VALUE_BOOL: {
         return au_value_bool(au_value_get_bool(lhs) ==
                              au_value_get_bool(rhs));
     }
-    case VALUE_STR: {
+    case AU_VALUE_STR: {
         return au_value_bool(au_string_cmp(au_value_get_string(lhs),
                                            au_value_get_string(rhs)) == 0);
     }
@@ -399,15 +401,15 @@ static _AlwaysInline au_value_t au_value_neq(au_value_t lhs,
     if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))
         return au_value_bool(1);
     switch (au_value_get_type(lhs)) {
-    case VALUE_INT: {
+    case AU_VALUE_INT: {
         return au_value_bool(au_value_get_int(lhs) !=
                              au_value_get_int(rhs));
     }
-    case VALUE_BOOL: {
+    case AU_VALUE_BOOL: {
         return au_value_bool(au_value_get_bool(lhs) !=
                              au_value_get_bool(rhs));
     }
-    case VALUE_STR: {
+    case AU_VALUE_STR: {
         return au_value_bool(au_string_cmp(au_value_get_string(lhs),
                                            au_value_get_string(rhs)) != 0);
     }

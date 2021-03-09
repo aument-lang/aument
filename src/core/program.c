@@ -5,12 +5,13 @@
 // See LICENSE.txt for license information
 #include <string.h>
 
+#include "core/rt/malloc.h"
 #include "program.h"
 #include "stdlib/au_stdlib.h"
 #include "vm/vm.h"
 
 void au_program_import_del(struct au_program_import *data) {
-    free(data->path);
+    au_data_free(data->path);
     memset(data, 0, sizeof(struct au_program_import));
 }
 
@@ -35,28 +36,28 @@ void au_program_data_del(struct au_program_data *data) {
     au_hm_vars_del(&data->fn_map);
     for (size_t i = 0; i < data->fns.len; i++)
         au_fn_del(&data->fns.data[i]);
-    free(data->fns.data);
-    free(data->data_val.data);
-    free(data->data_buf);
+    au_data_free(data->fns.data);
+    au_data_free(data->data_val.data);
+    au_data_free(data->data_buf);
     for (size_t i = 0; i < data->imports.len; i++)
         au_program_import_del(&data->imports.data[i]);
-    free(data->imports.data);
+    au_data_free(data->imports.data);
     au_hm_vars_del(&data->imported_module_map);
     for (size_t i = 0; i < data->imported_modules.len; i++)
         au_imported_module_del(&data->imported_modules.data[i]);
-    free(data->imported_modules.data);
-    free(data->cwd);
-    free(data->file);
-    free(data->source_map.data);
+    au_data_free(data->imported_modules.data);
+    au_data_free(data->cwd);
+    au_data_free(data->file);
+    au_data_free(data->source_map.data);
     for (size_t i = 0; i < data->fn_names.len; i++)
-        free(data->fn_names.data[i]);
-    free(data->fn_names.data);
+        au_data_free(data->fn_names.data[i]);
+    au_data_free(data->fn_names.data);
     for (size_t i = 0; i < data->classes.len; i++) {
         if (data->classes.data[i] == 0)
             continue;
         au_class_interface_deref(data->classes.data[i]);
     }
-    free(data->classes.data);
+    au_data_free(data->classes.data);
     au_hm_vars_del(&data->class_map);
     memset(data, 0, sizeof(struct au_program_data));
 }
@@ -67,8 +68,8 @@ int au_program_data_add_data(struct au_program_data *p_data,
     size_t buf_idx = 0;
     if (v_len != 0) {
         buf_idx = p_data->data_buf_len;
-        p_data->data_buf =
-            realloc(p_data->data_buf, p_data->data_buf_len + v_len);
+        p_data->data_buf = au_data_realloc(p_data->data_buf,
+                                           p_data->data_buf_len + v_len);
         memcpy(&p_data->data_buf[buf_idx], v_data, v_len);
         p_data->data_buf_len += v_len;
     }
