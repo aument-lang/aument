@@ -390,7 +390,7 @@ static int parser_exec_import_statement(struct au_parser *p,
 
         const size_t module_idx = p->p_data->imported_modules.len;
         struct au_imported_module module;
-        au_imported_module_init(&module);
+        au_imported_module_init(&module, 0);
         au_imported_module_array_add(&p->p_data->imported_modules, module);
 
         const struct au_hm_var_value *old_value =
@@ -1592,7 +1592,13 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                     &p->p_data->imported_modules.data[module_idx];
                 const struct au_hm_var_value *val =
                     au_hm_vars_get(&module->fn_map, t.src, t.len);
-                if (val == 0) {
+                if (val == 0 && module->is_finished) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_UNKNOWN_FUNCTION,
+                        .data.unknown_id.name_token = t,
+                    };
+                    return 0;
+                } else if (val == 0) {
                     struct au_hm_var_value value =
                         (struct au_hm_var_value){
                             .idx = p->p_data->fns.len,

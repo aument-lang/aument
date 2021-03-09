@@ -15,10 +15,11 @@ void au_program_import_del(struct au_program_import *data) {
     memset(data, 0, sizeof(struct au_program_import));
 }
 
-void au_imported_module_init(struct au_imported_module *data) {
+void au_imported_module_init(struct au_imported_module *data, int is_finished) {
     memset(data, 0, sizeof(struct au_imported_module));
     au_hm_vars_init(&data->fn_map);
     au_hm_vars_init(&data->class_map);
+    data->is_finished = is_finished;
 }
 
 void au_imported_module_del(struct au_imported_module *data) {
