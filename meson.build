@@ -12,6 +12,10 @@ prog_python = import('python').find_installation('python3')
 
 au_hdr_cflags = []
 
+au_depends = []
+au_cflags = []
+au_export_dynamic = false
+
 # Flag configs
 
 if target_machine.system() != 'windows'
@@ -21,6 +25,13 @@ if target_machine.system() != 'windows'
     result = compiler.links(code, name : 'mmap')
     if result
         add_project_arguments('-DAU_USE_MMAP', language : ['c'])
+    endif
+
+    libdl = compiler.find_library('dl')
+    if libdl.found()
+        au_cflags += ['-DAU_FEAT_LIBDL']
+        au_depends += [libdl]
+        au_export_dynamic = true
     endif
 endif
 
@@ -138,6 +149,8 @@ sources = [
 'src/core/vm/exception.c',
 'src/core/vm/exception.h',
 'src/core/vm/frame_link.h',
+'src/core/vm/module.c',
+'src/core/vm/module.h',
 'src/core/vm/tl.c',
 'src/core/vm/tl.h',
 'src/core/vm/vm.c',
@@ -270,7 +283,12 @@ if is_testing
             c_args: ['-DAU_IS_STDLIB', '-DAU_TEST_RT_CODE'])
     endif
 
-    aument_exe = executable('aument', sources + ['src/main.c'], include_directories: incs, c_args: ['-DAU_TEST_EXE'])
+    aument_exe = executable('aument',
+        sources + ['src/main.c'],
+        include_directories: incs,
+        c_args: ['-DAU_TEST_EXE'] + au_cflags,
+        dependencies: au_depends,
+        export_dynamic: au_export_dynamic)
 
     e = executable('aument-tests-feature',
        sources + [join_paths(meson.build_root(), 'tests.c')],
@@ -315,6 +333,9 @@ if is_testing
             '--path', join_paths(meson.source_root(), 'tests/errors'),
         ],
         depends: [aument_exe])
+
+    l = shared_module('dl_module_test', files('tests/dl_module/lib.c'),
+       include_directories: incs)
 else
     if has_compile_feature
         static_library('au_runtime',
@@ -330,6 +351,7 @@ else
 # Platform-specific
 'src/platform/platform.h',
 'src/core/rt/exception.h',
+'src/core/rt/malloc.h',
 
 # Data structure defs
 'src/core/array.h',
@@ -345,7 +367,6 @@ else
 
 # Runtime part
 'src/core/rt/struct/main.h',
-'src/core/rt/malloc.h',
 'src/core/rt/au_struct.h',
 'src/core/rt/au_string.h',
 'src/core/rt/value/main.h',
@@ -402,5 +423,7 @@ else
         sources + ['src/main.c'],
         include_directories: incs,
         link_args: link_args,
-        install: true)
+        install: true,
+        dependencies: au_depends,
+        export_dynamic: au_export_dynamic)
 endif
