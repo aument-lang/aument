@@ -57,7 +57,7 @@ int au_obj_class_set(struct au_obj_class *obj_class, au_value_t idx,
                      au_value_t value);
 int32_t au_obj_class_len(struct au_obj_class *obj_class);
 
-static inline struct au_obj_class *au_obj_class_coerce(au_value_t value) {
+static inline struct au_obj_class *au_obj_class_coerce(const au_value_t value) {
     if (au_value_get_type(value) != VALUE_STRUCT ||
         au_value_get_struct(value)->vdata != &au_obj_class_vdata)
         return 0;
