@@ -38,7 +38,8 @@ char *au_module_resolve(const char *relpath, const char *parent_dir) {
 typedef struct au_program_data *module_load_fn_ret_t;
 typedef module_load_fn_ret_t (*module_load_fn_t)();
 
-int au_module_import(struct au_module *module, const char *abspath) {
+enum au_module_import_result au_module_import(struct au_module *module,
+                                              const char *abspath) {
     const size_t abspath_len = strlen(abspath);
     if (abspath_len > strlen(AU_MODULE_LIB_EXT) &&
         memcmp(&abspath[abspath_len - strlen(AU_MODULE_LIB_EXT)],
@@ -48,29 +49,29 @@ int au_module_import(struct au_module *module, const char *abspath) {
         module->data.lib.dl_handle =
             dlopen(abspath, RTLD_LAZY | RTLD_LOCAL);
         if (module->data.lib.dl_handle == 0) {
-            return -1;
+            return AU_MODULE_IMPORT_FAIL_DLERROR;
         }
         module_load_fn_t loader = (module_load_fn_t)dlsym(
             module->data.lib.dl_handle, AU_MODULE_LOAD_FN);
         if (loader == 0) {
             dlclose(module->data.lib.dl_handle);
-            return 0;
+            return AU_MODULE_IMPORT_FAIL_DLERROR;
         }
         module->data.lib.lib = loader();
         if (module->data.lib.lib == 0) {
             dlclose(module->data.lib.dl_handle);
-            return 0;
+            return AU_MODULE_IMPORT_SUCCESS_NO_MODULE;
         }
 #else
-        return 0;
+        return AU_MODULE_IMPORT_FAIL;
 #endif
     } else {
         module->type = AU_MODULE_SOURCE;
         struct au_mmap_info mmap;
         if (!au_mmap_read(abspath, &mmap)) {
-            return 0;
+            return AU_MODULE_IMPORT_FAIL;
         }
         module->data.source = mmap;
     }
-    return 1;
+    return AU_MODULE_IMPORT_SUCCESS;
 }

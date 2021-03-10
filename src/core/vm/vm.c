@@ -905,15 +905,24 @@ _AU_OP_JNIF:;
                 }
 
                 struct au_module module;
-                const int retval = au_module_import(&module, abspath);
-                if (retval == 0) {
+                switch (au_module_import(&module, abspath)) {
+                case AU_MODULE_IMPORT_SUCCESS: {
+                    break;
+                }
+                case AU_MODULE_IMPORT_SUCCESS_NO_MODULE: {
+                    goto _import_dispatch;
+                }
+                case AU_MODULE_IMPORT_FAIL: {
                     au_fatal("unable to import %s\n", abspath);
+                    break;
                 }
+                case AU_MODULE_IMPORT_FAIL_DLERROR: {
 #ifdef AU_FEAT_LIBDL
-                else if (retval == -1) {
                     au_fatal("dlerror: %s\n", dlerror());
-                }
 #endif
+                    break;
+                }
+                }
 
                 switch (module.type) {
                 case AU_MODULE_SOURCE: {
@@ -975,6 +984,7 @@ _AU_OP_JNIF:;
                     break;
                 }
                 }
+_import_dispatch:;
                 DISPATCH;
             }
             // Other
