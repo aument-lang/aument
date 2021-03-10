@@ -207,6 +207,16 @@ void *au_data_malloc(size_t size) {
     return (void *)header->data;
 }
 
+void *au_data_calloc(size_t size) {
+    collect_if_needed(size);
+    malloc_data.heap_size += size;
+
+    struct au_data_malloc_header *header =
+        calloc(sizeof(struct au_data_malloc_header) + size, 1);
+    header->size = size;
+    return (void *)header->data;
+}
+
 void *au_data_realloc(void *ptr, size_t size) {
     if (ptr == 0)
         return au_data_malloc(size);

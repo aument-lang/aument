@@ -29,6 +29,7 @@ void *au_obj_realloc(void *ptr, size_t size);
 void au_obj_free(void *ptr);
 
 __attribute__((malloc)) void *au_data_malloc(size_t size);
+__attribute__((malloc)) void *au_data_calloc(size_t size);
 void *au_data_realloc(void *ptr, size_t size);
 void au_data_free(void *ptr);
 
@@ -48,7 +49,9 @@ static _Unused char *au_data_strndup(const char *str, size_t len) {
 }
 #else
 static _Unused inline void au_malloc_init() {}
-static _Unused inline void au_malloc_set_collect(int collect) { (void)collect; }
+static _Unused inline void au_malloc_set_collect(int collect) {
+    (void)collect;
+}
 static _Unused inline size_t au_malloc_heap_size() { return 0; }
 
 __attribute__((malloc)) static inline void *au_obj_malloc(size_t size,
@@ -63,6 +66,9 @@ static inline void au_obj_free(void *ptr) { free(ptr); }
 
 __attribute__((malloc)) static inline void *au_data_malloc(size_t size) {
     return malloc(size);
+}
+__attribute__((malloc)) static inline void *au_data_calloc(size_t size) {
+    return calloc(size, 1);
 }
 static inline void *au_data_realloc(void *ptr, size_t size) {
     return realloc(ptr, size);

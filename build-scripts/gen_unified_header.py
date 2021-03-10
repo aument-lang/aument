@@ -24,13 +24,13 @@ for arg in cpp:
         total += f"""\
 #ifndef {arg[1:]}
 #define {arg[1:]}
-#endif"""
+#endif
+"""
 
 total += """\
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define AU_IS_INTERPRETER
 """
 for fn in files:
     with open("../"+fn, "r") as f:

@@ -13,7 +13,9 @@ for root, _, files in os.walk("src/"):
             path = os.path.join(root, file)
             all_files.append(path)
 all_files.sort()
-exclude = set(glob.glob('src/compiler/*') + [
+exclude = set(glob.glob('src/compiler/*') +
+    glob.glob('src/lib/*') +
+[
     'src/core/rt/stdlib_begin.h',
     'src/core/rt/stdlib_end.h',
     'src/core/rt/malloc.c',

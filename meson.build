@@ -333,6 +333,9 @@ aument_header_files = [
 'src/platform/tmpfile.h',
 'src/stdlib/au_stdlib.h',
 'src/version.h',
+
+# Libraries
+'src/lib/module.h',
     ]
 aument_header = custom_target(
     'aument.h',
@@ -414,10 +417,25 @@ if is_testing
 
     endif
 
-    if false
-    l = shared_module('dl_module_test', files('tests/dl_module/lib.c'),
-       include_directories: incs)
-    endif
+    foreach import_lib_info : [
+        ['dl_import_test', 'tests/dl-import'],
+        ['dl_module_test', 'tests/dl-module'],
+    ]
+        import_lib_test = shared_module(import_lib_info[0],
+            files(import_lib_info[1] + '/lib.c'),
+            include_directories: incs)
+        if target_machine.system() == 'windows'
+            # TODO: import_lib_test for windows
+        else
+            test(import_lib_info[0], prog_python,
+                args: files('./build-scripts/check_output.py') + [
+                    '--check', 'output',
+                    '--binary', join_paths(meson.build_root(), 'aument'),
+                    '--path', join_paths(meson.source_root(), import_lib_info[1]),
+                ],
+                depends: [aument_exe, import_lib_test])
+        endif
+    endforeach
 else
     if has_compile_feature
         static_library('au_runtime',
