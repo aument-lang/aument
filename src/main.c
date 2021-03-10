@@ -216,6 +216,8 @@ int main(int argc, char **argv) {
             au_str_array_add(&cc.cflags, "-ftest-coverage");
 #endif
 
+            au_str_array_add(&cc.ldflags, "-lm");
+
             int retval = au_spawn_cc(&cc, output_file, tmp.path);
             if (retval != 0) {
                 printf("c compiler returned with exit code %d\n", retval);

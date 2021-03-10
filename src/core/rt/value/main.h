@@ -90,7 +90,9 @@ static _AlwaysInline int32_t au_value_get_int(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_double(double n) {
     au_value_t v;
-    if (_Unlikely(isnan(n))) {
+    v.d = n;
+    if (_Unlikely((AU_REPR_EXPONENT(v.raw) == AU_REPR_SPECIAL_EXPONENT) &
+                  (AU_REPR_FRACTION(v.raw) != 0))) {
         v.raw = AU_REPR_CANONICAL_NAN;
         if (n < 0) {
             v.raw |= (1UL << 63UL);

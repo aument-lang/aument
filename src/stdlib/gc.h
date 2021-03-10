@@ -8,5 +8,7 @@
 
 #include "core/rt/extern_fn.h"
 
-struct au_program_data;
-void au_install_stdlib(struct au_program_data *data);
+/// [func-au] Get the size of the heap.
+/// @name gc::heap_size
+/// @return size of the heap
+AU_EXTERN_FUNC_DECL(au_std_gc_heap_size);

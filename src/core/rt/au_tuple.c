@@ -35,7 +35,7 @@ struct au_obj_tuple *au_obj_tuple_new(size_t len) {
         (au_obj_del_fn_t)au_obj_tuple_del);
     au_obj_tuple_vdata_init();
     obj_tuple->header = (struct au_struct){
-        .rc = 1,
+        .rc = 1,        
         .vdata = &au_obj_tuple_vdata,
     };
     obj_tuple->len = len;
