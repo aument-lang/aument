@@ -27,4 +27,13 @@ struct au_module {
 };
 
 char *au_module_resolve(const char *relpath, const char *parent_dir);
-int au_module_import(struct au_module *module, const char *abspath);
+
+enum au_module_import_result {
+    AU_MODULE_IMPORT_SUCCESS = 0,
+    AU_MODULE_IMPORT_SUCCESS_NO_MODULE = 1,
+    AU_MODULE_IMPORT_FAIL = 2,
+    AU_MODULE_IMPORT_FAIL_DLERROR = 3,
+};
+
+enum au_module_import_result au_module_import(struct au_module *module,
+                                              const char *abspath);
