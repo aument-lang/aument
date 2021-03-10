@@ -1931,6 +1931,7 @@ struct au_parser_result au_parse(const char *src, size_t len,
     p_main.bc = p.bc;
     p_main.num_locals = p.num_locals;
     p_main.num_registers = p.max_register + 1;
+    p_main.num_values = p_main.num_locals + p_main.num_registers;
     p.bc = (struct au_bc_buf){0};
 
     program->main = p_main;
