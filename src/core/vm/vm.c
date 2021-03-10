@@ -677,24 +677,27 @@ _AU_OP_JNIF:;
                 int n_regs = au_fn_num_args(call_fn);
                 const au_value_t *args =
                     &frame.arg_stack.data[frame.arg_stack.len - n_regs];
-#ifdef AU_FEAT_DELAYED_RC // clang-format off
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, args, &is_native);
                 if (_Unlikely(au_value_is_op_error(callee_retval)))
                     call_error(p_data, &frame);
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[ret_reg] = callee_retval;
                 // INVARIANT(GC): native functions always return
                 // a RC'd value
                 if (is_native)
                     au_value_deref(callee_retval);
 #else
-                const au_value_t callee_retval =
-                    au_fn_call(call_fn, tl, p_data, args);
-                if (_Unlikely(au_value_is_op_error(callee_retval)))
-                    call_error(p_data, &frame);
                 MOVE_VALUE(frame.regs[ret_reg], callee_retval);
 #endif // clang-format on
+                if (is_native) {
+                    // Native functions do not clean up the argument stack
+                    // for us, we have to do it manually.
+                    for (int i = 0; i < n_regs; i++) {
+                        au_value_deref(frame.arg_stack.data[i]);
+                    }
+                }
                 frame.arg_stack.len -= n_regs;
                 DISPATCH;
             }
@@ -704,24 +707,22 @@ _AU_OP_JNIF:;
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
                 au_value_t arg_reg = frame.regs[ret_reg];
                 // arg_reg is moved to locals in au_fn_call
-#ifdef AU_FEAT_DELAYED_RC // clang-format off
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, &arg_reg, &is_native);
                 if (_Unlikely(au_value_is_op_error(callee_retval)))
                     call_error(p_data, &frame);
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[ret_reg] = callee_retval;
                 // INVARIANT(GC): native functions always return
                 // a RC'd value
-                if (_Unlikely(is_native))
+                if (is_native)
                     au_value_deref(callee_retval);
 #else
-                const au_value_t callee_retval =
-                    au_fn_call(call_fn, tl, p_data, &arg_reg);
-                if (_Unlikely(au_value_is_op_error(callee_retval)))
-                    call_error(p_data, &frame);
                 MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-#endif // clang-format on
+#endif // clang-format on                                                 
+                // Since the argument value was replaced by the return value, there is
+                // no need to clean up the argument stack
                 DISPATCH;
             }
             // Return instructions

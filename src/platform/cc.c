@@ -96,6 +96,9 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
         au_str_array_add(&args, cc->_stdlib_cache);
     }
 
+    for (size_t i = 0; i < cc->ldflags.len; i++)
+        au_str_array_add(&args, cc->ldflags.data[i]);
+
     int retval = au_spawn(&args);
     au_data_free(args.data);
     return retval;

@@ -6,6 +6,7 @@ has_compile_feature = get_option('compiler')
 has_delayed_rc_feature = get_option('delayed_rc')
 has_leak_mem_feature = get_option('leak_mem')
 is_static_exe = get_option('static_exe')
+has_math_library = get_option('math_library')
 
 compiler = meson.get_compiler('c')
 prog_python = import('python').find_installation('python3')
@@ -34,6 +35,9 @@ if target_machine.system() != 'windows'
         au_export_dynamic = true
     endif
 endif
+
+m_dep = compiler.find_library('m', required : false)
+au_depends += [m_dep]
 
 code = '''#include<stdio.h>
 int main(int argc, char **argv) {
@@ -164,14 +168,26 @@ sources = [
 'src/platform/platform.h',
 'src/platform/spawn.h',
 'src/platform/tmpfile.h',
-'src/stdlib/array.c',
 'src/stdlib/au_stdlib.c',
 'src/stdlib/au_stdlib.h',
-'src/stdlib/io.c',
+'src/stdlib/collection.c',
+'src/stdlib/collection.h',
 'src/stdlib/gc.c',
+'src/stdlib/gc.h',
+'src/stdlib/io.c',
+'src/stdlib/io.h',
 'src/stdlib/types.c',
+'src/stdlib/types.h',
 'src/version.h',
 ]
+
+if has_math_library
+    sources += [
+        'src/stdlib/math.c',
+        'src/stdlib/math.h',
+    ]
+    add_project_arguments('-DAU_FEAT_MATH_LIB', language : ['c'])
+endif
 
 if has_compile_feature
     rt_hdr_depends = files(
@@ -260,9 +276,12 @@ au_runtime_sources = [
     'src/stdlib/io.c',
     'src/stdlib/gc.c',
     'src/stdlib/types.c',
-    'src/stdlib/array.c',
+    'src/stdlib/collection.c',
     'src/core/rt/struct/helper.c',
 ]
+if has_math_library
+    au_runtime_sources += ['src/stdlib/math.c']
+endif
 
 # Build types
 add_project_arguments('-DAU_IS_INTERPRETER', language : ['c'])

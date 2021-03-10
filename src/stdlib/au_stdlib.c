@@ -8,6 +8,12 @@
 #include "core/program.h"
 #include "core/vm/vm.h"
 
+#include "collection.h"
+#include "gc.h"
+#include "io.h"
+#include "math.h"
+#include "types.h"
+
 #define STDLIB_FUNC(NAME, ARGS)                                           \
     (struct au_lib_func) {                                                \
         .name = #NAME, .symbol = "au_std_" #NAME, .num_args = ARGS,       \
@@ -66,11 +72,65 @@ void au_install_stdlib(struct au_program_data *data) {
         }
     }
     {
-        struct au_lib_func gc_funcs[] = {
+        struct au_lib_func mod_funcs[] = {
             // *gc.c*
             MODULE_FUNC(gc_heap_size, "heap_size", 0),
         };
-        const int gc_funcs_len = sizeof(gc_funcs) / sizeof(gc_funcs[0]);
-        add_module(data, "gc", gc_funcs, gc_funcs_len);
+        const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
+        add_module(data, "gc", mod_funcs, mod_funcs_len);
     }
+    {
+        struct au_lib_func mod_funcs[] = {
+            // *io.c*
+            MODULE_FUNC(io_open, "open", 2),
+            MODULE_FUNC(io_close, "close", 1),
+        };
+        const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
+        add_module(data, "io", mod_funcs, mod_funcs_len);
+    }
+#ifdef AU_FEAT_MATH_LIB
+    {
+        struct au_lib_func mod_funcs[] = {
+            // *math.c*
+            MODULE_FUNC(math_abs, "abs", 1),
+            MODULE_FUNC(math_max, "max", 2),
+            MODULE_FUNC(math_min, "min", 2),
+            MODULE_FUNC(math_exp, "exp", 1),
+            MODULE_FUNC(math_ln, "ln", 1),
+            MODULE_FUNC(math_log2, "log2", 1),
+            MODULE_FUNC(math_log10, "log10", 1),
+            MODULE_FUNC(math_sqrt, "sqrt", 1),
+            MODULE_FUNC(math_cbrt, "cbrt", 1),
+            MODULE_FUNC(math_hypot, "hypot", 2),
+            MODULE_FUNC(math_pow, "pow", 2),
+            MODULE_FUNC(math_sin, "sin", 1),
+            MODULE_FUNC(math_cos, "cos", 1),
+            MODULE_FUNC(math_tan, "tan", 1),
+            MODULE_FUNC(math_asin, "asin", 1),
+            MODULE_FUNC(math_acos, "acos", 1),
+            MODULE_FUNC(math_atan, "atan", 1),
+            MODULE_FUNC(math_atan2, "atan2", 2),
+            MODULE_FUNC(math_sinh, "sinh", 1),
+            MODULE_FUNC(math_cosh, "cosh", 1),
+            MODULE_FUNC(math_tanh, "tanh", 1),
+            MODULE_FUNC(math_asinh, "asinh", 1),
+            MODULE_FUNC(math_acosh, "acosh", 1),
+            MODULE_FUNC(math_atanh, "atanh", 1),
+            MODULE_FUNC(math_erf, "erf", 1),
+            MODULE_FUNC(math_erfc, "erfc", 1),
+            MODULE_FUNC(math_lgamma, "lgamma", 1),
+            MODULE_FUNC(math_tgamma, "tgamma", 1),
+            MODULE_FUNC(math_ceil, "ceil", 1),
+            MODULE_FUNC(math_floor, "floor", 1),
+            MODULE_FUNC(math_trunc, "trunc", 1),
+            MODULE_FUNC(math_round, "round", 1),
+            MODULE_FUNC(math_is_finite, "is_finite", 1),
+            MODULE_FUNC(math_is_infinite, "is_infinite", 1),
+            MODULE_FUNC(math_is_nan, "is_nan", 1),
+            MODULE_FUNC(math_is_normal, "is_normal", 1),
+        };
+        const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
+        add_module(data, "math", mod_funcs, mod_funcs_len);
+    }
+#endif
 }

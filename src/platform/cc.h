@@ -9,6 +9,7 @@
 
 struct au_cc_options {
     struct au_str_array cflags;
+    struct au_str_array ldflags;
     char *_stdlib_cache;
     int use_stdlib;
 };
