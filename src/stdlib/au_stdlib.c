@@ -14,16 +14,17 @@
         .func = au_std_##NAME                                             \
     }
 
-#define MODULE_FUNC(NAME, SYMBOL, ARGS)                                           \
+#define MODULE_FUNC(NAME, SYMBOL, ARGS)                                   \
     (struct au_lib_func) {                                                \
-        .name = #NAME, .symbol = SYMBOL, .num_args = ARGS,       \
+        .name = #NAME, .symbol = SYMBOL, .num_args = ARGS,                \
         .func = au_std_##NAME                                             \
     }
 
 static void add_module(struct au_program_data *data, const char *name,
                        struct au_lib_func *funcs, int len) {
-    struct au_hm_var_value *old = au_hm_vars_add(&data->imported_module_map, name, strlen(name),
-                   AU_HM_VAR_VALUE(data->imported_modules.len));
+    struct au_hm_var_value *old =
+        au_hm_vars_add(&data->imported_module_map, name, strlen(name),
+                       AU_HM_VAR_VALUE(data->imported_modules.len));
     assert(old == 0);
     struct au_imported_module module = {0};
     au_imported_module_init(&module, 1);
