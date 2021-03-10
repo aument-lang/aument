@@ -21,7 +21,10 @@ total = ""
 
 for arg in cpp:
     if arg[0] == 'D':
-        total += "#define %s\n" % arg[1:]
+        total += f"""\
+#ifndef {arg[1:]}
+#define {arg[1:]}
+#endif"""
 
 total += """\
 #ifdef __cplusplus
