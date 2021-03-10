@@ -175,8 +175,8 @@ sources = [
 
 if has_compile_feature
     rt_hdr_depends = files(
-        'src/core/rt/malloc.h',
         'src/platform/platform.h',
+        'src/core/rt/malloc.h',
         'src/core/array.h',
         'src/core/rt/exception.h',
         'src/core/rt/au_string.h',
@@ -278,78 +278,9 @@ endif
 
 incs = include_directories('src')
 
-if is_testing
-    if has_compile_feature
-        static_library('au_runtime', au_runtime_sources,
-            include_directories: incs,
-            c_args: ['-DAU_IS_STDLIB', '-DAU_TEST_RT_CODE'])
-    endif
 
-    aument_exe = executable('aument',
-        sources + ['src/main.c'],
-        include_directories: incs,
-        c_args: ['-DAU_TEST_EXE'] + au_cflags,
-        dependencies: au_depends,
-        export_dynamic: au_export_dynamic)
-
-    e = executable('aument-tests-feature',
-       sources + [join_paths(meson.build_root(), 'tests.c')],
-       include_directories: incs,
-       c_args: ['-DAU_TEST_RT_CODE'])
-    test('language feature test', e)
-
-    if has_compile_feature
-        e = executable('aument-tests-comp',
-           sources + [join_paths(meson.build_root(), 'tests_comp.c')],
-           include_directories: incs,
-           c_args: ['-DAU_TEST_RT_CODE'])
-        test('c compiler test', e)
-    endif
-
-    test('features with input', prog_python,
-        args: files('./build-scripts/check_output_with_input.py') + [
-            '--binary', join_paths(meson.build_root(), 'aument'),
-            '--path', join_paths(meson.source_root(), 'tests/features-with-input'),
-        ],
-        depends: [aument_exe])
-
-    test('imports', prog_python,
-        args: files('./build-scripts/check_output.py') + [
-            '--binary', join_paths(meson.build_root(), 'aument'),
-            '--path', join_paths(meson.source_root(), 'tests/imports'),
-        ],
-        depends: [aument_exe])
-
-    if has_compile_feature
-        test('imports compiled', prog_python,
-            args: files('./build-scripts/check_output_comp.py') + [
-                '--binary', join_paths(meson.build_root(), 'aument'),
-                '--path', join_paths(meson.source_root(), 'tests/imports'),
-            ],
-            depends: [aument_exe])
-    endif
-
-    test('error output', prog_python,
-        args: files('./build-scripts/check_errors.py') + [
-            '--binary', join_paths(meson.build_root(), 'aument'),
-            '--path', join_paths(meson.source_root(), 'tests/errors'),
-        ],
-        depends: [aument_exe])
-
-    l = shared_module('dl_module_test', files('tests/dl_module/lib.c'),
-       include_directories: incs)
-else
-    if has_compile_feature
-        static_library('au_runtime',
-            au_runtime_sources,
-            include_directories: incs,
-            c_args: ['-DAU_IS_STDLIB'],
-            install: true,
-            install_dir: get_option('bindir'))
-    endif
-
-    # These header files must be ordered by hand
-    header_files = [
+# These header files must be ordered by hand
+aument_header_files = [
 # Platform-specific
 'src/platform/platform.h',
 'src/core/rt/exception.h',
@@ -403,19 +334,99 @@ else
 'src/stdlib/au_stdlib.h',
 'src/version.h',
     ]
-    header = custom_target(
-        'aument.h',
-        output : 'aument.h',
-        input : './build-scripts/gen_unified_header.py',
-        depend_files : header_files,
-        command : [
-            prog_python, '@INPUT@',
-            '--output', '@OUTPUT@',
-            '--files'
-        ] + header_files + ['--cpp'] + au_hdr_cflags,
-        install: true,
-        install_dir: get_option('includedir')
-    )
+aument_header = custom_target(
+    'aument.h',
+    output : 'aument.h',
+    input : './build-scripts/gen_unified_header.py',
+    depend_files : aument_header_files,
+    command : [
+        prog_python, '@INPUT@',
+        '--output', '@OUTPUT@',
+        '--files'
+    ] + aument_header_files + ['--cpp'] + au_hdr_cflags,
+    install: true,
+    install_dir: get_option('includedir')
+)
+
+if is_testing
+    if has_compile_feature
+        static_library('au_runtime', au_runtime_sources,
+            include_directories: incs,
+            c_args: ['-DAU_IS_STDLIB', '-DAU_TEST_RT_CODE'])
+    endif
+
+    aument_exe = executable('aument',
+        sources + ['src/main.c'],
+        include_directories: incs,
+        c_args: ['-DAU_TEST_EXE'] + au_cflags,
+        dependencies: au_depends,
+        export_dynamic: au_export_dynamic)
+
+    e = executable('aument-tests-feature',
+       sources + [join_paths(meson.build_root(), 'tests.c')],
+       include_directories: incs,
+       c_args: ['-DAU_TEST_RT_CODE'])
+    test('language feature test', e)
+
+    if has_compile_feature
+        e = executable('aument-tests-comp',
+           sources + [join_paths(meson.build_root(), 'tests_comp.c')],
+           include_directories: incs,
+           c_args: ['-DAU_TEST_RT_CODE'])
+        test('c compiler test', prog_python,
+            args: files('./build-scripts/compile_runner.py') + [
+                join_paths(meson.build_root(), 'aument-tests-comp'),
+            ])
+    endif
+
+    test('features with input', prog_python,
+        args: files('./build-scripts/check_output.py') + [
+            '--check', 'with_input',
+            '--binary', join_paths(meson.build_root(), 'aument'),
+            '--path', join_paths(meson.source_root(), 'tests/features-with-input'),
+        ],
+        depends: [aument_exe])
+
+    test('imports', prog_python,
+        args: files('./build-scripts/check_output.py') + [
+            '--check', 'output',
+            '--binary', join_paths(meson.build_root(), 'aument'),
+            '--path', join_paths(meson.source_root(), 'tests/imports'),
+        ],
+        depends: [aument_exe])
+
+    if has_compile_feature
+        test('imports compiled', prog_python,
+            args: files('./build-scripts/check_output.py') + [
+                '--check', 'comp',
+                '--binary', join_paths(meson.build_root(), 'aument'),
+                '--path', join_paths(meson.source_root(), 'tests/imports'),
+            ],
+            depends: [aument_exe])
+
+    test('error output', prog_python,
+        args: files('./build-scripts/check_output.py') + [
+            '--check', 'errors',
+            '--binary', join_paths(meson.build_root(), 'aument'),
+            '--path', join_paths(meson.source_root(), 'tests/errors'),
+        ],
+        depends: [aument_exe])
+
+    endif
+
+    if false
+    l = shared_module('dl_module_test', files('tests/dl_module/lib.c'),
+       include_directories: incs)
+    endif
+else
+    if has_compile_feature
+        static_library('au_runtime',
+            au_runtime_sources,
+            include_directories: incs,
+            c_args: ['-DAU_IS_STDLIB'],
+            install: true,
+            install_dir: get_option('bindir'))
+    endif
 
     link_args = []
     if is_static_exe and get_option('b_sanitize') == 'none'

@@ -233,13 +233,16 @@ static void test_{i}() {{
     run_gcc(source, {input_src_len});
 }}\n\n"""
 
-c_src_comp_test += """
-int main() {
+c_src_comp_test += f"""
+int main(int argc, char **argv) {{
     setup();
+    assert(argc>1);
+    const int sel = atoi(argv[1]);
+    if(sel==-1){{ printf("{len(files)}");return 0; }}
 """
 
 for (i, fn) in enumerate(files):
-    c_src_comp_test += f"  printf(\"[{i+1}/{len(files)}] {fn}\\n\"); test_{i}();\n"
+    c_src_comp_test += f"    if(sel=={i}) {{ printf(\"[{i+1}/{len(files)}] {fn}\\n\"); test_{i}(); }}\n"
 
 c_src_comp_test += """
     cleanup();
