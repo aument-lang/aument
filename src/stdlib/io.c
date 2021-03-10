@@ -14,7 +14,7 @@
 AU_EXTERN_FUNC_DECL(au_std_input) {
     int ch = -1;
     struct au_string *header =
-        au_data_malloc(sizeof(struct au_string) + 1);
+        au_obj_malloc(sizeof(struct au_string) + 1, 0);
     header->rc = 1;
     header->len = 1;
     uint32_t pos = 0, cap = 1;
@@ -24,7 +24,7 @@ AU_EXTERN_FUNC_DECL(au_std_input) {
         if (pos == cap) {
             cap *= 2;
             header =
-                au_data_realloc(header, sizeof(struct au_string) + cap);
+                au_obj_realloc(header, sizeof(struct au_string) + cap);
         }
         header->data[pos] = ch;
         pos++;
