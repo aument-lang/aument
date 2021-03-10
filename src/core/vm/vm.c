@@ -343,20 +343,18 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(AU_OP_LOAD_SELF) : {
                 frame.self = (struct au_obj_class *)au_value_get_struct(
                     frame.locals[0]);
-#ifndef AU_FEAT_DELAYED_RC
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
+                // INVARIANT(GC): no need to increment the rc
+#else
                 frame.self->header.rc++;
-#endif
+#endif // clang-format on
                 DISPATCH;
             }
             // Register/local move operations
             CASE(AU_OP_MOV_U16) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t n = *(uint16_t *)(&frame.bc[2]);
-#ifdef AU_FEAT_DELAYED_RC
-                frame.regs[reg] = au_value_int(n);
-#else
-            MOVE_VALUE(frame.regs[reg], au_value_int(n));
-#endif
+                COPY_VALUE(frame.regs[reg], au_value_int(n));
                 DISPATCH;
             }
             CASE(AU_OP_MOV_REG_LOCAL) : {
@@ -413,14 +411,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     frame.regs[reg] =
                         au_value_bool(!au_value_get_bool(frame.regs[reg]));
                 } else {
-#ifdef AU_FEAT_DELAYED_RC
-                    frame.regs[reg] = au_value_bool(
-                        !au_value_is_truthy(frame.regs[reg]));
-#else
-                MOVE_VALUE(
-                    frame.regs[reg],
-                    au_value_bool(!au_value_is_truthy(frame.regs[reg])));
-#endif
+                    COPY_VALUE(frame.regs[reg],
+                               au_value_bool(
+                                   !au_value_is_truthy(frame.regs[reg])));
                 }
                 DISPATCH;
             }
@@ -453,6 +446,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         frame.regs[res] = result;                                         \
+        /* INVARIANT(GC): value operations always return an RC'd result   \
+         */                                                               \
         au_value_deref(result);                                           \
         DISPATCH;                                                         \
     }
@@ -638,11 +633,13 @@ _AU_OP_JNIF:;
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        au_value_deref(result);                                           \
         if (_Unlikely(au_value_is_op_error(result))) {                    \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         frame.locals[local] = result;                                     \
+        au_value_deref(result);                                           \
+        /* INVARIANT(GC): value operations always return an RC'd result   \
+         */                                                               \
         DISPATCH;                                                         \
     }
 #else
@@ -680,22 +677,24 @@ _AU_OP_JNIF:;
                 int n_regs = au_fn_num_args(call_fn);
                 const au_value_t *args =
                     &frame.arg_stack.data[frame.arg_stack.len - n_regs];
-#ifdef AU_FEAT_DELAYED_RC
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, args, &is_native);
                 if (_Unlikely(au_value_is_op_error(callee_retval)))
                     call_error(p_data, &frame);
                 frame.regs[ret_reg] = callee_retval;
+                // INVARIANT(GC): native functions always return
+                // a RC'd value
                 if (is_native)
                     au_value_deref(callee_retval);
 #else
-            const au_value_t callee_retval =
-                au_fn_call(call_fn, tl, p_data, args);
-            if (_Unlikely(au_value_is_op_error(callee_retval)))
-                call_error(p_data, &frame);
-            MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-#endif
+                const au_value_t callee_retval =
+                    au_fn_call(call_fn, tl, p_data, args);
+                if (_Unlikely(au_value_is_op_error(callee_retval)))
+                    call_error(p_data, &frame);
+                MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+#endif // clang-format on
                 frame.arg_stack.len -= n_regs;
                 DISPATCH;
             }
@@ -705,22 +704,24 @@ _AU_OP_JNIF:;
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
                 au_value_t arg_reg = frame.regs[ret_reg];
                 // arg_reg is moved to locals in au_fn_call
-#ifdef AU_FEAT_DELAYED_RC
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, &arg_reg, &is_native);
                 if (_Unlikely(au_value_is_op_error(callee_retval)))
                     call_error(p_data, &frame);
                 frame.regs[ret_reg] = callee_retval;
+                // INVARIANT(GC): native functions always return
+                // a RC'd value
                 if (_Unlikely(is_native))
                     au_value_deref(callee_retval);
 #else
-            const au_value_t callee_retval =
-                au_fn_call(call_fn, tl, p_data, &arg_reg);
-            if (_Unlikely(au_value_is_op_error(callee_retval)))
-                call_error(p_data, &frame);
-            MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-#endif
+                const au_value_t callee_retval =
+                    au_fn_call(call_fn, tl, p_data, &arg_reg);
+                if (_Unlikely(au_value_is_op_error(callee_retval)))
+                    call_error(p_data, &frame);
+                MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+#endif // clang-format on
                 DISPATCH;
             }
             // Return instructions
@@ -745,16 +746,20 @@ _AU_OP_JNIF:;
             CASE(AU_OP_ARRAY_NEW) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t capacity = *((uint16_t *)(&frame.bc[2]));
-#ifdef AU_FEAT_DELAYED_RC
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
                 struct au_struct *s =
                     (struct au_struct *)au_obj_array_new(capacity);
                 frame.regs[reg] = au_value_struct(s);
+                // INVARIANT(GC): from au_obj_array_new
                 s->rc = 0;
 #else
-            MOVE_VALUE(frame.regs[reg],
-                       au_value_struct((
-                           struct au_struct *)au_obj_array_new(capacity)));
-#endif
+                MOVE_VALUE(
+                    frame.regs[reg],
+                    au_value_struct(
+                        (struct au_struct *)au_obj_array_new(capacity)
+                    )
+                );
+#endif // clang-format on
                 DISPATCH;
             }
             CASE(AU_OP_ARRAY_PUSH) : {
@@ -806,16 +811,20 @@ _AU_OP_JNIF:;
             CASE(AU_OP_TUPLE_NEW) : {
                 const uint8_t reg = frame.bc[1];
                 const uint16_t length = *((uint16_t *)(&frame.bc[2]));
-#ifdef AU_FEAT_DELAYED_RC
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
                 struct au_struct *s =
                     (struct au_struct *)au_obj_tuple_new(length);
                 frame.regs[reg] = au_value_struct(s);
+                // INVARIANT(GC): from au_obj_tuple_new
                 s->rc = 0;
 #else
-            MOVE_VALUE(frame.regs[reg],
-                       au_value_struct(
-                           (struct au_struct *)au_obj_tuple_new(length)));
-#endif
+                MOVE_VALUE(
+                    frame.regs[reg],
+                    au_value_struct(
+                        (struct au_struct *)au_obj_tuple_new(length)
+                    )
+                );
+#endif // clang-format on
                 DISPATCH;
             }
             CASE(AU_OP_IDX_SET_STATIC) : {
@@ -843,12 +852,13 @@ _AU_OP_JNIF:;
                     (struct au_struct *)au_obj_class_new(
                         p_data->classes.data[class_id]);
                 const au_value_t new_value = au_value_struct(obj_class);
-#ifdef AU_FEAT_DELAYED_RC
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[reg] = new_value;
+                // INVARIANT(GC): from au_obj_class_new
                 obj_class->rc = 0;
 #else
-            MOVE_VALUE(frame.regs[reg], new_value);
-#endif
+                MOVE_VALUE(frame.regs[reg], new_value);
+#endif // clang-format on
                 DISPATCH;
             }
             CASE(AU_OP_CLASS_GET_INNER) : {
@@ -1035,7 +1045,9 @@ end:
 
     au_data_free(frame.arg_stack.data);
 
-#ifndef AU_FEAT_DELAYED_RC
+#ifdef AU_FEAT_DELAYED_RC
+    // INVARIANT(GC): we don't hold a ref to self
+#else
     if (frame.self)
         frame.self->header.rc--;
 #endif

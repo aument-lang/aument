@@ -14,7 +14,8 @@
 
 typedef void (*au_obj_del_fn_t)(void *self);
 
-#if defined(AU_IS_INTERPRETER) && !defined(AU_IS_STDLIB)
+#if defined(AU_IS_INTERPRETER) && !defined(AU_IS_STDLIB) &&               \
+    defined(AU_FEAT_DELAYED_RC)
 void au_malloc_init();
 void au_malloc_set_collect(int do_collect);
 size_t au_malloc_heap_size();
@@ -46,6 +47,8 @@ static _Unused char *au_data_strndup(const char *str, size_t len) {
     return output;
 }
 #else
+static _Unused inline void au_malloc_init() {}
+static _Unused inline void au_malloc_set_collect(int collect) { (void)collect; }
 static _Unused inline size_t au_malloc_heap_size() { return 0; }
 
 __attribute__((malloc)) static inline void *au_obj_malloc(size_t size,
