@@ -186,20 +186,18 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 
 #ifdef AU_USE_ALLOCA
     au_value_t *alloca_values = 0;
-    if (_Likely((bcs->num_registers + bcs->locals_len) <
-                ALLOCA_MAX_VALUES)) {
-        const size_t n_values = bcs->num_registers + bcs->locals_len;
-        alloca_values = alloca(n_values * sizeof(au_value_t));
-        au_value_clear(alloca_values, n_values);
+    if (_Likely(bcs->num_values < ALLOCA_MAX_VALUES)) {
+        alloca_values = alloca(bcs->num_values * sizeof(au_value_t));
+        au_value_clear(alloca_values, bcs->num_values);
         frame.regs = alloca_values;
         frame.locals = &alloca_values[bcs->num_registers];
     } else {
         frame.regs = au_value_calloc(bcs->num_registers);
-        frame.locals = au_value_calloc(bcs->locals_len);
+        frame.locals = au_value_calloc(bcs->num_locals);
     }
 #else
     au_value_clear(frame.regs, bcs->num_registers);
-    frame.locals = au_value_calloc(bcs->locals_len);
+    frame.locals = au_value_calloc(bcs->num_locals);
 #endif
 
     for (int i = 0; i < bcs->num_args; i++) {
@@ -995,8 +993,7 @@ end:
 #ifdef AU_USE_ALLOCA
     if (_Likely(alloca_values)) {
 #ifndef AU_FEAT_DELAYED_RC
-        int n_values = bcs->num_registers + bcs->locals_len;
-        for (int i = 0; i < n_values; i++) {
+        for (int i = 0; i < bcs->num_values; i++) {
             au_value_deref(alloca_values[i]);
         }
 #endif
@@ -1005,7 +1002,7 @@ end:
         for (int i = 0; i < bcs->num_registers; i++) {
             au_value_deref(frame.regs[i]);
         }
-        for (int i = 0; i < bcs->locals_len; i++) {
+        for (int i = 0; i < bcs->num_locals; i++) {
             au_value_deref(frame.locals[i]);
         }
 #endif
@@ -1019,12 +1016,14 @@ end:
     for (int i = 0; i < bcs->num_registers; i++) {
         au_value_deref(frame->regs[i]);
     }
-    for (int i = 0; i < bcs->locals_len; i++) {
+    for (int i = 0; i < bcs->num_locals; i++) {
         au_value_deref(frame->locals[i]);
     }
 #endif
     au_data_free(frame->locals);
 #endif
+
+    au_data_free(frame.arg_stack.data);
 
 #ifndef AU_FEAT_DELAYED_RC
     if (frame.self)

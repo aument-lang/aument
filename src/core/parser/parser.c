@@ -42,7 +42,7 @@ struct au_parser {
     struct au_program_data *p_data;
 
     /// Number of local registers
-    int locals_len;
+    int num_locals;
     /// Maximum register index used
     int max_register;
     /// Current scope level
@@ -93,7 +93,7 @@ static void parser_init(struct au_parser *p,
     au_hm_vars_init(&p->vars);
     p->p_data = p_data;
 
-    p->locals_len = 0;
+    p->num_locals = 0;
     p->max_register = -1;
     p->block_level = 0;
 
@@ -736,7 +736,7 @@ static int parser_exec_def_statement(struct au_parser *p,
                            AU_HM_VAR_VALUE(0));
         }
         bcs.num_args++;
-        func_p.locals_len++;
+        func_p.num_locals++;
     }
 
     tok = au_lexer_next(l);
@@ -758,8 +758,8 @@ static int parser_exec_def_statement(struct au_parser *p,
             return 0;
         }
 
-        func_p.locals_len++;
-        EXPECT_BYTECODE(func_p.locals_len <= AU_MAX_LOCALS);
+        func_p.num_locals++;
+        EXPECT_BYTECODE(func_p.num_locals <= AU_MAX_LOCALS);
         bcs.num_args++;
         while (1) {
             tok = au_lexer_peek(l, 0);
@@ -783,8 +783,8 @@ static int parser_exec_def_statement(struct au_parser *p,
                     };
                     return 0;
                 }
-                func_p.locals_len++;
-                assert(func_p.locals_len < AU_MAX_LOCALS);
+                func_p.num_locals++;
+                assert(func_p.num_locals < AU_MAX_LOCALS);
                 bcs.num_args++;
             } else {
                 EXPECT_TOKEN(0, tok, "arguments");
@@ -823,9 +823,10 @@ static int parser_exec_def_statement(struct au_parser *p,
     }
     parser_emit_bc_u8(&func_p, AU_OP_RET_NULL);
 
-    bcs.bc = func_p.bc;
-    bcs.locals_len = func_p.locals_len;
+    bcs.num_locals = func_p.num_locals;
     bcs.num_registers = func_p.max_register + 1;
+    bcs.num_values = bcs.num_locals + bcs.num_registers;
+    bcs.bc = func_p.bc;
     bcs.class_idx = class_idx;
     bcs.class_interface_cache = class_interface;
     bcs.source_map_start = source_map_start;
@@ -1160,7 +1161,7 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
             }
 
             struct au_hm_var_value var_value = (struct au_hm_var_value){
-                .idx = p->locals_len,
+                .idx = p->num_locals,
             };
 
             if (!(op.len == 1 && op.src[0] == '=')) {
@@ -1187,8 +1188,8 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
             if (old_value) {
                 parser_emit_bc_u16(p, old_value->idx);
             } else {
-                p->locals_len++;
-                EXPECT_BYTECODE(p->locals_len <= AU_MAX_LOCALS);
+                p->num_locals++;
+                EXPECT_BYTECODE(p->num_locals <= AU_MAX_LOCALS);
                 parser_emit_bc_u16(p, var_value.idx);
             }
             return 1;
@@ -1928,7 +1929,7 @@ struct au_parser_result au_parse(const char *src, size_t len,
     struct au_bc_storage p_main;
     au_bc_storage_init(&p_main);
     p_main.bc = p.bc;
-    p_main.locals_len = p.locals_len;
+    p_main.num_locals = p.num_locals;
     p_main.num_registers = p.max_register + 1;
     p.bc = (struct au_bc_buf){0};
 

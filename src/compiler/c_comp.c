@@ -199,7 +199,7 @@ static void comp_cleanup(struct au_c_comp_state *state,
     for (int i = 0; i < bcs->num_registers; i++)
         if (i != except_register)
             comp_printf(state, "au_value_deref(r%d);", i);
-    for (int i = 0; i < bcs->locals_len; i++)
+    for (int i = 0; i < bcs->num_locals; i++)
         if (i != except_local)
             comp_printf(state, "au_value_deref(l%d);", i);
     if (has_self) {
@@ -226,9 +226,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         comp_printf(state, ";\n");
     }
 
-    if (bcs->locals_len > 0) {
+    if (bcs->num_locals > 0) {
         comp_printf(state, INDENT "au_value_t l0 = au_value_none()");
-        for (int i = 1; i < bcs->locals_len; i++) {
+        for (int i = 1; i < bcs->num_locals; i++) {
             comp_printf(state, ", l%d = au_value_none()", i);
         }
         comp_printf(state, ";\n");

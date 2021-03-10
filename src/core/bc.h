@@ -91,13 +91,23 @@ extern const char *au_opcode_dbg[AU_REGS];
 ARRAY_TYPE_COPY(uint8_t, au_bc_buf, 4)
 
 struct au_bc_storage {
+    /// Number of arguments the function takes
     int num_args;
-    int locals_len;
-    size_t class_idx;
-    struct au_class_interface *class_interface_cache;
-    struct au_bc_buf bc;
-    size_t source_map_start;
+    /// Number of registers the function uses
     int num_registers;
+    /// Number of locals the function uses
+    int num_locals;
+    /// Sum total of the number of registers and locals
+    int num_values;
+    /// Index of the class (if function is a method)
+    size_t class_idx;
+    /// Cached pointer to the class. This pointer is not reference counted.
+    struct au_class_interface *class_interface_cache;
+    /// Bytecode buffer
+    struct au_bc_buf bc;
+    /// At which index does the source map representation of the function
+    /// start
+    size_t source_map_start;
 };
 
 /// [func] Initializes an au_bc_storage instance

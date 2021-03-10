@@ -169,7 +169,7 @@ void au_obj_malloc_collect() {
         for (int i = 0; i < link.bcs->num_registers; i++) {
             mark(link.frame->regs[i]);
         }
-        for (int i = 0; i < link.bcs->locals_len; i++) {
+        for (int i = 0; i < link.bcs->num_locals; i++) {
             mark(link.frame->locals[i]);
         }
         link = link.frame->link;
