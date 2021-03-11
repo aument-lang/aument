@@ -73,6 +73,25 @@ if result.stdout().strip() == '1'
     au_hdr_cflags += ['DAU_USE_NAN_TAGGING']
 endif
 
+code = '''#include<stdio.h>
+#include <stdlib.h>
+#include <inttypes.h>
+__attribute__((noinline)) uintptr_t stack_local() {
+  char x = '1';
+  return (uintptr_t)&x;
+}
+int main(int argc, char **argv) {
+  char x = '1';
+  uintptr_t local = (uintptr_t)&x;
+  uintptr_t called = stack_local();
+  printf("%d", called > local);
+}
+'''
+result = compiler.run(code, name : 'stack grows up')
+if result.stdout().strip() == '1'
+    add_project_arguments('-DAU_STACK_GROWS_UP', language : ['c'])
+endif
+
 code = '''
 #ifdef _WIN32
 #include <malloc.h>
