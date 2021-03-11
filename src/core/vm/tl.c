@@ -31,6 +31,7 @@ void au_vm_thread_local_init(struct au_vm_thread_local *tl,
     }
     tl->print_fn = au_value_print;
     au_hm_vars_init(&tl->loaded_modules_map);
+    tl->stack_max = (size_t)-1;
 }
 
 void au_vm_thread_local_del(struct au_vm_thread_local *tl) {

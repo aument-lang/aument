@@ -44,6 +44,8 @@
 #include "version.h"
 #endif
 
+#define AU_STACK_MAX 4194304
+
 enum au_action { ACTION_BUILD, ACTION_RUN };
 
 int main(int argc, char **argv) {
@@ -140,6 +142,9 @@ int main(int argc, char **argv) {
     return 0;
 #endif
     if (parse_res.type != AU_PARSER_RES_OK) {
+#ifdef AU_FUZZ_VM
+        return 0;
+#endif
         au_print_parser_error(parse_res, (struct au_error_location){
                                              .src = mmap.bytes,
                                              .len = mmap.size,
@@ -164,6 +169,9 @@ int main(int argc, char **argv) {
         struct au_vm_thread_local tl;
         au_vm_thread_local_init(&tl, &program.data);
         au_vm_thread_local_set(&tl);
+
+        tl.stack_start = (uintptr_t)&tl;
+        tl.stack_max = AU_STACK_MAX;
 
         au_malloc_set_collect(1);
         au_vm_exec_unverified_main(&tl, &program);
