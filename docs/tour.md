@@ -133,6 +133,27 @@ print y(1); // 3
 
 aulang's standard library provides some useful built-in functions. See the [stdlib reference manual](./au-stdlib.md) for more details.
 
+Functions have names that are fixed at parse time, and the number of arguments they take is always constant. If you're trying to call or define a function, and aulang can't find it,
+
+```
+def mistype() {}
+misttype();
+```
+
+It will error out directly after parsing:
+
+```
+parser error(3) in /tmp/mistype.au: unknown function misttype
+2 | misttype();
+```
+
+Of course, you can use a function that is declared later in the source file:
+
+```
+a();
+def a(){}
+```
+
 ## Classes
 
 You can define a compound data-type, a *class* using the `class` keyword:
@@ -145,11 +166,19 @@ class Human {
 
 Here, we define a class named `Human`, that holds a private variable `name`.
 
+You can define a empty class like so:
+
+```
+class EmptyClass;
+```
+
 Classes are like any other value. You can create an empty one using the `new` keyword:
 
 ```
 alice = new Human;
 ```
+
+Just like functions, if you try to use a undeclared class, it will error out after parsing.
 
 ### Method
 
