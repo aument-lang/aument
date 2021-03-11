@@ -7,6 +7,7 @@ has_delayed_rc_feature = get_option('delayed_rc')
 has_leak_mem_feature = get_option('leak_mem')
 is_static_exe = get_option('static_exe')
 has_math_library = get_option('math_library')
+has_io_library = get_option('io_library')
 
 compiler = meson.get_compiler('c')
 prog_python = import('python').find_installation('python3')
@@ -174,12 +175,18 @@ sources = [
 'src/stdlib/collection.h',
 'src/stdlib/gc.c',
 'src/stdlib/gc.h',
-'src/stdlib/io.c',
-'src/stdlib/io.h',
 'src/stdlib/types.c',
 'src/stdlib/types.h',
 'src/version.h',
 ]
+
+if has_io_library
+    sources += [
+        'src/stdlib/io.c',
+        'src/stdlib/io.h',
+    ]
+    add_project_arguments('-DAU_FEAT_IO_LIB', language : ['c'])
+endif
 
 if has_math_library
     sources += [
@@ -273,12 +280,14 @@ endif
 
 au_runtime_sources = [
     'src/core/rt/exception.c',
-    'src/stdlib/io.c',
     'src/stdlib/gc.c',
     'src/stdlib/types.c',
     'src/stdlib/collection.c',
     'src/core/rt/struct/helper.c',
 ]
+if has_io_library
+    au_runtime_sources += ['src/stdlib/io.c']
+endif
 if has_math_library
     au_runtime_sources += ['src/stdlib/math.c']
 endif

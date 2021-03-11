@@ -49,8 +49,10 @@ static void add_module(struct au_program_data *data, const char *name,
 void au_install_stdlib(struct au_program_data *data) {
     {
         struct au_lib_func stdlib_funcs[] = {
+#ifdef AU_FEAT_IO_LIB
             // *io.c*
             STDLIB_FUNC(input, 0),
+#endif
             // *types.c*
             STDLIB_FUNC(int, 1),
             STDLIB_FUNC(str, 1),
@@ -79,6 +81,7 @@ void au_install_stdlib(struct au_program_data *data) {
         const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
         add_module(data, "gc", mod_funcs, mod_funcs_len);
     }
+#ifdef AU_FEAT_IO_LIB
     {
         struct au_lib_func mod_funcs[] = {
             // *io.c*
@@ -88,6 +91,7 @@ void au_install_stdlib(struct au_program_data *data) {
         const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
         add_module(data, "io", mod_funcs, mod_funcs_len);
     }
+#endif
 #ifdef AU_FEAT_MATH_LIB
     {
         struct au_lib_func mod_funcs[] = {
