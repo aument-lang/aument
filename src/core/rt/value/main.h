@@ -293,17 +293,34 @@ static _AlwaysInline int au_value_is_truthy(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
                                              au_value_t rhs) {
-    if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))
-        return au_value_op_error();
     switch (au_value_get_type(lhs)) {
     case AU_VALUE_INT: {
-        return au_value_int(au_value_get_int(lhs) + au_value_get_int(rhs));
+        switch (au_value_get_type(rhs)) {
+        case AU_VALUE_INT:
+            return au_value_int(au_value_get_int(lhs) +
+                                au_value_get_int(rhs));
+        case AU_VALUE_DOUBLE:
+            return au_value_double((double)au_value_get_int(lhs) +
+                                   au_value_get_double(rhs));
+        default:
+            return au_value_op_error();
+        }
     }
     case AU_VALUE_DOUBLE: {
-        return au_value_double(au_value_get_double(lhs) +
-                               au_value_get_double(rhs));
+        switch (au_value_get_type(rhs)) {
+        case AU_VALUE_INT:
+            return au_value_double(au_value_get_double(lhs) +
+                                   (double)au_value_get_int(rhs));
+        case AU_VALUE_DOUBLE:
+            return au_value_double(au_value_get_double(lhs) +
+                                   au_value_get_double(lhs));
+        default:
+            return au_value_op_error();
+        }
     }
     case AU_VALUE_STR: {
+        if (_Unlikely(au_value_get_type(rhs) != AU_VALUE_STR))
+            return au_value_op_error();
         return au_value_string(au_string_add(au_value_get_string(lhs),
                                              au_value_get_string(rhs)));
     }
@@ -316,16 +333,30 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
 #define _BIN_OP_GENERIC_NUMBER(NAME, OP)                                  \
     static _AlwaysInline au_value_t NAME(au_value_t lhs,                  \
                                          au_value_t rhs) {                \
-        if (_Unlikely(au_value_get_type(lhs) != au_value_get_type(rhs)))  \
-            return au_value_op_error();                                   \
         switch (au_value_get_type(lhs)) {                                 \
         case AU_VALUE_INT: {                                              \
-            return au_value_int(au_value_get_int(lhs)                     \
-                                    OP au_value_get_int(rhs));            \
+            switch (au_value_get_type(rhs)) {                             \
+            case AU_VALUE_INT:                                            \
+                return au_value_int(au_value_get_int(lhs)                 \
+                                        OP au_value_get_int(rhs));        \
+            case AU_VALUE_DOUBLE:                                         \
+                return au_value_double((double)au_value_get_int(lhs)      \
+                                           OP au_value_get_double(rhs));  \
+            default:                                                      \
+                return au_value_op_error();                               \
+            }                                                             \
         }                                                                 \
         case AU_VALUE_DOUBLE: {                                           \
-            return au_value_double(au_value_get_double(lhs)               \
-                                       OP au_value_get_double(rhs));      \
+            switch (au_value_get_type(rhs)) {                             \
+            case AU_VALUE_INT:                                            \
+                return au_value_double(au_value_get_double(lhs) OP(       \
+                    double) au_value_get_int(rhs));                       \
+            case AU_VALUE_DOUBLE:                                         \
+                return au_value_double(au_value_get_double(lhs)           \
+                                           OP au_value_get_double(lhs));  \
+            default:                                                      \
+                return au_value_op_error();                               \
+            }                                                             \
         }                                                                 \
         default:                                                          \
             break;                                                        \
