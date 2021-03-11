@@ -624,6 +624,10 @@ static int parser_exec_def_statement(struct au_parser *p,
         struct au_fn *old = &p->p_data->fns.data[old_value->idx];
         expected_num_args = au_fn_num_args(old);
 
+        const int has_same_visibility =
+            (old->flags & AU_FN_FLAG_EXPORTED) ==
+            (fn_flags & AU_FN_FLAG_EXPORTED);
+
         if (old->type == AU_FN_NONE) {
             func_value.idx = old_value->idx;
             old_id_tok = old->as.none_func.name_token;
@@ -631,8 +635,9 @@ static int parser_exec_def_statement(struct au_parser *p,
         // Record the new function into a multi-dispatch function, and
         // turn the regular old function into multi-dispatch function if
         // necessary
-        else if ((old->flags & AU_FN_FLAG_HAS_CLASS) != 0 ||
-                 (fn_flags & AU_FN_FLAG_HAS_CLASS) != 0) {
+        else if (has_same_visibility &&
+                 ((old->flags & AU_FN_FLAG_HAS_CLASS) != 0 ||
+                  (fn_flags & AU_FN_FLAG_HAS_CLASS) != 0)) {
             if (old->type == AU_FN_DISPATCH) {
                 struct au_dispatch_func_instance el =
                     (struct au_dispatch_func_instance){
