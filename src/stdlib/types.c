@@ -16,6 +16,9 @@ AU_EXTERN_FUNC_DECL(au_std_int) {
     case AU_VALUE_INT: {
         return value;
     }
+    case AU_VALUE_DOUBLE: {
+        return au_value_int((int)au_value_get_double(value));
+    }
     case AU_VALUE_STR: {
         const struct au_string *header = au_value_get_string(value);
         int num = 0;
@@ -32,6 +35,22 @@ AU_EXTERN_FUNC_DECL(au_std_int) {
     default: {
         au_value_deref(value);
         return au_value_int(0);
+    }
+    }
+}
+
+AU_EXTERN_FUNC_DECL(au_std_float) {
+    const au_value_t value = _args[0];
+    switch (au_value_get_type(value)) {
+    case AU_VALUE_INT: {
+        return au_value_double((double)au_value_get_int(value));
+    }
+    case AU_VALUE_DOUBLE: {
+        return value;
+    }
+    default: {
+        au_value_deref(value);
+        return au_value_double(0);
     }
     }
 }
