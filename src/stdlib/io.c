@@ -48,14 +48,12 @@ static void io_close(struct au_std_io *io) {
     }
 }
 
-static void io_del(struct au_std_io *io) { io_del(io); }
-
 struct au_struct_vdata io_vdata;
 static int io_vdata_inited = 0;
 static void io_vdata_init() {
     if (!io_vdata_inited) {
         io_vdata = (struct au_struct_vdata){
-            .del_fn = (au_obj_del_fn_t)io_del,
+            .del_fn = (au_obj_del_fn_t)io_close,
             .idx_get_fn = 0,
             .idx_set_fn = 0,
             .len_fn = 0,
@@ -83,7 +81,7 @@ AU_EXTERN_FUNC_DECL(au_std_io_open) {
     mode[mode_str->len] = 0;
 
     struct au_std_io *io =
-        au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_del);
+        au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
     io_vdata_init();
     io->header = (struct au_struct){
         .rc = 1,
