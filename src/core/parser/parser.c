@@ -1579,11 +1579,18 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             parser_emit_bc_u8(p, reg);
             parser_emit_pad8(p);
             return 1;
-        } else if (token_keyword_cmp(&t, "new")) {
-            return parser_exec_new_expr(p, l);
         }
 
         struct au_token peek = au_lexer_peek(l, 0);
+
+        if (token_keyword_cmp(&t, "new")) {
+            if (peek.type == AU_TOK_OPERATOR && peek.len == 1 &&
+                peek.src[0] == '(') {
+                // This is treated as a call to the "new" function
+            } else {
+                return parser_exec_new_expr(p, l);
+            }
+        }
 
         struct au_token module_tok = (struct au_token){.type = AU_TOK_EOF};
         if (peek.type == AU_TOK_OPERATOR && peek.len == 2 &&
