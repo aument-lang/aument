@@ -1,0 +1,12 @@
+class A{}
+
+def b() {
+    object = new A;
+    a(object);
+}
+
+def (self: A) a() {
+    print 10;
+}
+
+b();

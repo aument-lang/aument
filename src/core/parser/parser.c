@@ -534,9 +534,11 @@ static int parser_exec_def_statement(struct au_parser *p,
         fn_flags |= AU_FN_FLAG_EXPORTED;
 
     struct au_token tok = au_lexer_peek(l, 0);
+
     struct au_token self_tok = (struct au_token){.type = AU_TOK_EOF};
     size_t class_idx = CLASS_ID_NONE;
     struct au_class_interface *class_interface = 0;
+
     if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == '(') {
         au_lexer_next(l);
         fn_flags |= AU_FN_FLAG_HAS_CLASS;
@@ -608,6 +610,9 @@ static int parser_exec_def_statement(struct au_parser *p,
     const struct au_token id_tok = au_lexer_next(l);
     EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
 
+    struct au_token old_id_tok = (struct au_token){0};
+    old_id_tok.type = AU_TOK_EOF;
+
     int expected_num_args = -1;
 
     struct au_hm_var_value func_value = (struct au_hm_var_value){
@@ -619,11 +624,15 @@ static int parser_exec_def_statement(struct au_parser *p,
         struct au_fn *old = &p->p_data->fns.data[old_value->idx];
         expected_num_args = au_fn_num_args(old);
 
+        if (old->type == AU_FN_NONE) {
+            func_value.idx = old_value->idx;
+            old_id_tok = old->as.none_func.name_token;
+        }
         // Record the new function into a multi-dispatch function, and
         // turn the regular old function into multi-dispatch function if
         // necessary
-        if ((old->flags & AU_FN_FLAG_HAS_CLASS) != 0 ||
-            (fn_flags & AU_FN_FLAG_HAS_CLASS) != 0) {
+        else if ((old->flags & AU_FN_FLAG_HAS_CLASS) != 0 ||
+                 (fn_flags & AU_FN_FLAG_HAS_CLASS) != 0) {
             if (old->type == AU_FN_DISPATCH) {
                 struct au_dispatch_func_instance el =
                     (struct au_dispatch_func_instance){
@@ -671,34 +680,10 @@ static int parser_exec_def_statement(struct au_parser *p,
                 old->flags |= AU_FN_FLAG_HAS_CLASS;
                 old->as.dispatch_func = dispatch_func;
                 old = 0;
-                au_fn_array_add(&p->p_data->fns, fallback_fn);
 
+                au_fn_array_add(&p->p_data->fns, fallback_fn);
                 func_value.idx = new_fn_idx;
             }
-
-            struct au_fn none_func = (struct au_fn){
-                .type = AU_FN_NONE,
-                .as.none_func.num_args = 0,
-                .as.none_func.name_token.type = AU_TOK_EOF,
-            };
-            au_fn_array_add(&p->p_data->fns, none_func);
-            au_str_array_add(&p->p_data->fn_names,
-                             au_data_strndup(id_tok.src, id_tok.len));
-        }
-        // If the old function is already a multi-dispatch function,
-        // add it to the dispatch list
-        else if (old->type == AU_FN_DISPATCH) {
-            struct au_dispatch_func_instance el =
-                (struct au_dispatch_func_instance){
-                    .function_idx = func_value.idx,
-                    .class_idx = class_idx,
-                };
-            au_dispatch_func_instance_array_add(
-                &old->as.dispatch_func.data, el);
-
-            old->as.dispatch_func.fallback_fn = func_value.idx;
-            old->as.dispatch_func.num_args = expected_num_args;
-            old = 0;
 
             struct au_fn none_func = (struct au_fn){
                 .type = AU_FN_NONE,
@@ -805,13 +790,26 @@ static int parser_exec_def_statement(struct au_parser *p,
     }
 
     if (expected_num_args != -1 && bcs.num_args != expected_num_args) {
-        p->res = (struct au_parser_result){
-            .type = AU_PARSER_RES_WRONG_ARGS,
-            .data.wrong_args.got_args = bcs.num_args,
-            .data.wrong_args.expected_args = expected_num_args,
-            .data.wrong_args.at_token = id_tok,
-        };
-        return 0;
+        if (old_id_tok.type != AU_TOK_EOF) {
+            // The old_id_tok token is the identifier token belonging to
+            // the call expression that forward-declared this function. As
+            // such, our parser error should be reported differently.
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_WRONG_ARGS,
+                .data.wrong_args.got_args = expected_num_args,
+                .data.wrong_args.expected_args = bcs.num_args,
+                .data.wrong_args.at_token = old_id_tok,
+            };
+            return 0;
+        } else {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_WRONG_ARGS,
+                .data.wrong_args.got_args = bcs.num_args,
+                .data.wrong_args.expected_args = expected_num_args,
+                .data.wrong_args.at_token = id_tok,
+            };
+            return 0;
+        }
     }
     func_p.self_num_args = bcs.num_args;
 
