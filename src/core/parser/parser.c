@@ -253,6 +253,9 @@ static int parser_exec(struct au_parser *p, struct au_lexer *l) {
         parser_flush_free_regs(p);
     }
     parser_emit_bc_u8(p, AU_OP_RET_NULL);
+    parser_emit_pad8(p);
+    parser_emit_pad8(p);
+    parser_emit_pad8(p);
     return 1;
 }
 
@@ -1103,7 +1106,7 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
             ((op.len == 1 && op.src[0] == '=') ||
              (op.len == 2 &&
               (op.src[0] == '+' || op.src[0] == '-' || op.src[0] == '*' ||
-               op.src[0] == '/' || op.src[0] == '%' || op.src[0] == '!') &&
+               op.src[0] == '/' || op.src[0] == '%') &&
               op.src[1] == '='))) {
             au_lexer_next(l);
             au_lexer_next(l);

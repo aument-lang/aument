@@ -1,0 +1,5 @@
+class Class {
+    var a; var b;
+}
+
+my_class != new Class;

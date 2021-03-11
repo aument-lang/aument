@@ -23,6 +23,8 @@ struct au_vm_thread_local {
     struct au_hm_vars loaded_modules_map;
     struct au_program_data_array loaded_modules;
     struct au_vm_frame_link current_frame;
+    uintptr_t stack_start;
+    size_t stack_max;
 };
 
 /// [func] Gets the current thread's au_vm_thread_local instance
