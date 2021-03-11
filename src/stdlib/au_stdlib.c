@@ -20,10 +20,10 @@
         .func = au_std_##NAME                                             \
     }
 
-#define MODULE_FUNC(NAME, SYMBOL, ARGS)                                   \
+#define MODULE_FUNC(SYMBOL, NAME, ARGS)                                   \
     (struct au_lib_func) {                                                \
-        .name = #NAME, .symbol = SYMBOL, .num_args = ARGS,                \
-        .func = au_std_##NAME                                             \
+        .name = #NAME, .symbol = "au_std_" #SYMBOL, .num_args = ARGS,     \
+        .func = au_std_##SYMBOL                                           \
     }
 
 static void add_module(struct au_program_data *data, const char *name,
@@ -40,15 +40,15 @@ static void add_module(struct au_program_data *data, const char *name,
             .flags = 0, .type = AU_FN_NATIVE, .as.native_func = lib_func};
         const size_t fn_len = data->fns.len;
         au_fn_array_add(&data->fns, fn);
-        au_hm_vars_add(&module.fn_map, lib_func.symbol,
-                       strlen(lib_func.symbol), AU_HM_VAR_VALUE(fn_len));
+        au_hm_vars_add(&module.fn_map, lib_func.name,
+                       strlen(lib_func.name), AU_HM_VAR_VALUE(fn_len));
     }
     au_imported_module_array_add(&data->imported_modules, module);
 }
 
 void au_install_stdlib(struct au_program_data *data) {
     {
-        struct au_lib_func stdlib_funcs[] = {
+        struct au_lib_func mod_funcs[] = {
 #ifdef AU_FEAT_IO_LIB
             // *io.c*
             STDLIB_FUNC(input, 0),
@@ -61,18 +61,20 @@ void au_install_stdlib(struct au_program_data *data) {
             // *array.c*
             STDLIB_FUNC(len, 1),
         };
-        const int stdlib_len =
-            sizeof(stdlib_funcs) / sizeof(stdlib_funcs[0]);
-        for (int i = 0; i < stdlib_len; i++) {
-            struct au_lib_func lib_func = stdlib_funcs[i];
+        const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
+
+        for (int i = 0; i < mod_funcs_len; i++) {
+            struct au_lib_func lib_func = mod_funcs[i];
             struct au_fn fn = (struct au_fn){.flags = 0,
                                              .type = AU_FN_NATIVE,
                                              .as.native_func = lib_func};
-            const size_t len = data->fns.len;
+            const size_t fn_len = data->fns.len;
             au_fn_array_add(&data->fns, fn);
             au_hm_vars_add(&data->fn_map, lib_func.name,
-                           strlen(lib_func.name), AU_HM_VAR_VALUE(len));
+                           strlen(lib_func.name), AU_HM_VAR_VALUE(fn_len));
         }
+
+        add_module(data, "std", mod_funcs, mod_funcs_len);
     }
     {
         struct au_lib_func mod_funcs[] = {
