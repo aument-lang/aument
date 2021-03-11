@@ -55,6 +55,7 @@ void au_install_stdlib(struct au_program_data *data) {
 #endif
             // *types.c*
             STDLIB_FUNC(int, 1),
+            STDLIB_FUNC(float, 1),
             STDLIB_FUNC(str, 1),
             STDLIB_FUNC(bool, 1),
             // *array.c*

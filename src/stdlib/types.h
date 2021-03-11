@@ -10,6 +10,7 @@
 
 /// [func-au] Converts an object into an integer.\n\n
 /// * For *integer* inputs, the result is exactly the same as the input.\n
+/// * For *float* inputs, the result is its integer equivalent.\n
 /// * For *string* inputs, the result is the base-10 conversion of the
 /// string.\n
 /// * For *boolean* inputs, the result is 1 if `true`, 0 if `false`.\n
@@ -18,6 +19,18 @@
 /// @param input Object to be converted into integer
 /// @return The integer equivalent of the `input` object.
 AU_EXTERN_FUNC_DECL(au_std_int);
+
+/// [func-au] Converts an object into an float.\n\n
+/// * For *int* inputs, the result is its float equivalent.\n
+/// * For *float* inputs, the result is exactly the same as the input.\n
+/// * For *string* inputs, the result is the base-10 conversion of the
+/// string.\n
+/// * For *boolean* inputs, the result is 1 if `true`, 0 if `false`.\n
+/// * For all other inputs, the result is 0.
+/// @name int
+/// @param input Object to be converted into integer
+/// @return The integer equivalent of the `input` object.
+AU_EXTERN_FUNC_DECL(au_std_float);
 
 /// [func-au] Converts an object into a boolean\n\n
 /// * For *integer* and *floating-point* inputs, the result is `true` when
