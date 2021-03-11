@@ -193,23 +193,27 @@ int main(int argc, char **argv) {
         struct au_c_comp_options options = {0};
         options.with_debug = (flags & FLAG_GENERATE_DEBUG) != 0;
         if ((flags & FLAG_GENERATE_C) != 0) {
-            struct au_c_comp_state c_state = {
-                .as.f = fopen(output_file, "w"),
-                .type = AU_C_COMP_FILE,
-            };
+            struct au_c_comp_state c_state = {0};
             au_c_comp(&c_state, &program, options);
+
+            FILE *f = fopen(output_file, "w");
+            fwrite(c_state.str.data, 1, c_state.str.len, f);
+            fflush(f);
+            fclose(f);
+
             au_c_comp_state_del(&c_state);
             au_program_del(&program);
         } else {
             struct au_tmpfile tmp;
             if (!au_tmpfile_new(&tmp))
                 au_perror("unable to create tmpfile");
-            struct au_c_comp_state c_state = {
-                .as.f = tmp.f,
-                .type = AU_C_COMP_FILE,
-            };
-            tmp.f = 0;
+
+            struct au_c_comp_state c_state = {0};
             au_c_comp(&c_state, &program, options);
+
+            fwrite(c_state.str.data, 1, c_state.str.len, tmp.f);
+            fflush(tmp.f);
+
             au_c_comp_state_del(&c_state);
             au_program_del(&program);
 
