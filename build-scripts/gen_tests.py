@@ -194,14 +194,12 @@ void run_gcc(const char *source, const size_t source_len) {{
     struct au_tmpfile c_file_out;
     assert(au_tmpfile_exec(&c_file_out));
 
-    struct au_c_comp_state c_state = {{
-        .as.f = c_file.f,
-        .type = AU_C_COMP_FILE,
-    }};
-    c_file.f = 0;
+    struct au_c_comp_state c_state = {{0}};
     struct au_program program;
     assert(au_parse(source, source_len, &program).type == AU_PARSER_RES_OK);
     au_c_comp(&c_state, &program, (struct au_c_comp_options){{0}});
+    fwrite(c_state.str.data, 1, c_state.str.len, c_file.f);
+    fflush(c_file.f);
     au_c_comp_state_del(&c_state);
     au_program_del(&program);
 

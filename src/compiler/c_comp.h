@@ -12,14 +12,7 @@
 #include "core/str_array.h"
 
 struct au_c_comp_state {
-    union {
-        FILE *f;
-        struct au_char_array str;
-    } as;
-    enum {
-        AU_C_COMP_FILE,
-        AU_C_COMP_STR,
-    } type;
+    struct au_char_array str;
 };
 
 /// [func] Deinitializes an au_c_comp_state instance
