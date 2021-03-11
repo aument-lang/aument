@@ -85,6 +85,9 @@ struct au_fn {
 
 static inline int au_fn_num_args(const struct au_fn *fn) {
     switch (fn->type) {
+    case AU_FN_NONE: {
+        return fn->as.none_func.num_args;
+    }
     case AU_FN_NATIVE: {
         return fn->as.native_func.num_args;
     }
@@ -98,7 +101,7 @@ static inline int au_fn_num_args(const struct au_fn *fn) {
         return fn->as.dispatch_func.num_args;
     }
     default: {
-        return 0;
+        return -1;
     }
     }
 }
