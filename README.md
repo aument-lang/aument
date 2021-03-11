@@ -91,10 +91,11 @@ If you're cross-compiling for Windows (64-bit), use the command:
 
 ## Documentation
 
-  * [brief tour](./docs/tour.md)
-  * [command line reference](./docs/cmdline.md)
-  * [aument standard library reference](./docs/au-stdlib.md)
-  * [aument C API reference](./docs/c-api.md)
+  * [Brief tour](./docs/tour.md)
+  * [Command line reference](./docs/cmdline.md)
+  * [Standard library reference](./docs/au-stdlib.md)
+  * [C API reference](./docs/c-api.md)
+  * [Internal architecture](./docs/architecture.md)
 
 ## Contributing
 
