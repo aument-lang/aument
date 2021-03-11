@@ -1,5 +1,3 @@
-notes
-build
 *.swp
-.vscode
+build
 dist
