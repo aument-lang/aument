@@ -54,6 +54,7 @@ struct malloc_data {
 static _TLStorage struct malloc_data malloc_data;
 
 void au_malloc_init() {
+#if __STDC_VERSION__ >= 201112L
     static_assert(
         sizeof(struct au_obj_malloc_header) % alignof(max_align_t) == 0,
         "struct au_obj_malloc_header must divisible by the maximum "
@@ -62,6 +63,11 @@ void au_malloc_init() {
         sizeof(struct au_data_malloc_header) % alignof(max_align_t) == 0,
         "struct au_data_malloc_header must divisible by the maximum "
         "alignment");
+#else
+    // FIXME: Implement the equivalent of static_assert for C99.
+    // Right now, we trusting the developer to define the header structs
+    // correctly.
+#endif
     malloc_data = (struct malloc_data){0};
     malloc_data.heap_threshold = INITIAL_HEAP_THRESHOLD;
     malloc_data.do_collect = 0;

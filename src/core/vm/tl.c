@@ -16,6 +16,9 @@ struct au_vm_thread_local *au_vm_thread_local_get() {
 }
 
 void au_vm_thread_local_set(struct au_vm_thread_local *tl) {
+    if (current_tl != 0 && tl != 0)
+        au_fatal("trying to replace non-null thread local"
+                 "(free and set it to null first!)\n");
     current_tl = tl;
 }
 

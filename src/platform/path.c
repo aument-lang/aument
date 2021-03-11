@@ -4,7 +4,6 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #include <assert.h>
-#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,6 +11,8 @@
 #include <windows.h>
 #else
 #include <libgen.h>
+#include <limits.h>
+#include <unistd.h>
 #endif
 
 #include "core/rt/malloc.h"
