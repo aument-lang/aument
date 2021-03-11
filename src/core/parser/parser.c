@@ -115,8 +115,10 @@ static void parser_del(struct au_parser *p) {
     memset(p, 0, sizeof(struct au_parser));
 }
 
-static uint8_t parser_new_reg(struct au_parser *p) {
-    assert(p->rstack_len + 1 <= AU_REGS);
+static int parser_new_reg(struct au_parser *p, uint8_t *out) {
+    if (p->rstack_len + 1 > AU_REGS) {
+        return 0;
+    }
 
     uint8_t reg = 0;
     int found = 0;
@@ -128,12 +130,15 @@ static uint8_t parser_new_reg(struct au_parser *p) {
             break;
         }
     }
-    assert(found);
+    if (!found) {
+        return 0;
+    }
 
     p->rstack[p->rstack_len++] = reg;
     if (reg > p->max_register)
         p->max_register = reg;
-    return reg;
+    *out = reg;
+    return 1;
 }
 
 static uint8_t parser_last_reg(struct au_parser *p) {
@@ -231,7 +236,7 @@ static int parser_exec_statement(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_expr(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_assign(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_logical(struct au_parser *p, struct au_lexer *l);
-static void parser_emit_bc_binary_expr(struct au_parser *p);
+static int parser_emit_bc_binary_expr(struct au_parser *p);
 static int parser_exec_eq(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_cmp(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_addsub(struct au_parser *p, struct au_lexer *l);
@@ -787,7 +792,7 @@ static int parser_exec_def_statement(struct au_parser *p,
                     return 0;
                 }
                 func_p.num_locals++;
-                assert(func_p.num_locals < AU_MAX_LOCALS);
+                EXPECT_BYTECODE(func_p.num_locals < AU_MAX_LOCALS);
                 bcs.num_args++;
             } else {
                 EXPECT_TOKEN(0, tok, "arguments");
@@ -1136,7 +1141,8 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                 }
 
                 if (!(op.len == 1 && op.src[0] == '=')) {
-                    const uint8_t reg = parser_new_reg(p);
+                    uint8_t reg;
+                    EXPECT_BYTECODE(parser_new_reg(p, &reg));
                     parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
                     parser_emit_bc_u8(p, reg);
                     parser_emit_bc_u16(p, value->idx);
@@ -1153,7 +1159,8 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                         BIN_OP_ASG('%', AU_OP_MOD)
 #undef BIN_OP_ASG
                     }
-                    parser_emit_bc_binary_expr(p);
+                    if (!parser_emit_bc_binary_expr(p))
+                        return 0;
                 }
 
                 parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
@@ -1209,7 +1216,9 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
     const struct au_token t = au_lexer_next(l);
     if (t.type == AU_TOK_OPERATOR && t.len == 2) {
         if (t.src[0] == '&' && t.src[1] == '&') {
-            const uint8_t reg = parser_new_reg(p);
+            uint8_t reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &reg));
+
             parser_swap_top_regs(p);
             parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
             parser_emit_bc_u8(p, 0);
@@ -1254,7 +1263,8 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
             //   end:
             //       ...
         } else if (t.src[0] == '|' && t.src[1] == '|') {
-            const uint8_t reg = parser_new_reg(p);
+            uint8_t reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &reg));
             parser_swap_top_regs(p);
 
             const size_t left_len = p->bc.len;
@@ -1342,14 +1352,16 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
         }                                                                 \
     }
 
-static void parser_emit_bc_binary_expr(struct au_parser *p) {
+static int parser_emit_bc_binary_expr(struct au_parser *p) {
     uint8_t rhs = parser_pop_reg(p);
     uint8_t lhs = parser_pop_reg(p);
-    uint8_t res = parser_new_reg(p);
+    uint8_t res;
+    EXPECT_BYTECODE(parser_new_reg(p, &res));
 
     parser_emit_bc_u8(p, lhs);
     parser_emit_bc_u8(p, rhs);
     parser_emit_bc_u8(p, res);
+    return 1;
 }
 
 BIN_EXPR(
@@ -1360,7 +1372,8 @@ BIN_EXPR(
             parser_emit_bc_u8(p, AU_OP_EQ);
         else if (t.src[0] == '!')
             parser_emit_bc_u8(p, AU_OP_NEQ);
-        parser_emit_bc_binary_expr(p);
+        if (!parser_emit_bc_binary_expr(p))
+            return 0;
     },
     parser_exec_cmp)
 
@@ -1376,7 +1389,8 @@ BIN_EXPR(
             parser_emit_bc_u8(p, AU_OP_LEQ);
         else
             parser_emit_bc_u8(p, AU_OP_GEQ);
-        parser_emit_bc_binary_expr(p);
+        if (!parser_emit_bc_binary_expr(p))
+            return 0;
     },
     parser_exec_addsub)
 
@@ -1387,7 +1401,8 @@ BIN_EXPR(
             parser_emit_bc_u8(p, AU_OP_ADD);
         else if (t.src[0] == '-')
             parser_emit_bc_u8(p, AU_OP_SUB);
-        parser_emit_bc_binary_expr(p);
+        if (!parser_emit_bc_binary_expr(p))
+            return 0;
     },
     parser_exec_muldiv)
 
@@ -1401,7 +1416,8 @@ BIN_EXPR(
             parser_emit_bc_u8(p, AU_OP_DIV);
         else if (t.src[0] == '%')
             parser_emit_bc_u8(p, AU_OP_MOD);
-        parser_emit_bc_binary_expr(p);
+        if (!parser_emit_bc_binary_expr(p))
+            return 0;
     },
     parser_exec_unary_expr)
 
@@ -1458,7 +1474,8 @@ static int parser_exec_index_expr(struct au_parser *p,
             p->rstack[p->rstack_len - 3] = p->rstack[p->rstack_len - 1];
             p->rstack_len -= 2;
         } else {
-            const uint8_t result_reg = parser_new_reg(p);
+            uint8_t result_reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
             parser_emit_bc_u8(p, AU_OP_IDX_GET);
             parser_emit_bc_u8(p, left_reg);
             parser_emit_bc_u8(p, idx_reg);
@@ -1483,15 +1500,18 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             num = num * 10 + (t.src[i] - '0');
         }
 
+        uint8_t result_reg;
+        EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+
         if (-0x7fff <= num && num <= 0x8000) {
             parser_emit_bc_u8(p, AU_OP_MOV_U16);
-            parser_emit_bc_u8(p, parser_new_reg(p));
+            parser_emit_bc_u8(p, result_reg);
             parser_emit_bc_u16(p, num);
         } else {
             int idx = au_program_data_add_data(p->p_data,
                                                au_value_int(num), 0, 0);
             parser_emit_bc_u8(p, AU_OP_LOAD_CONST);
-            parser_emit_bc_u8(p, parser_new_reg(p));
+            parser_emit_bc_u8(p, result_reg);
             parser_emit_bc_u16(p, idx);
         }
         break;
@@ -1512,10 +1532,13 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             value = (value * 10.0) + (t.src[i] - '0');
         }
 
+        uint8_t result_reg;
+        EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+
         int idx = au_program_data_add_data(p->p_data,
                                            au_value_double(value), 0, 0);
         parser_emit_bc_u8(p, AU_OP_LOAD_CONST);
-        parser_emit_bc_u8(p, parser_new_reg(p));
+        parser_emit_bc_u8(p, result_reg);
         parser_emit_bc_u16(p, idx);
         break;
     }
@@ -1541,14 +1564,16 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
     }
     case AU_TOK_IDENTIFIER: {
         if (token_keyword_cmp(&t, "true")) {
-            const uint8_t reg = parser_new_reg(p);
+            uint8_t reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &reg));
             parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
             parser_emit_bc_u8(p, 1);
             parser_emit_bc_u8(p, reg);
             parser_emit_pad8(p);
             return 1;
         } else if (token_keyword_cmp(&t, "false")) {
-            const uint8_t reg = parser_new_reg(p);
+            uint8_t reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &reg));
             parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
             parser_emit_bc_u8(p, 0);
             parser_emit_bc_u8(p, reg);
@@ -1693,8 +1718,10 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                 parser_push_reg(p, p->bc.data[p->bc.len - 3]);
                 call_fn_offset = p->bc.len - 2;
             } else {
+                uint8_t result_reg;
+                EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
                 parser_emit_bc_u8(p, AU_OP_CALL);
-                parser_emit_bc_u8(p, parser_new_reg(p));
+                parser_emit_bc_u8(p, result_reg);
                 call_fn_offset = p->bc.len;
                 parser_emit_pad8(p);
                 parser_emit_pad8(p);
@@ -1714,8 +1741,10 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                 };
                 return 0;
             }
+            uint8_t reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &reg));
             parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
-            parser_emit_bc_u8(p, parser_new_reg(p));
+            parser_emit_bc_u8(p, reg);
             parser_emit_bc_u16(p, val->idx);
         }
         break;
@@ -1758,9 +1787,14 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             idx = au_program_data_add_data(p->p_data, au_value_string(0),
                                            (uint8_t *)t.src, t.len);
         }
+
+        uint8_t reg;
+        EXPECT_BYTECODE(parser_new_reg(p, &reg));
+
         parser_emit_bc_u8(p, AU_OP_LOAD_CONST);
-        parser_emit_bc_u8(p, parser_new_reg(p));
+        parser_emit_bc_u8(p, reg);
         parser_emit_bc_u16(p, idx);
+
         break;
     }
     case AU_TOK_AT_IDENTIFIER: {
@@ -1772,8 +1806,10 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             };
             return 0;
         }
+        uint8_t reg;
+        EXPECT_BYTECODE(parser_new_reg(p, &reg));
         parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
-        parser_emit_bc_u8(p, parser_new_reg(p));
+        parser_emit_bc_u8(p, reg);
         const struct au_hm_var_value *value =
             au_hm_vars_get(&interface->map, &t.src[1], t.len - 1);
         if (value == 0) {
@@ -1796,7 +1832,8 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
 
 static int parser_exec_array_or_tuple(struct au_parser *p,
                                       struct au_lexer *l, int is_tuple) {
-    const uint8_t array_reg = parser_new_reg(p);
+    uint8_t array_reg;
+    EXPECT_BYTECODE(parser_new_reg(p, &array_reg));
     if (is_tuple) {
         parser_emit_bc_u8(p, AU_OP_TUPLE_NEW);
         parser_emit_bc_u8(p, array_reg);
@@ -1889,8 +1926,11 @@ static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
 
     size_t class_idx = class_value->idx;
 
+    uint8_t result_reg;
+    EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+
     parser_emit_bc_u8(p, AU_OP_CLASS_NEW);
-    parser_emit_bc_u8(p, parser_new_reg(p));
+    parser_emit_bc_u8(p, result_reg);
     parser_emit_bc_u16(p, class_idx);
 
     return 1;

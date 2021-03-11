@@ -184,7 +184,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     tl->current_frame.data = p_data;
     tl->current_frame.frame = &frame;
 
-    if(_Unlikely(((uintptr_t)&frame - tl->stack_start) > tl->stack_max)) {
+    if (_Unlikely(((uintptr_t)&frame - tl->stack_start) > tl->stack_max)) {
         au_fatal("stack overflow");
     }
 
