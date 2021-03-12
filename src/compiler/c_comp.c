@@ -254,6 +254,39 @@ static void link_to_imported(
 #undef X
 }
 
+static void
+write_imported_module_main_start(size_t imported_module_idx_in_source,
+                                 struct au_c_comp_global_state *g_state,
+                                 const char *lib_filename) {
+    comp_printf(&g_state->header_file, "static int _M%ld_main_init=0;\n",
+                imported_module_idx_in_source);
+    comp_printf(&g_state->header_file, "static void _M%ld_main() {\n",
+                imported_module_idx_in_source);
+    comp_printf(&g_state->header_file,
+                INDENT "if(_M%ld_main_init){return;}\n",
+                imported_module_idx_in_source);
+    comp_printf(&g_state->header_file, INDENT "_M%ld_main_init=1;\n",
+                imported_module_idx_in_source);
+    comp_printf(&g_state->header_file, INDENT "struct au_module m;\n");
+    comp_printf(&g_state->header_file,
+                INDENT "switch(au_module_import(&m,\"./%s\")){\n" INDENT
+                       "case AU_MODULE_IMPORT_SUCCESS: break;\n" INDENT
+                       "case AU_MODULE_IMPORT_SUCCESS_NO_MODULE:"
+                       " return;\n" INDENT "default:{"
+                       "au_module_lib_perror();"
+                       "au_fatal(\"failed to import '%s'\");}}\n",
+                lib_filename, lib_filename);
+}
+
+static void
+write_imported_module_main(size_t imported_module_idx_in_source,
+                           struct au_c_comp_global_state *g_state,
+                           const char *lib_filename) {
+    write_imported_module_main_start(imported_module_idx_in_source,
+                                     g_state, lib_filename);
+    comp_printf(&g_state->header_file, "}\n");
+}
+
 static void au_c_comp_func(struct au_c_comp_state *state,
                            const struct au_bc_storage *bcs,
                            const struct au_program_data *p_data,
@@ -832,11 +865,16 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             case AU_MODULE_LIB: {
                 struct au_program_data *loaded_module =
                     module.data.lib.lib;
-                if (loaded_module == 0)
-                    break;
                 module.data.lib.lib = 0;
 
                 char *lib_filename = basename(abspath);
+
+                if (loaded_module == 0) {
+                    write_imported_module_main(
+                        imported_module_idx_in_source, g_state,
+                        lib_filename);
+                    break;
+                }
 
                 if (!has_old_value) {
                     struct au_c_comp_module comp_module =
@@ -888,25 +926,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                     au_c_comp_module_array_add(&g_state->modules,
                                                comp_module);
 
-                    comp_printf(&g_state->header_file,
-                                "static int _M%ld_main_init=0;\n",
-                                imported_module_idx_in_source);
-                    comp_printf(&g_state->header_file,
-                                "static void _M%ld_main() {\n",
-                                imported_module_idx_in_source);
-                    comp_printf(&g_state->header_file,
-                                INDENT "if(_M%ld_main_init){return;}\n",
-                                imported_module_idx_in_source);
-                    comp_printf(&g_state->header_file,
-                                INDENT "_M%ld_main_init=1;\n",
-                                imported_module_idx_in_source);
-                    comp_printf(&g_state->header_file,
-                                INDENT "struct au_module m;\n");
-                    comp_printf(&g_state->header_file,
-                                INDENT "if(au_module_import(&m,"
-                                       "\"%s\")!=AU_MODULE_IMPORT_SUCCESS)"
-                                       "abort();\n",
-                                lib_filename);
+                    write_imported_module_main_start(
+                        imported_module_idx_in_source, g_state,
+                        lib_filename);
                     AU_HM_VARS_FOREACH_PAIR(
                         &loaded_module->fn_map, name, entry, {
                             (void)name_len;
@@ -916,10 +938,13 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                                "(&m,\"%s\");\n",
                                         imported_module_idx_in_source,
                                         entry->idx, name);
-                            comp_printf(
-                                &g_state->header_file,
-                                INDENT "if(_M%ld_f%d_ext==0)abort();\n",
-                                imported_module_idx_in_source, entry->idx);
+                            comp_printf(&g_state->header_file,
+                                        INDENT
+                                        "if(_M%ld_f%d_ext==0)"
+                                        "au_fatal(\"failed to function "
+                                        "'%s' from '%s'\");\n",
+                                        imported_module_idx_in_source,
+                                        entry->idx, name, lib_filename);
                         });
                     comp_printf(&g_state->header_file, "}\n");
                 }

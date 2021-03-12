@@ -10,7 +10,6 @@
 #endif
 
 struct au_obj_array;
-extern struct au_struct_vdata au_obj_array_vdata;
 
 struct au_obj_array *au_obj_array_new(size_t capacity);
 void au_obj_array_del(struct au_obj_array *obj_array);
@@ -22,9 +21,14 @@ int au_obj_array_set(struct au_obj_array *obj_array, au_value_t idx,
                      au_value_t value);
 int32_t au_obj_array_len(struct au_obj_array *obj_array);
 
+#ifdef _AUMENT_H
+struct au_obj_array *au_obj_array_coerce(au_value_t value);
+#else
+extern struct au_struct_vdata au_obj_array_vdata;
 static inline struct au_obj_array *au_obj_array_coerce(au_value_t value) {
     if (au_value_get_type(value) != AU_VALUE_STRUCT ||
         au_value_get_struct(value)->vdata != &au_obj_array_vdata)
         return 0;
     return (struct au_obj_array *)au_value_get_struct(value);
 }
+#endif

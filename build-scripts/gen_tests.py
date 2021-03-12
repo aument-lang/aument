@@ -208,6 +208,14 @@ void run_gcc(const char *source, const size_t source_len) {{
     au_str_array_add(&cc.cflags, "-ftest-coverage");
 #endif
 
+#ifdef AU_FEAT_LIBDL
+    au_str_array_add(&cc.ldflags, "-ldl");
+#endif
+
+#ifdef AU_FEAT_MATH_LIB
+    au_str_array_add(&cc.ldflags, "-lm");
+#endif
+
     int status = au_spawn_cc(&cc, c_file_out.path, c_file.path);
     assert(status == 0);
 

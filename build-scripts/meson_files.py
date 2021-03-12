@@ -18,7 +18,8 @@ exclude = set(glob.glob('src/compiler/*') +
 [
     'src/core/rt/stdlib_begin.h',
     'src/core/rt/stdlib_end.h',
-    'src/core/rt/malloc.c',
+    'src/core/rt/malloc/gc.c',
+    'src/core/rt/malloc/static.c',
     'src/main.c',
     'src/platform/spawn.c',
     'src/platform/tmpfile.c',

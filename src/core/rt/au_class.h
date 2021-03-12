@@ -45,7 +45,6 @@ void au_class_interface_ref(struct au_class_interface *interface);
 void au_class_interface_deref(struct au_class_interface *interface);
 
 struct au_obj_class;
-extern struct au_struct_vdata au_obj_class_vdata;
 
 struct au_obj_class *
 au_obj_class_new(const struct au_class_interface *interface);
@@ -57,6 +56,10 @@ int au_obj_class_set(struct au_obj_class *obj_class, au_value_t idx,
                      au_value_t value);
 int32_t au_obj_class_len(struct au_obj_class *obj_class);
 
+#ifdef _AUMENT_H
+struct au_obj_class *au_obj_class_coerce(const au_value_t value);
+#else
+extern struct au_struct_vdata au_obj_class_vdata;
 static inline struct au_obj_class *
 au_obj_class_coerce(const au_value_t value) {
     if (au_value_get_type(value) != AU_VALUE_STRUCT ||
@@ -64,3 +67,4 @@ au_obj_class_coerce(const au_value_t value) {
         return 0;
     return (struct au_obj_class *)au_value_get_struct(value);
 }
+#endif

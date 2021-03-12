@@ -10,7 +10,6 @@
 #endif
 
 struct au_obj_tuple;
-extern struct au_struct_vdata au_obj_tuple_vdata;
 
 struct au_obj_tuple *au_obj_tuple_new(size_t len);
 void au_obj_tuple_del(struct au_obj_tuple *obj_tuple);
@@ -21,9 +20,14 @@ int au_obj_tuple_set(struct au_obj_tuple *obj_tuple, au_value_t idx,
                      au_value_t value);
 int32_t au_obj_tuple_len(struct au_obj_tuple *obj_tuple);
 
+#ifdef _AUMENT_H
+struct au_obj_tuple *au_obj_tuple_coerce(au_value_t value);
+#else
+extern struct au_struct_vdata au_obj_tuple_vdata;
 static inline struct au_obj_tuple *au_obj_tuple_coerce(au_value_t value) {
     if (au_value_get_type(value) != AU_VALUE_STRUCT ||
         au_value_get_struct(value)->vdata != &au_obj_tuple_vdata)
         return 0;
     return (struct au_obj_tuple *)au_value_get_struct(value);
 }
+#endif

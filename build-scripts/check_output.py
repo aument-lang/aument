@@ -13,7 +13,9 @@ import tempfile
 parser = argparse.ArgumentParser()
 parser.add_argument('--binary', type=str)
 parser.add_argument('--path', type=str)
+parser.add_argument('--file', type=str)
 parser.add_argument('--check', type=str)
+parser.add_argument('--param', type=str)
 args = parser.parse_args()
 
 out_extension = '.out'
@@ -70,6 +72,26 @@ def check_comp(out_path):
     except:
         pass
 
+def check_comp_to_path(out_path):
+    global out_extension, out_extension_len, args
+    program_path = out_path[:-out_extension_len] + '.au'
+    print(f"Checking {program_path}")
+    with open(out_path, "rb") as fout:
+        expected_output = fout.read()
+    exe_name = args.param
+    subprocess.check_output([
+        args.binary,
+        'build',
+        program_path,
+        exe_name,
+    ])
+    output = subprocess.check_output([ exe_name ])
+    assert(output == expected_output)
+    try:
+        os.remove(exe_name)
+    except:
+        pass
+
 def check_errors(out_path):
     program_path = out_path[:-out_extension_len] + '.au'
     print(f"Checking {program_path}")
@@ -91,14 +113,18 @@ check_fn = {
     "with_input": check_with_input,
     "comp": check_comp,
     "errors": check_errors,
+    "comp_to_path": check_comp_to_path,
 }[args.check]
 
-with multiprocessing.Pool() as p: 
-    threads = []
-    for out_path in glob.glob(args.path + '/*' + out_extension):
-        threads.append(
-            p.apply_async(check_fn, (out_path,))
-        )
-    for thread in threads:
-        thread.get()
+if args.file:
+    check_fn(args.file)
+else:
+    with multiprocessing.Pool() as p: 
+        threads = []
+        for out_path in glob.glob(args.path + '/*' + out_extension):
+            threads.append(
+                p.apply_async(check_fn, (out_path,))
+            )
+        for thread in threads:
+            thread.get()
     

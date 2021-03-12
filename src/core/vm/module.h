@@ -39,6 +39,8 @@ enum au_module_import_result {
     AU_MODULE_IMPORT_FAIL_DLERROR = 3,
 };
 
+void au_module_lib_perror();
+
 enum au_module_import_result au_module_import(struct au_module *module,
                                               const char *abspath);
 

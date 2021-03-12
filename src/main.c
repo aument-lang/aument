@@ -228,7 +228,13 @@ int main(int argc, char **argv) {
             au_str_array_add(&cc.cflags, "-ftest-coverage");
 #endif
 
+#ifdef AU_FEAT_LIBDL
+            au_str_array_add(&cc.ldflags, "-ldl");
+#endif
+
+#ifdef AU_FEAT_MATH_LIB
             au_str_array_add(&cc.ldflags, "-lm");
+#endif
 
             int retval = au_spawn_cc(&cc, output_file, tmp.path);
             if (retval != 0) {
