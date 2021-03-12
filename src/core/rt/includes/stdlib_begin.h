@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#ifdef AU_FEAT_LIBDL
+#include <dlfcn.h>
+#endif
 #define COPY_VALUE(dest, src)                                             \
     do {                                                                  \
         const au_value_t old = dest;                                      \
@@ -10,7 +12,6 @@
         au_value_ref(dest);                                               \
         au_value_deref(old);                                              \
     } while (0)
-
 #define MOVE_VALUE(dest, src)                                             \
     do {                                                                  \
         const au_value_t old = dest;                                      \
