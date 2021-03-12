@@ -13,10 +13,8 @@ compiler = meson.get_compiler('c')
 prog_python = import('python').find_installation('python3')
 
 au_hdr_cflags = []
-
 au_depends = []
-au_cflags = []
-au_export_dynamic = false
+au_supports_dll_import = false
 
 # Flag configs
 
@@ -29,16 +27,13 @@ if target_machine.system() != 'windows'
         add_project_arguments('-DAU_USE_MMAP', language : ['c'])
     endif
 
-    libdl = compiler.find_library('dl')
+    libdl = compiler.find_library('dl', required: false)
     if libdl.found()
-        au_cflags += ['-DAU_FEAT_LIBDL']
+        add_project_arguments('-DAU_FEAT_LIBDL', language : ['c'])
         au_depends += [libdl]
-        au_export_dynamic = true
+        au_supports_dll_import = true
     endif
 endif
-
-m_dep = compiler.find_library('m', required : false)
-au_depends += [m_dep]
 
 code = '''#include<stdio.h>
 int main(int argc, char **argv) {
@@ -213,6 +208,8 @@ if has_math_library
         'src/stdlib/math.h',
     ]
     add_project_arguments('-DAU_FEAT_MATH_LIB', language : ['c'])
+    libm = compiler.find_library('m', required : true)
+    au_depends += [libm]
 endif
 
 if has_compile_feature
@@ -251,9 +248,6 @@ if has_compile_feature
     )
 
     rt_code_depends = files(
-        'src/core/rt/au_string.c',
-        'src/core/rt/au_array.c',
-        'src/core/rt/au_tuple.c',
         'src/core/rt/struct/helper.c',
         'src/core/rt/value/print.c',
     )
@@ -286,7 +280,7 @@ if has_compile_feature
 endif
 
 if has_delayed_rc_feature
-    sources += ['src/core/rt/malloc.c']
+    sources += ['src/core/rt/malloc/gc.c']
     add_project_arguments('-DAU_FEAT_DELAYED_RC', language : ['c'])
 endif
 
@@ -300,13 +294,18 @@ endif
 
 au_runtime_sources = [
     'src/core/rt/exception.c',
+    'src/core/rt/malloc/static.c',
     'src/stdlib/gc.c',
     'src/stdlib/types.c',
     'src/stdlib/collection.c',
-    'src/core/rt/struct/helper.c',
     'src/core/hash.c',
     'src/core/hm_vars.c',
+    'src/core/rt/au_class.c',
+    'src/core/rt/au_string.c',
+    'src/core/rt/au_array.c',
+    'src/core/rt/au_tuple.c',
     'src/core/vm/module.c',
+    'src/core/rt/struct/helper.c',
 ]
 if has_io_library
     au_runtime_sources += ['src/stdlib/io.c']
@@ -404,33 +403,37 @@ aument_header = custom_target(
 
 if is_testing
     if has_compile_feature
-        static_library('au_runtime', au_runtime_sources,
+        au_runtime = static_library('au_runtime', au_runtime_sources,
             include_directories: incs,
-            c_args: ['-DAU_IS_STDLIB', '-DAU_TEST_RT_CODE'])
+            c_args: ['-DAU_IS_STDLIB', '-DAU_TEST_RT_CODE', '-rdynamic'],
+            dependencies: au_depends)
     endif
 
     aument_exe = executable('aument',
         sources + ['src/main.c'],
         include_directories: incs,
-        c_args: ['-DAU_TEST_EXE'] + au_cflags,
+        c_args: ['-DAU_TEST_EXE'],
         dependencies: au_depends,
-        export_dynamic: au_export_dynamic)
+        export_dynamic: au_supports_dll_import)
 
     e = executable('aument-tests-feature',
-       sources + [join_paths(meson.build_root(), 'tests.c')],
-       include_directories: incs,
-       c_args: ['-DAU_TEST_RT_CODE'])
+            sources + [join_paths(meson.build_root(), 'tests.c')],
+            include_directories: incs,
+            c_args: ['-DAU_TEST_RT_CODE'],
+            dependencies: au_depends)
     test('language feature test', e)
 
     if has_compile_feature
         e = executable('aument-tests-comp',
-           sources + [join_paths(meson.build_root(), 'tests_comp.c')],
-           include_directories: incs,
-           c_args: ['-DAU_TEST_RT_CODE'])
+                sources + [join_paths(meson.build_root(), 'tests_comp.c')],
+                include_directories: incs,
+                c_args: ['-DAU_TEST_RT_CODE'],
+                dependencies: au_depends)
         test('c compiler test', prog_python,
             args: files('./build-scripts/compile_runner.py') + [
                 join_paths(meson.build_root(), 'aument-tests-comp'),
-            ])
+            ],
+            depends: [au_runtime])
     endif
 
     test('features with input', prog_python,
@@ -456,7 +459,7 @@ if is_testing
                 '--binary', join_paths(meson.build_root(), 'aument'),
                 '--path', join_paths(meson.source_root(), 'tests/imports'),
             ],
-            depends: [aument_exe])
+            depends: [aument_exe, au_runtime])
 
     test('error output', prog_python,
         args: files('./build-scripts/check_output.py') + [
@@ -468,6 +471,7 @@ if is_testing
 
     endif
 
+    if au_supports_dll_import
     foreach import_lib_info : [
         ['dl_import_test', 'tests/dl-import'],
         ['dl_module_test', 'tests/dl-module'],
@@ -485,14 +489,25 @@ if is_testing
                     '--path', join_paths(meson.source_root(), import_lib_info[1]),
                 ],
                 depends: [aument_exe, import_lib_test])
+            test(import_lib_info[0] + ' (compiled)',
+                prog_python,
+                args: files('./build-scripts/check_output.py') + [
+                    '--check', 'comp_to_path',
+                    '--binary', join_paths(meson.build_root(), 'aument'),
+                    '--file', join_paths(meson.source_root(), import_lib_info[1], 'unix.out'),
+                    '--param', join_paths(meson.build_root(), import_lib_info[0] + '_bin'),
+                ],
+                depends: [aument_exe, import_lib_test])
         endif
     endforeach
+    endif
 else
     if has_compile_feature
         static_library('au_runtime',
             au_runtime_sources,
             include_directories: incs,
-            c_args: ['-DAU_IS_STDLIB'],
+            c_args: ['-DAU_IS_STDLIB', '-rdynamic'],
+            dependencies: au_depends,
             install: true,
             install_dir: get_option('bindir'))
     endif
@@ -507,5 +522,5 @@ else
         link_args: link_args,
         install: true,
         dependencies: au_depends,
-        export_dynamic: au_export_dynamic)
+        export_dynamic: au_supports_dll_import)
 endif

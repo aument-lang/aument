@@ -14,10 +14,9 @@
 
 typedef void (*au_obj_del_fn_t)(void *self);
 
-// FIXME: This should be simplified. This macro checks if this file is
-// being used in the aument.h header.
-#if defined(AU_IS_INTERPRETER) && !defined(AU_IS_STDLIB) &&               \
-    defined(AU_FEAT_DELAYED_RC)
+#if (defined(AU_IS_INTERPRETER) && !defined(AU_IS_STDLIB) &&              \
+     defined(AU_FEAT_DELAYED_RC)) ||                                      \
+    defined(_AUMENT_H)
 void au_malloc_init();
 void au_malloc_set_collect(int do_collect);
 size_t au_malloc_heap_size();

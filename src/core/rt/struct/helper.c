@@ -3,6 +3,8 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+
+// This code will only be run in the exported runtime library.
 #ifdef AU_IS_INTERPRETER
 #include "helper.h"
 #include "core/rt/exception.h"
@@ -23,4 +25,10 @@ void au_struct_idx_set(au_value_t value, au_value_t idx, au_value_t item) {
     if (!s->vdata->idx_set_fn(s, idx, item)) {
         au_fatal("au_struct_idx_set: setting invalid index");
     }
+}
+
+struct au_struct *au_struct_coerce(au_value_t value) {
+    if (au_value_get_type(value) != AU_VALUE_STRUCT)
+        return 0;
+    return (struct au_struct *)au_value_get_struct(value);
 }

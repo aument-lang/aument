@@ -24,6 +24,12 @@ void au_module_lib_del(struct au_module_lib *lib) {
 #endif
 }
 
+void au_module_lib_perror() {
+#ifdef AU_FEAT_LIBDL
+    fprintf(stderr, "libdl: %s\n", dlerror());
+#endif
+}
+
 char *au_module_resolve(const char *relpath, const char *parent_dir) {
     const char *relpath_canon = 0;
     if (relpath[0] == '.' && relpath[1] == '/') {
@@ -69,6 +75,8 @@ enum au_module_import_result au_module_import(struct au_module *module,
         module->data.lib.lib = loader();
         if (module->data.lib.lib == 0) {
             dlclose(module->data.lib.dl_handle);
+            module->data.lib.dl_handle = 0;
+            module->data.lib.lib = 0;
             return AU_MODULE_IMPORT_SUCCESS_NO_MODULE;
         }
 #else

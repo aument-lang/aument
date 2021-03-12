@@ -83,3 +83,12 @@ int au_obj_class_set(_Unused struct au_obj_class *obj_class,
 int32_t au_obj_class_len(struct au_obj_class *obj_class) {
     return (int32_t)obj_class->interface->map.entries_occ;
 }
+
+#ifdef _AUMENT_H
+struct au_obj_class *au_obj_class_coerce(const au_value_t value) {
+    if (au_value_get_type(value) != AU_VALUE_STRUCT ||
+        au_value_get_struct(value)->vdata != &au_obj_class_vdata)
+        return 0;
+    return (struct au_obj_class *)au_value_get_struct(value);
+}
+#endif
