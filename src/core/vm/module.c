@@ -3,18 +3,26 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
-#include "module.h"
-#include "core/rt/malloc.h"
-
 #include <assert.h>
-#include <dlfcn.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "core/rt/malloc.h"
+#include "module.h"
+
+#ifdef AU_FEAT_LIBDL
+#include <dlfcn.h>
+#endif
 
 #define AU_MODULE_LIB_EXT ".so"
 #define AU_MODULE_LOAD_FN "au_module_load"
 
-void au_module_lib_del(struct au_module_lib *lib) { (void)lib; }
+void au_module_lib_del(struct au_module_lib *lib) {
+    (void)lib;
+#ifdef AU_FEAT_LIBDL
+    dlclose(lib->dl_handle);
+#endif
+}
 
 char *au_module_resolve(const char *relpath, const char *parent_dir) {
     const char *relpath_canon = 0;
@@ -40,6 +48,7 @@ typedef module_load_fn_ret_t (*module_load_fn_t)();
 
 enum au_module_import_result au_module_import(struct au_module *module,
                                               const char *abspath) {
+    (void)module;
     const size_t abspath_len = strlen(abspath);
     if (abspath_len > strlen(AU_MODULE_LIB_EXT) &&
         memcmp(&abspath[abspath_len - strlen(AU_MODULE_LIB_EXT)],
@@ -65,7 +74,9 @@ enum au_module_import_result au_module_import(struct au_module *module,
 #else
         return AU_MODULE_IMPORT_FAIL;
 #endif
-    } else {
+    }
+#ifndef AU_IS_STDLIB
+    else {
         module->type = AU_MODULE_SOURCE;
         struct au_mmap_info mmap;
         if (!au_mmap_read(abspath, &mmap)) {
@@ -73,5 +84,22 @@ enum au_module_import_result au_module_import(struct au_module *module,
         }
         module->data.source = mmap;
     }
+#endif
     return AU_MODULE_IMPORT_SUCCESS;
 }
+
+#ifdef AU_IS_STDLIB
+#include "core/fn/main.h"
+#include "core/hm_vars.h"
+#include "core/program.h"
+void *au_module_get_fn(struct au_module *module, const char *fn_name) {
+    const struct au_hm_var_value *value = au_hm_vars_get(
+        &module->data.lib.lib->fn_map, fn_name, strlen(fn_name));
+    if (value == 0)
+        return 0;
+    const struct au_fn fn = module->data.lib.lib->fns.data[value->idx];
+    if (fn.type != AU_FN_NATIVE)
+        return 0;
+    return fn.as.native_func.func;
+}
+#endif

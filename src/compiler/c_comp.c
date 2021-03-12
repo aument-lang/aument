@@ -8,6 +8,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#ifdef AU_FEAT_LIBDL
+#include <dlfcn.h>
+#endif
+
 #include "platform/mmap.h"
 #include "platform/path.h"
 
@@ -19,8 +23,11 @@
 #include "core/program.h"
 #include "core/rt/exception.h"
 #include "core/rt/malloc.h"
+#include "core/vm/module.h"
 
 #include "c_comp.h"
+
+#define INDENT "    "
 
 struct line_info {
     size_t source_start;
@@ -184,13 +191,12 @@ static void comp_cleanup(struct au_c_comp_state *state,
     }
 }
 
-static void
-link_to_imported(const struct au_program_data *p_data, size_t module_idx,
-                 size_t imported_module_idx_in_source,
-                 struct au_c_comp_global_state *g_state,
-                 struct au_c_comp_state *state,
-                 const struct au_imported_module *relative_module,
-                 const struct au_c_comp_module *loaded_module) {
+static void link_to_imported(
+    const struct au_program_data *p_data, size_t module_idx,
+    enum au_module_type module_type, size_t imported_module_idx_in_source,
+    struct au_c_comp_global_state *g_state, struct au_c_comp_state *state,
+    const struct au_imported_module *relative_module,
+    const struct au_c_comp_module *loaded_module) {
     AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
         const struct au_fn *relative_fn =
             au_fn_array_at_ptr(&p_data->fns, entry->idx);
@@ -206,22 +212,23 @@ link_to_imported(const struct au_program_data *p_data, size_t module_idx,
             au_fatal("this function is not exported");
         if (au_fn_num_args(fn) != import_func->num_args)
             au_fatal("unexpected number of arguments");
-        if (import_func->num_args == 0) {
-            comp_printf(state,
-                        "extern au_value_t _M%ld_f%ld();"
-                        "_M%ld_f%ld=&_M%ld_f%ld;\n",
-                        imported_module_idx_in_source, fn_idx->idx,
-                        module_idx, entry->idx,
-                        imported_module_idx_in_source, fn_idx->idx);
+        if (module_type == AU_MODULE_SOURCE) {
+            if (import_func->num_args == 0) {
+                comp_printf(state,
+                            INDENT "extern au_value_t _M%ld_f%ld();",
+                            imported_module_idx_in_source, fn_idx->idx);
+            } else {
+                comp_printf(state,
+                            INDENT "extern au_value_t _M%ld_f%ld"
+                                   "(au_value_t *args);",
+                            imported_module_idx_in_source, fn_idx->idx);
+            }
         } else {
-            comp_printf(state,
-                        "extern au_value_t "
-                        "_M%ld_f%ld(au_value_t*);"
-                        "_M%ld_f%ld=&_M%ld_f%ld;\n",
-                        imported_module_idx_in_source, fn_idx->idx,
-                        module_idx, entry->idx,
-                        imported_module_idx_in_source, fn_idx->idx);
+            comp_printf(state, INDENT);
         }
+        comp_printf(state, "_M%ld_f%ld=&_M%ld_f%ld;\n", module_idx,
+                    entry->idx, imported_module_idx_in_source,
+                    fn_idx->idx);
     })
 #define X(FMT)                                                            \
     do {                                                                  \
@@ -246,8 +253,6 @@ link_to_imported(const struct au_program_data *p_data, size_t module_idx,
     })
 #undef X
 }
-
-#define INDENT "    "
 
 static void au_c_comp_func(struct au_c_comp_state *state,
                            const struct au_bc_storage *bcs,
@@ -722,29 +727,32 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             const size_t relative_module_idx = import->module_idx;
             const char *relpath = import->path;
 
-            struct au_mmap_info mmap;
-            char *abspath;
+            char *abspath = 0;
+            if ((abspath = au_module_resolve(relpath, p_data->cwd)) == 0)
+                au_fatal("abspath is null\n");
 
-            if (relpath[0] == '.' && relpath[1] == '/') {
-                const char *relpath_canon = &relpath[2];
-                const size_t abspath_len =
-                    strlen(p_data->cwd) + strlen(relpath_canon) + 2;
-                abspath = au_data_malloc(abspath_len);
-                snprintf(abspath, abspath_len, "%s/%s", p_data->cwd,
-                         relpath_canon);
-            } else {
-                assert(0);
+            struct au_module module;
+            switch (au_module_import(&module, abspath)) {
+            case AU_MODULE_IMPORT_SUCCESS: {
+                break;
+            }
+            case AU_MODULE_IMPORT_FAIL: {
+                au_fatal("unable to import %s\n", abspath);
+                break;
+            }
+            case AU_MODULE_IMPORT_FAIL_DLERROR: {
+#ifdef AU_FEAT_LIBDL
+                au_fatal("dlerror: %s\n", dlerror());
+#endif
+                break;
+            }
+            default: {
+                break;
+            }
             }
 
             size_t imported_module_idx = g_state->modules.len;
             int has_old_value = 0;
-
-            if (!au_mmap_read(abspath, &mmap))
-                au_perror("mmap");
-
-            struct line_info_array line_info_array = {0};
-            create_line_info_array(&line_info_array, mmap.bytes,
-                                   mmap.size);
 
             {
                 struct au_hm_var_value *old_value = au_hm_vars_add(
@@ -760,52 +768,168 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             const size_t imported_module_idx_in_source =
                 imported_module_idx + 1;
 
-            if (!has_old_value) {
-                struct au_program program;
-                struct au_parser_result parse_res =
-                    au_parse(mmap.bytes, mmap.size, &program);
-                if (parse_res.type != AU_PARSER_RES_OK) {
-                    au_print_parser_error(parse_res,
-                                          (struct au_error_location){
-                                              .src = mmap.bytes,
-                                              .len = mmap.size,
-                                              .path = p_data->file,
-                                          });
+            switch (module.type) {
+            case AU_MODULE_SOURCE: {
+                struct au_mmap_info mmap;
+                if (!au_mmap_read(abspath, &mmap))
+                    au_perror("mmap");
+
+                struct line_info_array line_info_array = {0};
+                create_line_info_array(&line_info_array, mmap.bytes,
+                                       mmap.size);
+
+                if (!has_old_value) {
+                    struct au_program program;
+                    struct au_parser_result parse_res =
+                        au_parse(mmap.bytes, mmap.size, &program);
+                    if (parse_res.type != AU_PARSER_RES_OK) {
+                        au_print_parser_error(parse_res,
+                                              (struct au_error_location){
+                                                  .src = mmap.bytes,
+                                                  .len = mmap.size,
+                                                  .path = p_data->file,
+                                              });
+                        au_mmap_del(&mmap);
+                        abort();
+                    }
                     au_mmap_del(&mmap);
-                    abort();
+
+                    program.data.file = 0;
+                    program.data.cwd = 0;
+                    au_split_path(abspath, &program.data.file,
+                                  &program.data.cwd);
+                    au_data_free(abspath);
+
+                    struct au_c_comp_state mod_state = {0};
+                    au_c_comp_module(&mod_state, &program,
+                                     imported_module_idx_in_source,
+                                     g_state);
+
+                    struct au_c_comp_module comp_module =
+                        (struct au_c_comp_module){0};
+                    comp_module.fns = program.data.fns;
+                    comp_module.fn_map = program.data.fn_map;
+                    comp_module.classes = program.data.classes;
+                    comp_module.class_map = program.data.class_map;
+                    program.data.fns = (struct au_fn_array){0};
+                    program.data.fn_map = (struct au_hm_vars){0};
+                    program.data.classes =
+                        (struct au_class_interface_ptr_array){0};
+                    program.data.class_map = (struct au_hm_vars){0};
+                    au_program_del(&program);
+
+                    comp_module.c_source = mod_state.str;
+                    mod_state.str = (struct au_char_array){0};
+
+                    comp_module.line_info = line_info_array;
+                    line_info_array = (struct line_info_array){0};
+
+                    au_c_comp_module_array_add(&g_state->modules,
+                                               comp_module);
                 }
-                au_mmap_del(&mmap);
+                break;
+            }
+            case AU_MODULE_LIB: {
+                struct au_program_data *loaded_module =
+                    module.data.lib.lib;
+                if (loaded_module == 0)
+                    break;
+                module.data.lib.lib = 0;
 
-                program.data.file = 0;
-                program.data.cwd = 0;
-                au_split_path(abspath, &program.data.file,
-                              &program.data.cwd);
+                char *lib_filename = basename(abspath);
+
+                if (!has_old_value) {
+                    struct au_c_comp_module comp_module =
+                        (struct au_c_comp_module){0};
+                    AU_HM_VARS_FOREACH_PAIR(
+                        &loaded_module->fn_map, name, entry, {
+                            const struct au_fn *loaded_fn =
+                                au_fn_array_at_ptr(&loaded_module->fns,
+                                                   entry->idx);
+                            comp_printf(&g_state->header_file,
+                                        "static au_extern_func_t "
+                                        "_M%ld_f%ld_ext=0;\n",
+                                        imported_module_idx_in_source,
+                                        entry->idx);
+                            if (au_fn_num_args(loaded_fn) == 0) {
+                                comp_printf(&g_state->header_file,
+                                            "static au_value_t "
+                                            "_M%ld_f%ld(){"
+                                            "return _M%ld_f%ld_ext(0,0);"
+                                            "}\n",
+                                            imported_module_idx_in_source,
+                                            entry->idx,
+                                            imported_module_idx_in_source,
+                                            entry->idx);
+                            } else {
+                                comp_printf(&g_state->header_file,
+                                            "static au_value_t "
+                                            "_M%ld_f%ld(au_value_t*a){"
+                                            "return _M%ld_f%ld_ext(0,a);"
+                                            "}\n",
+                                            imported_module_idx_in_source,
+                                            entry->idx,
+                                            imported_module_idx_in_source,
+                                            entry->idx);
+                            }
+                            if ((loaded_fn->flags & AU_FN_FLAG_EXPORTED) !=
+                                0) {
+                                au_fn_array_add(
+                                    &comp_module.fns,
+                                    (struct au_fn){
+                                        .flags = loaded_fn->flags,
+                                        .type = AU_FN_NONE,
+                                    });
+                                au_hm_vars_add(&comp_module.fn_map, name,
+                                               name_len,
+                                               AU_HM_VAR_VALUE(0));
+                            }
+                        });
+                    au_c_comp_module_array_add(&g_state->modules,
+                                               comp_module);
+
+                    comp_printf(&g_state->header_file,
+                                "static int _M%ld_main_init=0;\n",
+                                imported_module_idx_in_source);
+                    comp_printf(&g_state->header_file,
+                                "static void _M%ld_main() {\n",
+                                imported_module_idx_in_source);
+                    comp_printf(&g_state->header_file,
+                                INDENT "if(_M%ld_main_init){return;}\n",
+                                imported_module_idx_in_source);
+                    comp_printf(&g_state->header_file,
+                                INDENT "_M%ld_main_init=1;\n",
+                                imported_module_idx_in_source);
+                    comp_printf(&g_state->header_file,
+                                INDENT "struct au_module m;\n");
+                    comp_printf(&g_state->header_file,
+                                INDENT "if(au_module_import(&m,"
+                                       "\"%s\")!=AU_MODULE_IMPORT_SUCCESS)"
+                                       "abort();\n",
+                                lib_filename);
+                    AU_HM_VARS_FOREACH_PAIR(
+                        &loaded_module->fn_map, name, entry, {
+                            (void)name_len;
+                            comp_printf(&g_state->header_file,
+                                        INDENT "_M%ld_f%d_ext="
+                                               "au_module_get_fn"
+                                               "(&m,\"%s\");\n",
+                                        imported_module_idx_in_source,
+                                        entry->idx, name);
+                            comp_printf(
+                                &g_state->header_file,
+                                INDENT "if(_M%ld_f%d_ext==0)abort();\n",
+                                imported_module_idx_in_source, entry->idx);
+                        });
+                    comp_printf(&g_state->header_file, "}\n");
+                }
+
+                au_program_data_del(loaded_module);
+                au_data_free(loaded_module);
+                au_module_lib_del(&module.data.lib);
                 au_data_free(abspath);
-
-                struct au_c_comp_state mod_state = {0};
-                au_c_comp_module(&mod_state, &program,
-                                 imported_module_idx_in_source, g_state);
-
-                struct au_c_comp_module comp_module =
-                    (struct au_c_comp_module){0};
-                comp_module.fns = program.data.fns;
-                comp_module.fn_map = program.data.fn_map;
-                comp_module.classes = program.data.classes;
-                comp_module.class_map = program.data.class_map;
-                program.data.fns = (struct au_fn_array){0};
-                program.data.fn_map = (struct au_hm_vars){0};
-                program.data.classes =
-                    (struct au_class_interface_ptr_array){0};
-                program.data.class_map = (struct au_hm_vars){0};
-                au_program_del(&program);
-
-                comp_module.c_source = mod_state.str;
-                mod_state.str = (struct au_char_array){0};
-
-                comp_module.line_info = line_info_array;
-                line_info_array = (struct line_info_array){0};
-
-                au_c_comp_module_array_add(&g_state->modules, comp_module);
+                break;
+            }
             }
 
             comp_printf(state, "_M%ld_main();\n",
@@ -818,7 +942,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 const struct au_c_comp_module *loaded_module =
                     au_c_comp_module_array_at_ptr(&g_state->modules,
                                                   imported_module_idx);
-                link_to_imported(p_data, module_idx,
+                link_to_imported(p_data, module_idx, module.type,
                                  imported_module_idx_in_source, g_state,
                                  state, relative_module, loaded_module);
             }

@@ -1,0 +1,2 @@
+import "./multiple-file-one-import-1.au" as mod;
+mod::a();

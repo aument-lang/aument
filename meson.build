@@ -232,6 +232,7 @@ if has_compile_feature
         'src/core/rt/au_tuple.h',
         'src/core/rt/extern_fn.h',
         'src/core/vm/frame_link.h',
+        'src/core/vm/module.h',
         'src/core/rt/includes/stdlib_end.h',
     )
     stdlib_begin_hdr = files('src/core/rt/includes/stdlib_begin.h')
@@ -246,7 +247,7 @@ if has_compile_feature
             '--global-file', stdlib_begin_hdr,
             '--output', '@OUTPUT@',
             '--ident', 'AU_RT_HDR',
-            '--files'] + rt_hdr_depends + ['--cpp'] + au_hdr_cflags,
+            '--files'] + rt_hdr_depends + ['--cpp', 'DAU_IS_STDLIB'] + au_hdr_cflags,
     )
 
     rt_code_depends = files(
@@ -266,7 +267,7 @@ if has_compile_feature
             '--output', '@OUTPUT@',
             '--ident', 'AU_RT_CODE',
             '--files'
-        ] + rt_code_depends + ['--cpp'] + au_hdr_cflags,
+        ] + rt_code_depends + ['--cpp', 'DAU_IS_STDLIB'] + au_hdr_cflags,
     )
 
     sources += [
@@ -303,6 +304,9 @@ au_runtime_sources = [
     'src/stdlib/types.c',
     'src/stdlib/collection.c',
     'src/core/rt/struct/helper.c',
+    'src/core/hash.c',
+    'src/core/hm_vars.c',
+    'src/core/vm/module.c',
 ]
 if has_io_library
     au_runtime_sources += ['src/stdlib/io.c']
