@@ -12,6 +12,7 @@ struct au_cc_options {
     struct au_str_array ldflags;
     char *_stdlib_cache;
     int use_stdlib;
+    int loads_dl;
 };
 
 void au_cc_options_default(struct au_cc_options *cc);
