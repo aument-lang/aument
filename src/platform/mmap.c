@@ -31,10 +31,16 @@ int au_mmap_read(const char *path, struct au_mmap_info *info) {
         return 0;
     info->bytes = bytes;
 #else
-    FILE *file = fopen(path, "r");
-    fseek(file, 0, SEEK_END);
+    FILE *file = fopen(path, "rb");
+    if(file == 0)
+        goto fail;
+    
+    if(fseek(file, 0, SEEK_END) != 0)
+        goto fail;
     info->size = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    if(fseek(file, 0, SEEK_SET) != 0)
+        goto fail;
+
     if (info->size == 0) {
         info->bytes = 0;
         fclose(file);
@@ -46,6 +52,13 @@ int au_mmap_read(const char *path, struct au_mmap_info *info) {
     info->bytes = bytes;
 #endif
     return 1;
+fail:
+    if(file)
+        fclose(file);
+    au_data_free(info->bytes);
+    info->bytes = 0;
+    info->size = 0;
+    return 0;
 }
 
 void au_mmap_del(struct au_mmap_info *info) {

@@ -24,7 +24,8 @@ int au_split_path(const char *path, char **file, char **wd) {
     size_t size = GetFullPathNameA(path, PATH_MAX, return_file, 0);
     if (size == 0)
         goto fail;
-    return_file = au_data_realloc(return_file, size);
+    return_file = au_data_realloc(return_file, size + 1);
+    return_file[size] = 0;
     *file = return_file;
 
     char *return_wd = au_data_malloc(PATH_MAX);

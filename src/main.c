@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
             struct au_c_comp_state c_state = {0};
             au_c_comp(&c_state, &program, &options, 0);
 
-            FILE *f = fopen(output_file, "w");
+            FILE *f = fopen(output_file, "wb");
             fwrite(c_state.str.data, 1, c_state.str.len, f);
             fflush(f);
             fclose(f);
