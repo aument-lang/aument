@@ -7,4 +7,5 @@
 
 #include "../core/str_array.h"
 
-int au_spawn(struct au_str_array *array);
+/// [func] Spawns a program with arguments specified
+int au_spawn(struct au_str_array *args);

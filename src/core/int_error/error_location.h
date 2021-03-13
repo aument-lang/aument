@@ -7,8 +7,10 @@
 
 #include <stdlib.h>
 
+/// [struct] A structure representing where an error occurs.
 struct au_error_location {
     const char *path;
     const char *src;
     size_t len;
 };
+// end-struct

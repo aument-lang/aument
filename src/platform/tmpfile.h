@@ -12,6 +12,12 @@ struct au_tmpfile {
     char *path;
 };
 
-void au_tmpfile_del(struct au_tmpfile *);
+/// [func] Deinitializes an au_tmpfile instance
+/// @param tmp instance to be deinitialized
+void au_tmpfile_del(struct au_tmpfile *tmp);
+
+/// [func] Creates a new temporary file with the `.c` extension
 int au_tmpfile_new(struct au_tmpfile *tmp);
+
+/// [func] Creates an empty executable file
 int au_tmpfile_exec(struct au_tmpfile *tmp);

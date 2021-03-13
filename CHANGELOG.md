@@ -1,6 +1,24 @@
-# Version 0.2 [pre-α]
+# Version 0.2–0.3 [α]
 
-*Changelog to be added*
+  * **Birth of the Aument language**
+  * General:
+    * Additional standard library functions
+    * Better parser/interpreter errors
+    * Better code coverage and testing
+  * Language features:
+    * Added classes
+    * Arrays, tuples and syntax to index them
+    * Methods and dynamic dispatch
+  * Parser changes:
+    * Added unary-not expression
+    * Exporting data and importing from source file/dynamic libraries
+    * Forward declaration of classes and functions
+  * Interpreter:
+    * Minor performance improvements
+    * Deferred reference count feature for faster VM operations
+    * Specialized math opcodes for integers and floats
+  * C compiler:
+    * Full feature parity with interpreter
 
 # Version 0.1 [pre-α]
 
