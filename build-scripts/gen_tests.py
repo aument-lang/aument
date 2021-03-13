@@ -35,20 +35,11 @@ c_src = """
 """
 
 c_src_comp_test = c_src + """
-#include <libgen.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
 #include "platform/tmpfile.h"
 #include "platform/spawn.h"
 #include "platform/cc.h"
 
 #include "compiler/c_comp.h"
-
-#include <libgen.h>
-#include <signal.h>
-#include <unistd.h>
 
 extern char *TEST_RT_CODE;
 extern size_t TEST_RT_CODE_LEN;
@@ -72,9 +63,9 @@ test_srcs = []
 input_srcs = []
 
 for (i, fn) in enumerate(files):
-    with open(fn[:-out_extension_len] + '.au', 'r') as f:
+    with open(fn[:-out_extension_len] + '.au', 'r', encoding='utf-8') as f:
         input_cont = f.read()
-    with open(fn, 'r') as f:
+    with open(fn, 'r', encoding='utf-8') as f:
         output_lines = map(lambda s: s.rstrip(), f.readlines())
     input_bytes = input_cont.encode('utf-8')
     input_array, input_len = bytes_to_c_array(input_bytes)
@@ -129,7 +120,7 @@ static void test_{i}_check(au_value_t value) {{ switch(test_{i}_idx) {{
     test_src = f"""
 #include <assert.h>
 {test_src}
-__attribute__ ((alias ("au_value_print"))) void _au_value_print(au_value_t v)
+void au_value_print(au_value_t v)
 {{ test_{i}_check(v); }}
 """
     test_srcs.append(test_src)
@@ -160,10 +151,12 @@ static void test_{i}() {{
 }}\n\n"""
 
 c_src += """
+void au_value_print(au_value_t v) { (void)v; }
 int main() {
 """
 
 for (i, fn) in enumerate(files):
+    fn = fn.replace("\\","/")
     c_src += f"  printf(\"[{i+1}/{len(files)}] {fn}\\n\"); test_{i}();\n"
 
 c_src += """
@@ -171,16 +164,21 @@ c_src += """
 }
 """
 
-with open("build/tests.c", "w") as f:
+with open("build/tests.c", "w", encoding='utf-8') as f:
     f.write(c_src)
 
 # Compiler test
+stdlib_cache_file = os.path.join(source_path, "../build/libau_runtime.a")
+stdlib_cache_file = stdlib_cache_file.replace("\\","/")
 c_src_comp_test += f"""
 struct au_cc_options cc;
 
+void au_value_print(au_value_t v)
+{{ (void)v; }}
+
 void setup() {{
     au_cc_options_default(&cc);
-    cc._stdlib_cache = au_data_strdup("{os.path.join(source_path, "../build/libau_runtime.a")}");
+    cc._stdlib_cache = au_data_strdup("{stdlib_cache_file}");
 }}
 
 void cleanup() {{
@@ -249,6 +247,7 @@ int main(int argc, char **argv) {{
 """
 
 for (i, fn) in enumerate(files):
+    fn = fn.replace("\\","/")
     c_src_comp_test += f"    if(sel=={i}) {{ printf(\"[{i+1}/{len(files)}] {fn}\\n\"); test_{i}(); }}\n"
 
 c_src_comp_test += """
@@ -257,5 +256,5 @@ c_src_comp_test += """
 }
 """
 
-with open("build/tests_comp.c", "w") as f:
+with open("build/tests_comp.c", "w", encoding='utf-8') as f:
     f.write(c_src_comp_test)
