@@ -11,6 +11,8 @@
 #include "core/char_array.h"
 #include "core/str_array.h"
 
+#include "platform/cc.h"
+
 struct au_c_comp_state {
     struct au_char_array str;
 };
@@ -29,4 +31,5 @@ struct au_c_comp_options {
 /// an au_c_comp_state instance
 void au_c_comp(struct au_c_comp_state *state,
                const struct au_program *program,
-               struct au_c_comp_options options);
+               const struct au_c_comp_options *options,
+               struct au_cc_options *cc);

@@ -94,11 +94,15 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
                      au_lib_file);
             cc->_stdlib_cache[stdlib_cache_len] = 0;
         }
-        au_str_array_add(&args, "-rdynamic");
-        au_str_array_add(&args, "-Wl,--whole-archive");
-        au_str_array_add(&args, cc->_stdlib_cache);
-        au_str_array_add(&args, "-Wl,--no-whole-archive");
-        au_str_array_add(&args, "-Wl,-rpath,$ORIGIN");
+        if (cc->loads_dl) {
+            au_str_array_add(&args, "-rdynamic");
+            au_str_array_add(&args, "-Wl,--whole-archive");
+            au_str_array_add(&args, cc->_stdlib_cache);
+            au_str_array_add(&args, "-Wl,--no-whole-archive");
+            au_str_array_add(&args, "-Wl,-rpath,$ORIGIN");
+        } else {
+            au_str_array_add(&args, cc->_stdlib_cache);
+        }
     }
 
     for (size_t i = 0; i < cc->ldflags.len; i++)

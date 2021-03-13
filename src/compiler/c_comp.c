@@ -70,6 +70,7 @@ struct au_c_comp_global_state {
     struct line_info_array main_line_info;
     struct au_c_comp_options options;
     struct au_c_comp_state header_file;
+    int loads_dl;
 };
 
 static void au_c_comp_module(struct au_c_comp_state *state,
@@ -868,6 +869,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 break;
             }
             case AU_MODULE_LIB: {
+                g_state->loads_dl = 1;
+
                 struct au_program_data *loaded_module =
                     module.data.lib.lib;
                 module.data.lib.lib = 0;
@@ -1316,7 +1319,8 @@ size_t TEST_RT_CODE_LEN;
 
 void au_c_comp(struct au_c_comp_state *state,
                const struct au_program *program,
-               struct au_c_comp_options options) {
+               const struct au_c_comp_options *options,
+               struct au_cc_options *cc) {
     comp_write(state, AU_RT_HDR, AU_RT_HDR_LEN);
     comp_putc(state, '\n');
 
@@ -1326,8 +1330,9 @@ void au_c_comp(struct au_c_comp_state *state,
 
     struct au_c_comp_global_state g_state =
         (struct au_c_comp_global_state){0};
-    g_state.options = options;
+    g_state.options = *options;
     g_state.header_file = (struct au_c_comp_state){0};
+    g_state.loads_dl = 0;
 
     if (g_state.options.with_debug) {
         struct au_mmap_info mmap;
@@ -1360,6 +1365,10 @@ void au_c_comp(struct au_c_comp_state *state,
     comp_putc(state, '\n');
     comp_write(state, TEST_RT_CODE, TEST_RT_CODE_LEN);
 #endif
+
+    if(cc) {
+        cc->loads_dl = g_state.loads_dl;
+    }
 
     // Cleanup
     for (size_t i = 0; i < g_state.modules.len; i++) {

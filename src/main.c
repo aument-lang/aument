@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
         options.with_debug = (flags & FLAG_GENERATE_DEBUG) != 0;
         if ((flags & FLAG_GENERATE_C) != 0) {
             struct au_c_comp_state c_state = {0};
-            au_c_comp(&c_state, &program, options);
+            au_c_comp(&c_state, &program, &options, 0);
 
             FILE *f = fopen(output_file, "w");
             fwrite(c_state.str.data, 1, c_state.str.len, f);
@@ -208,17 +208,17 @@ int main(int argc, char **argv) {
             if (!au_tmpfile_new(&tmp))
                 au_perror("unable to create tmpfile");
 
+            struct au_cc_options cc;
+            au_cc_options_default(&cc);
+
             struct au_c_comp_state c_state = {0};
-            au_c_comp(&c_state, &program, options);
+            au_c_comp(&c_state, &program, &options, &cc);
 
             fwrite(c_state.str.data, 1, c_state.str.len, tmp.f);
             fflush(tmp.f);
 
             au_c_comp_state_del(&c_state);
             au_program_del(&program);
-
-            struct au_cc_options cc;
-            au_cc_options_default(&cc);
 
             au_str_array_add(&cc.cflags, "-flto");
             au_str_array_add(&cc.cflags, "-O2");
