@@ -1366,7 +1366,7 @@ void au_c_comp(struct au_c_comp_state *state,
     comp_write(state, TEST_RT_CODE, TEST_RT_CODE_LEN);
 #endif
 
-    if(cc) {
+    if (cc) {
         cc->loads_dl = g_state.loads_dl;
     }
 

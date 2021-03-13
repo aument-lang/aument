@@ -18,7 +18,8 @@ aument compiles code by invoking a C compiler. By default, this is *gcc*,
 however you can have aument use another compiler by specifying it in
 the `CC` environment variable.
 
-aument invokes the C compiler with the following arguments:
+Unless the `--no-opt` parameter is passed, aument invokes the C compiler
+with the following arguments:
 
 ```
 -flto -O2

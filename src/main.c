@@ -36,6 +36,7 @@
 #define FLAG_GENERATE_C (1 << 0)
 #define FLAG_DUMP_BYTECODE (1 << 1)
 #define FLAG_GENERATE_DEBUG (1 << 2)
+#define FLAG_NO_OPT (1 << 3)
 
 #include "core/int_error/error_printer.h"
 
@@ -67,6 +68,13 @@ int main(int argc, char **argv) {
             }
             case 'g': {
                 flags |= FLAG_GENERATE_DEBUG;
+                break;
+            }
+            case '-': {
+                char *full_opt = &argv[i][2];
+                if (strcmp(full_opt, "no-opt") == 0) {
+                    flags |= FLAG_NO_OPT;
+                }
                 break;
             }
             default:
@@ -220,8 +228,10 @@ int main(int argc, char **argv) {
             au_c_comp_state_del(&c_state);
             au_program_del(&program);
 
-            au_str_array_add(&cc.cflags, "-flto");
-            au_str_array_add(&cc.cflags, "-O2");
+            if ((flags & FLAG_NO_OPT) == 0) {
+                au_str_array_add(&cc.cflags, "-flto");
+                au_str_array_add(&cc.cflags, "-O2");
+            }
 
 #ifdef AU_COVERAGE
             au_str_array_add(&cc.cflags, "-fprofile-arcs");
