@@ -9,11 +9,20 @@
 #include "core/rt/extern_fn.h"
 #include "core/rt/malloc.h"
 
+/// [func] Creates a new external module
+/// @return a reference to the module
 static _Unused inline struct au_program_data *au_module_new() {
     return (struct au_program_data *)au_data_calloc(
         sizeof(struct au_program_data));
 }
 
+/// [func] Declares an external function in the external module
+/// @param p_data the module
+/// @param name null-terminated string representing the name of the
+/// function
+/// @param func the pointer to the external function
+/// @param num_args the number of arguments the external function takes
+/// @return 0 if a function by that name already exists, 1 if successful
 static _Unused inline int au_module_add_fn(struct au_program_data *p_data,
                                            const char *name,
                                            au_extern_func_t func,

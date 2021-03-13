@@ -4,6 +4,7 @@
 # Licensed under Apache License v2.0 with Runtime Library Exception
 # See LICENSE.txt for license information
 import re
+import os
 
 def cleanup_params(array):
     def each_line(x):
@@ -15,10 +16,12 @@ CMT_CONT_REGEX = re.compile(r'^///\s+')
 BEGIN_DESC_REGEX = re.compile(r'^/// \[([^\]]+)\]\s+')
 TWO_ARG_REGEX = re.compile(r'([^\s]+)\s+(.*)', re.S)
 FUNC_NAME_REGEX = re.compile(r'([a-zA-Z_$][a-zA-Z_$0-9]*)\(')
+STRUCT_NAME_REGEX = re.compile(r'struct ([a-zA-Z_$][a-zA-Z_$0-9]*)')
 AU_FUNC_NAME_REGEX = re.compile(r'\(([a-zA-Z_$][a-zA-Z_$0-9]*)\)')
 
 STATE_NONE = 0
 STATE_FUNC_GROUP = 1
+STATE_STRUCT_GROUP = 2
 
 def parse(src, path):
     groups = []
@@ -30,19 +33,32 @@ def parse(src, path):
                 groups.append(cur_group)
                 cur_group = []
             state = STATE_FUNC_GROUP
+        elif i.startswith("/// [struct]"):
+            if cur_group:
+                groups.append(cur_group)
+                cur_group = []
+            state = STATE_STRUCT_GROUP
 
         if state != STATE_NONE:
             cur_group.append(i)
 
-        if state == STATE_FUNC_GROUP and not i.startswith("///") and i.endswith(";"):
-            groups.append(cur_group)
-            cur_group = []
-            state = STATE_NONE
+        if state == STATE_FUNC_GROUP:
+            if not i.startswith("///") and i.endswith(";"):
+                groups.append(cur_group)
+                cur_group = []
+                state = STATE_NONE
+        elif state == STATE_STRUCT_GROUP:
+            if i == "// end-struct":
+                groups.append(cur_group)
+                cur_group = []
+                state = STATE_NONE
 
     if cur_group:
         groups.append(cur_group)
     
     functions = []
+    structs = []
+
     for group in groups:
         line_idx = 0
         line_len = len(group)
@@ -70,9 +86,10 @@ def parse(src, path):
         params = cleanup_params(params)
 
         signature = group[line_idx:]
-        signature = "\n".join(signature)
 
         if doc_type == "func" or doc_type == "func-au":
+            signature = "\n".join(signature)
+
             func_params = []
             func_returns = None
             func_name = None
@@ -101,19 +118,35 @@ def parse(src, path):
             else:
                 func["name"] = func_name
             functions.append(func)
-    return (functions)
+        elif doc_type == "struct":
+            signature.pop()
+            signature = "\n".join(signature)
+
+            structs.append({
+                "path": path,
+                "desc": desc,
+                "name": STRUCT_NAME_REGEX.search(signature).group(1),
+                "signature": signature,
+            })
+    return {
+        "functions": functions,
+        "structs": structs,
+    }
 
 functions = []
+structs = []
 
-import os
 for root, _, files in os.walk("src/"):
     for file in files:
         if file.endswith(".h"):
             path = os.path.join(root, file)
             with open(path, "r") as f:
-                functions += parse(f.read(), path)
+                result = parse(f.read(), path)
+                functions += result["functions"]
+                structs += result["structs"]
 
 functions.sort(key=lambda x: x['name'])
+structs.sort(key=lambda x: x['name'])
 
 md_src = """\
 # C API
@@ -134,6 +167,9 @@ Please don't modify it by hand!
 """
 
 NL = "\n"
+
+# * Functions *
+
 for f in functions:
     if f["type"] == "func":
         md_src += f"""
@@ -170,6 +206,21 @@ Defined in *{f['path']}*.
 #### Return value
 
 {f['returns'] if f['returns'] else "*none*"}
+"""
+
+# * Structs *
+md_src += "\n## Structures\n"
+for struct in structs:
+    md_src += f"""
+### {struct["name"]}
+
+{struct["desc"]}
+
+```c
+{struct["signature"]}
+```
+
+Defined in *{struct['path']}*.
 """
 
 with open("docs/c-api.md", "w") as f:

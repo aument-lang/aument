@@ -11,8 +11,10 @@
 #include "core/vm/exception.h"
 #include "error_location.h"
 
+/// [func] Prints a parser error
 void au_print_parser_error(struct au_parser_result res,
                            struct au_error_location loc);
 
+/// [func] Prints an interpreter error
 void au_print_interpreter_error(struct au_interpreter_result type,
                                 struct au_error_location loc);

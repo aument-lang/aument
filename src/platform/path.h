@@ -5,4 +5,5 @@
 // See LICENSE.txt for license information
 #pragma once
 
+/// [func] Splits a path into file and directory components
 int au_split_path(const char *path, char **file, char **wd);

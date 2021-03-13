@@ -1,4 +1,8 @@
-project('aument', 'c')
+project(
+    'aument', 'c',
+    license: 'Apache-2.0',
+    version: '0.3.0'
+)
 
 is_testing = get_option('tests')
 is_coverage = get_option('b_coverage')

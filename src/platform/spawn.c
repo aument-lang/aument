@@ -14,11 +14,11 @@
 
 #include "spawn.h"
 
-int au_spawn(struct au_str_array *array) {
-    au_str_array_add(array, 0);
+int au_spawn(struct au_str_array *args) {
+    au_str_array_add(args, 0);
 #ifdef _WIN32
-    return (int)_spawnvp(P_WAIT, au_str_array_at(array, 0),
-                         (const char *const *)array->data);
+    return (int)_spawnvp(P_WAIT, au_str_array_at(args, 0),
+                         (const char *const *)args->data);
 #else
     pid_t pid = fork();
     if (pid == -1) {
@@ -26,12 +26,12 @@ int au_spawn(struct au_str_array *array) {
     } else if (pid > 0) {
         int status;
         waitpid(pid, &status, 0);
-        array->len--;
+        args->len--;
         if (WIFEXITED(status))
             return WEXITSTATUS(status);
         return -1;
     } else {
-        execvp(au_str_array_at(array, 0), array->data);
+        execvp(au_str_array_at(args, 0), args->data);
         exit(1);
     }
 #endif

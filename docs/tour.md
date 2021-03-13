@@ -257,3 +257,5 @@ Exported functions and classes are accessible under a **module**. You have to ex
 import "importee.au" as module;
 print module::random(); // => 4
 ```
+
+You can also import a dynamically linked library. On Unix systems, these files end with `.so`. On Windows, these files end with `.dll`. See [*tests/dl-module`](/tests/dl-module) for an example of importing a C library from Aument.
