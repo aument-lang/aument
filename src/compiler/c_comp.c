@@ -269,10 +269,15 @@ write_imported_module_main_start(size_t imported_module_idx_in_source,
                 imported_module_idx_in_source);
     comp_printf(&g_state->header_file, INDENT "struct au_module m;\n");
     comp_printf(&g_state->header_file,
-                INDENT "switch(au_module_import(&m,\"./%s\")){\n" INDENT
-                       "case AU_MODULE_IMPORT_SUCCESS: break;\n" INDENT
-                       "case AU_MODULE_IMPORT_SUCCESS_NO_MODULE:"
-                       " return;\n" INDENT "default:{"
+                INDENT "switch(au_module_import(&m,\"%s\")){\n"
+
+                INDENT "case AU_MODULE_IMPORT_SUCCESS:"
+                       "break;\n"
+
+                INDENT "case AU_MODULE_IMPORT_SUCCESS_NO_MODULE:"
+                       " return;\n"
+
+                INDENT "default:{"
                        "au_module_lib_perror();"
                        "au_fatal(\"failed to import '%s'\");}}\n",
                 lib_filename, lib_filename);

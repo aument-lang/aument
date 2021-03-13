@@ -98,6 +98,7 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
         au_str_array_add(&args, "-Wl,--whole-archive");
         au_str_array_add(&args, cc->_stdlib_cache);
         au_str_array_add(&args, "-Wl,--no-whole-archive");
+        au_str_array_add(&args, "-Wl,-rpath,$ORIGIN");
     }
 
     for (size_t i = 0; i < cc->ldflags.len; i++)
