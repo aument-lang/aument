@@ -12,6 +12,10 @@ struct au_tmpfile {
     char *path;
 };
 
+/// [func] Closes an au_tmpfile instance
+/// @param tmp instance to be closed
+void au_tmpfile_close(struct au_tmpfile *tmp);
+
 /// [func] Deinitializes an au_tmpfile instance
 /// @param tmp instance to be deinitialized
 void au_tmpfile_del(struct au_tmpfile *tmp);

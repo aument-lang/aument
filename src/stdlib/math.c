@@ -106,39 +106,39 @@ MIN_MAX_FUNC(au_std_math_min, <)
     }
 
 // ** Exponential functions **
-ONE_ARG_DOUBLE_FUNC(au_std_math_exp, exp);
-ONE_ARG_DOUBLE_FUNC(au_std_math_ln, log);
-ONE_ARG_DOUBLE_FUNC(au_std_math_log2, log2);
-ONE_ARG_DOUBLE_FUNC(au_std_math_log10, log10);
+ONE_ARG_DOUBLE_FUNC(au_std_math_exp, exp)
+ONE_ARG_DOUBLE_FUNC(au_std_math_ln, log)
+ONE_ARG_DOUBLE_FUNC(au_std_math_log2, log2)
+ONE_ARG_DOUBLE_FUNC(au_std_math_log10, log10)
 
 // ** Power functions **
-ONE_ARG_DOUBLE_FUNC(au_std_math_sqrt, sqrt);
-ONE_ARG_DOUBLE_FUNC(au_std_math_cbrt, cbrt);
-TWO_ARG_DOUBLE_FUNC(au_std_math_hypot, hypot);
-TWO_ARG_DOUBLE_FUNC(au_std_math_pow, pow);
+ONE_ARG_DOUBLE_FUNC(au_std_math_sqrt, sqrt)
+ONE_ARG_DOUBLE_FUNC(au_std_math_cbrt, cbrt)
+TWO_ARG_DOUBLE_FUNC(au_std_math_hypot, hypot)
+TWO_ARG_DOUBLE_FUNC(au_std_math_pow, pow)
 
 // ** Trigonometric functions **
-ONE_ARG_DOUBLE_FUNC(au_std_math_sin, sin);
-ONE_ARG_DOUBLE_FUNC(au_std_math_cos, cos);
-ONE_ARG_DOUBLE_FUNC(au_std_math_tan, tan);
-ONE_ARG_DOUBLE_FUNC(au_std_math_asin, asin);
-ONE_ARG_DOUBLE_FUNC(au_std_math_acos, acos);
-ONE_ARG_DOUBLE_FUNC(au_std_math_atan, atan);
-TWO_ARG_DOUBLE_FUNC(au_std_math_atan2, atan2);
+ONE_ARG_DOUBLE_FUNC(au_std_math_sin, sin)
+ONE_ARG_DOUBLE_FUNC(au_std_math_cos, cos)
+ONE_ARG_DOUBLE_FUNC(au_std_math_tan, tan)
+ONE_ARG_DOUBLE_FUNC(au_std_math_asin, asin)
+ONE_ARG_DOUBLE_FUNC(au_std_math_acos, acos)
+ONE_ARG_DOUBLE_FUNC(au_std_math_atan, atan)
+TWO_ARG_DOUBLE_FUNC(au_std_math_atan2, atan2)
 
 // ** Hyperbolic functions **
-ONE_ARG_DOUBLE_FUNC(au_std_math_sinh, sinh);
-ONE_ARG_DOUBLE_FUNC(au_std_math_cosh, cosh);
-ONE_ARG_DOUBLE_FUNC(au_std_math_tanh, tanh);
-ONE_ARG_DOUBLE_FUNC(au_std_math_asinh, asinh);
-ONE_ARG_DOUBLE_FUNC(au_std_math_acosh, acosh);
-ONE_ARG_DOUBLE_FUNC(au_std_math_atanh, atanh);
+ONE_ARG_DOUBLE_FUNC(au_std_math_sinh, sinh)
+ONE_ARG_DOUBLE_FUNC(au_std_math_cosh, cosh)
+ONE_ARG_DOUBLE_FUNC(au_std_math_tanh, tanh)
+ONE_ARG_DOUBLE_FUNC(au_std_math_asinh, asinh)
+ONE_ARG_DOUBLE_FUNC(au_std_math_acosh, acosh)
+ONE_ARG_DOUBLE_FUNC(au_std_math_atanh, atanh)
 
 // ** Error & gamma functions **
-ONE_ARG_DOUBLE_FUNC(au_std_math_erf, erf);
-ONE_ARG_DOUBLE_FUNC(au_std_math_erfc, erfc);
-ONE_ARG_DOUBLE_FUNC(au_std_math_lgamma, lgamma);
-ONE_ARG_DOUBLE_FUNC(au_std_math_tgamma, tgamma);
+ONE_ARG_DOUBLE_FUNC(au_std_math_erf, erf)
+ONE_ARG_DOUBLE_FUNC(au_std_math_erfc, erfc)
+ONE_ARG_DOUBLE_FUNC(au_std_math_lgamma, lgamma)
+ONE_ARG_DOUBLE_FUNC(au_std_math_tgamma, tgamma)
 
 // ** Rounding **
 #define ROUND_FUNC(NAME, LIBC_FUNC)                                       \
@@ -154,10 +154,10 @@ ONE_ARG_DOUBLE_FUNC(au_std_math_tgamma, tgamma);
             return au_value_none();                                       \
         }                                                                 \
     }
-ROUND_FUNC(au_std_math_ceil, ceil);
-ROUND_FUNC(au_std_math_floor, floor);
-ROUND_FUNC(au_std_math_trunc, trunc);
-ROUND_FUNC(au_std_math_round, round);
+ROUND_FUNC(au_std_math_ceil, ceil)
+ROUND_FUNC(au_std_math_floor, floor)
+ROUND_FUNC(au_std_math_trunc, trunc)
+ROUND_FUNC(au_std_math_round, round)
 
 // ** Classification **
 #define CLASSIFY_FUNC(NAME, LIBC_FUNC)                                    \
@@ -170,7 +170,7 @@ ROUND_FUNC(au_std_math_round, round);
             return au_value_bool(0);                                      \
         }                                                                 \
     }
-CLASSIFY_FUNC(au_std_math_is_finite, isfinite);
-CLASSIFY_FUNC(au_std_math_is_infinite, isinf);
-CLASSIFY_FUNC(au_std_math_is_nan, isnan);
-CLASSIFY_FUNC(au_std_math_is_normal, isnormal);
+CLASSIFY_FUNC(au_std_math_is_finite, isfinite)
+CLASSIFY_FUNC(au_std_math_is_infinite, isinf)
+CLASSIFY_FUNC(au_std_math_is_nan, isnan)
+CLASSIFY_FUNC(au_std_math_is_normal, isnormal)

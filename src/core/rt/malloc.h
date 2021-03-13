@@ -56,7 +56,7 @@ static _Unused inline void au_malloc_set_collect(int collect) {
 static _Unused inline size_t au_malloc_heap_size() { return 0; }
 
 __attribute__((malloc)) static inline void *au_obj_malloc(size_t size,
-                                                          void *free_fn) {
+                                                          au_obj_del_fn_t free_fn) {
     (void)free_fn;
     return malloc(size);
 }
