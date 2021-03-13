@@ -15,12 +15,12 @@ static const char *AU_HELP_BUILD =
     "binary named *output-file*.\n\naument compiles code by invoking a C "
     "compiler. By default, this is *gcc*,\nhowever you can have aument "
     "use another compiler by specifying it in\nthe `CC` environment "
-    "variable.\n\naument invokes the C compiler with the following "
-    "arguments:\n\n```\n-flto -O2\n```\n\nPassing `-b` will make aument "
-    "output bytecode before it is compiled to C.\n\nPassing `-c` will "
-    "make aument write C code into *output-file* instead\nof outputting a "
-    "compiled binary.\n\nPassing `-g` will add the `-g` flag to the C "
-    "compiler call.\n";
+    "variable.\n\nUnless the `--no-opt` parameter is passed, aument "
+    "invokes the C compiler\nwith the following arguments:\n\n```\n-flto "
+    "-O2\n```\n\nPassing `-b` will make aument output bytecode before it "
+    "is compiled to C.\n\nPassing `-c` will make aument write C code into "
+    "*output-file* instead\nof outputting a compiled binary.\n\nPassing "
+    "`-g` will add the `-g` flag to the C compiler call.\n";
 static const char *AU_HELP_HELP =
     "Usage:\n    aument help [command] [command]\n\nSummary:\n    Shows "
     "the documentation for a specified command if given.\nElse, a general "
