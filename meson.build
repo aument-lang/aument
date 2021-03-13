@@ -318,6 +318,8 @@ if has_math_library
     au_runtime_sources += ['src/stdlib/math.c']
 endif
 
+au_runtime_c_args = ['-DAU_IS_STDLIB', '-Wl,--export-all-symbols']
+
 # Build types
 add_project_arguments('-DAU_IS_INTERPRETER', language : ['c'])
 
@@ -409,7 +411,7 @@ if is_testing
     if has_compile_feature
         au_runtime = static_library('au_runtime', au_runtime_sources,
             include_directories: incs,
-            c_args: ['-DAU_IS_STDLIB', '-DAU_TEST_RT_CODE', '-rdynamic'],
+            c_args: au_runtime_c_args + ['-DAU_TEST_RT_CODE'],
             dependencies: au_depends)
     endif
 
@@ -510,7 +512,7 @@ else
         static_library('au_runtime',
             au_runtime_sources,
             include_directories: incs,
-            c_args: ['-DAU_IS_STDLIB', '-rdynamic'],
+            c_args: au_runtime_c_args,
             dependencies: au_depends,
             install: true,
             install_dir: get_option('bindir'))
