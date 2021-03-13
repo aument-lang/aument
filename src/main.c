@@ -224,6 +224,7 @@ int main(int argc, char **argv) {
 
             fwrite(c_state.str.data, 1, c_state.str.len, tmp.f);
             fflush(tmp.f);
+            au_tmpfile_close(&tmp);
 
             au_c_comp_state_del(&c_state);
             au_program_del(&program);

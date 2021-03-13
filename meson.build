@@ -1,7 +1,11 @@
 project(
     'aument', 'c',
     license: 'Apache-2.0',
-    version: '0.3.0'
+    version: '0.3.0',
+    default_options: [
+        'warning_level=2',
+        'werror=true',
+    ]
 )
 
 is_testing = get_option('tests')
@@ -110,12 +114,12 @@ if result
     au_hdr_cflags += ['DAU_USE_ALLOCA']
 endif
 
-if compiler.has_argument('-Wextra')
-    add_project_arguments('-Wextra', language : ['c'])
-endif
+# Error flags
 
-if compiler.has_argument('-Werror')
-    add_project_arguments('-Werror', language : ['c'])
+if meson.version().version_compare('<0.54.0')
+    if compiler.has_argument('-Werror')
+        add_project_arguments('-Werror', language : ['c'])
+    endif
 endif
 
 # Compilation

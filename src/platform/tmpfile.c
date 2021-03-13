@@ -17,9 +17,15 @@
 #include <windows.h>
 #endif
 
-void au_tmpfile_del(struct au_tmpfile *tmp) {
-    if (tmp->f != 0)
+void au_tmpfile_close(struct au_tmpfile *tmp) {
+    if (tmp->f != 0) {
         fclose(tmp->f);
+        tmp->f = 0;
+    }
+}
+
+void au_tmpfile_del(struct au_tmpfile *tmp) {
+    au_tmpfile_close(tmp);
     au_data_free(tmp->path);
 }
 
