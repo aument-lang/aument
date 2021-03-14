@@ -63,7 +63,7 @@ AU_EXTERN_FUNC_DECL(au_std_str) {
     const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
     case AU_VALUE_STR: {
-        au_string_ref(au_value_get_string(value));
+        au_value_ref(value);
         return value;
     }
     case AU_VALUE_BOOL: {

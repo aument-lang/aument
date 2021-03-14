@@ -52,6 +52,7 @@ AU_EXTERN_FUNC_DECL(au_std_math_abs) {
                 return left;                                              \
             return right;                                                 \
         } else {                                                          \
+            au_value_deref(right);                                        \
             au_value_ref(left);                                           \
             return left;                                                  \
         }                                                                 \
@@ -72,6 +73,7 @@ MIN_MAX_FUNC(au_std_math_min, <)
             d = au_value_get_double(value);                               \
             break;                                                        \
         default:                                                          \
+            au_value_deref(value);                                        \
             return au_value_none();                                       \
         }                                                                 \
         return au_value_double(LIBC_FUNC(d));                             \
@@ -90,6 +92,8 @@ MIN_MAX_FUNC(au_std_math_min, <)
             d1 = au_value_get_double(v1);                                 \
             break;                                                        \
         default:                                                          \
+            au_value_deref(v1);                                           \
+            au_value_deref(v2);                                           \
             return au_value_none();                                       \
         }                                                                 \
         switch (au_value_get_type(v2)) {                                  \
@@ -100,6 +104,8 @@ MIN_MAX_FUNC(au_std_math_min, <)
             d2 = au_value_get_double(v2);                                 \
             break;                                                        \
         default:                                                          \
+            au_value_deref(v1);                                           \
+            au_value_deref(v2);                                           \
             return au_value_none();                                       \
         }                                                                 \
         return au_value_double(LIBC_FUNC(d1, d2));                        \
@@ -151,6 +157,7 @@ ONE_ARG_DOUBLE_FUNC(au_std_math_tgamma, tgamma)
             return au_value_double(                                       \
                 LIBC_FUNC(au_value_get_double(value)));                   \
         default:                                                          \
+            au_value_deref(value);                                        \
             return au_value_none();                                       \
         }                                                                 \
     }
@@ -167,6 +174,7 @@ ROUND_FUNC(au_std_math_round, round)
         case AU_VALUE_DOUBLE:                                             \
             return au_value_bool(LIBC_FUNC(au_value_get_double(value)));  \
         default:                                                          \
+            au_value_deref(value);                                        \
             return au_value_bool(0);                                      \
         }                                                                 \
     }

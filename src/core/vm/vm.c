@@ -438,7 +438,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 DISPATCH;
             }
             // Binary operations
-#ifdef AU_FEAT_DELAYED_RC
 #define SPECIALIZED_INT_ONLY(NAME)                                        \
     if ((au_value_get_type(lhs) == AU_VALUE_INT) &&                       \
         (au_value_get_type(rhs) == AU_VALUE_INT)) {                       \
@@ -454,6 +453,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         goto _##NAME##_DOUBLE;                                            \
     }
 
+#ifdef AU_FEAT_DELAYED_RC
 #define BIN_OP(NAME, FUN, SPECIALIZER)                                    \
     CASE(NAME) : {                                                        \
         _##NAME:;                                                         \
@@ -725,13 +725,16 @@ _AU_OP_JNIF:;
                 const uint8_t ret_reg = frame.bc[1];
                 const uint16_t func_id = *((uint16_t *)(&frame.bc[2]));
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
+
                 au_value_t arg_reg = frame.regs[ret_reg];
-                // arg_reg is moved to locals in au_fn_call
+                au_value_ref(arg_reg);
+
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, &arg_reg, &is_native);
                 if (_Unlikely(au_value_is_op_error(callee_retval)))
                     call_error(p_data, &frame);
+
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[ret_reg] = callee_retval;
                 // INVARIANT(GC): native functions always return

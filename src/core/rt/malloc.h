@@ -33,21 +33,6 @@ __attribute__((malloc)) void *au_data_malloc(size_t size);
 __attribute__((malloc)) void *au_data_calloc(size_t size);
 void *au_data_realloc(void *ptr, size_t size);
 void au_data_free(void *ptr);
-
-static _Unused inline char *au_data_strdup(const char *other) {
-    const size_t len = strlen(other);
-    char *dest = au_data_malloc(len + 1);
-    memcpy(dest, other, len);
-    dest[len] = 0;
-    return dest;
-}
-
-static _Unused char *au_data_strndup(const char *str, size_t len) {
-    char *output = au_data_malloc(len + 1);
-    memcpy(output, str, len);
-    output[len] = 0;
-    return output;
-}
 #else
 static _Unused inline void au_malloc_init() {}
 static _Unused inline void au_malloc_set_collect(int collect) {
@@ -76,5 +61,20 @@ static inline void *au_data_realloc(void *ptr, size_t size) {
 }
 static inline void au_data_free(void *ptr) { free(ptr); }
 #endif
+
+static _Unused inline char *au_data_strdup(const char *other) {
+    const size_t len = strlen(other);
+    char *dest = au_data_malloc(len + 1);
+    memcpy(dest, other, len);
+    dest[len] = 0;
+    return dest;
+}
+
+static _Unused char *au_data_strndup(const char *str, size_t len) {
+    char *output = au_data_malloc(len + 1);
+    memcpy(output, str, len);
+    output[len] = 0;
+    return output;
+}
 
 #endif
