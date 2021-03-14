@@ -2,7 +2,7 @@
 
 The **Aument** language is a work-in-progress dynamically-typed scripting language with
 
-  * **performance first:** this scripting language is designed with performance in mind.
+  * **performance first:** this scripting language is designed with performance in mind. ([read more](/docs/design-for-performance.md))
   * **fast development time:** like Python and Javascript, you can write code and run it directly.
   * **fast deployment:** once finished, you can compile your code into a native, lightweight executable. You don't even need any *external* runtime to run it!
 
