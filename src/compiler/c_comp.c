@@ -42,7 +42,7 @@ static void create_line_info_array(struct line_info_array *array,
     size_t line_start = 0;
     for (size_t source_idx = 0; source_idx < source_len; source_idx++) {
         if (source[source_idx] == '\n') {
-            // printf("line %d, from %ld\n", line, line_start);
+            // printf("line %d, from %zu\n", line, line_start);
             line_info_array_add(array, (struct line_info){
                                            .line = line,
                                            .source_start = line_start,
@@ -92,6 +92,9 @@ static void comp_putc(struct au_c_comp_state *state, int byte) {
     au_char_array_add(&state->str, byte);
 }
 
+#ifdef __GNUC__
+__attribute__ ((format(printf, 2, 3)))
+#endif
 static void comp_printf(struct au_c_comp_state *state, char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -148,7 +151,7 @@ try_continue:;
             if (long_flag) {
                 char buf[32];
                 int len =
-                    snprintf(buf, sizeof(buf), "%ld", va_arg(args, long));
+                    snprintf(buf, sizeof(buf), "%zu", va_arg(args, long));
                 comp_write(state, buf, len);
             } else {
                 char buf[32];
@@ -156,6 +159,18 @@ try_continue:;
                     snprintf(buf, sizeof(buf), "%d", va_arg(args, int));
                 comp_write(state, buf, len);
             }
+            continue;
+        }
+        case 'z': {
+            if (*(fmt + 1) != 'u') {
+                au_fatal("comp_printf doesn't support this flag: %%z%c",
+                         *(fmt + 1));
+            }
+            fmt++;
+            char buf[32];
+            int len =
+                snprintf(buf, sizeof(buf), "%zu", va_arg(args, size_t));
+            comp_write(state, buf, len);
             continue;
         }
         case 'f': {
@@ -175,7 +190,7 @@ try_continue:;
 }
 
 static void comp_cleanup(struct au_c_comp_state *state,
-                         const struct au_bc_storage *bcs, int module_idx,
+                         const struct au_bc_storage *bcs, size_t module_idx,
                          int except_register, int except_local,
                          int has_self) {
     for (int i = 0; i < bcs->num_registers; i++)
@@ -187,7 +202,7 @@ static void comp_cleanup(struct au_c_comp_state *state,
     if (has_self) {
         comp_printf(
             state,
-            "if((--self->header.rc)==0)_struct_M%ld_%d_del_fn(self);",
+            "if((--self->header.rc)==0)_struct_M%zu_%zu_del_fn(self);",
             module_idx, bcs->class_idx);
     }
 }
@@ -216,18 +231,18 @@ static void link_to_imported(
         if (module_type == AU_MODULE_SOURCE) {
             if (import_func->num_args == 0) {
                 comp_printf(state,
-                            INDENT "extern au_value_t _M%ld_f%ld();",
+                            INDENT "extern au_value_t _M%zu_f%d();",
                             imported_module_idx_in_source, fn_idx->idx);
             } else {
                 comp_printf(state,
-                            INDENT "extern au_value_t _M%ld_f%ld"
+                            INDENT "extern au_value_t _M%zu_f%d"
                                    "(au_value_t *args);",
                             imported_module_idx_in_source, fn_idx->idx);
             }
         } else {
             comp_printf(state, INDENT);
         }
-        comp_printf(state, "_M%ld_f%ld=&_M%ld_f%ld;\n", module_idx,
+        comp_printf(state, "_M%zu_f%d=&_M%zu_f%d;\n", module_idx,
                     entry->idx, imported_module_idx_in_source,
                     fn_idx->idx);
     })
@@ -246,11 +261,11 @@ static void link_to_imported(
             loaded_module->classes.data[class_idx->idx];
         if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0)
             au_fatal("this class is not exported");
-        X("#define _M%ld_%ld _M%ld_%ld\n");
-        X("#define _struct_M%ld_%ld_vdata"
-          " _struct_M%ld_%ld_vdata\n");
-        X("#define _struct_M%ld_%ld_del_fn"
-          " _struct_M%ld_%ld_del_fn\n");
+        X("#define _M%zu_%d _M%zu_%d\n");
+        X("#define _struct_M%zu_%d_vdata"
+          " _struct_M%zu_%d_vdata\n");
+        X("#define _struct_M%zu_%d_del_fn"
+          " _struct_M%zu_%d_del_fn\n");
     })
 #undef X
 }
@@ -259,14 +274,14 @@ static void
 write_imported_module_main_start(size_t imported_module_idx_in_source,
                                  struct au_c_comp_global_state *g_state,
                                  const char *lib_filename) {
-    comp_printf(&g_state->header_file, "static int _M%ld_main_init=0;\n",
+    comp_printf(&g_state->header_file, "static int _M%zu_main_init=0;\n",
                 imported_module_idx_in_source);
-    comp_printf(&g_state->header_file, "static void _M%ld_main() {\n",
+    comp_printf(&g_state->header_file, "static void _M%zu_main() {\n",
                 imported_module_idx_in_source);
     comp_printf(&g_state->header_file,
-                INDENT "if(_M%ld_main_init){return;}\n",
+                INDENT "if(_M%zu_main_init){return;}\n",
                 imported_module_idx_in_source);
-    comp_printf(&g_state->header_file, INDENT "_M%ld_main_init=1;\n",
+    comp_printf(&g_state->header_file, INDENT "_M%zu_main_init=1;\n",
                 imported_module_idx_in_source);
     comp_printf(&g_state->header_file, INDENT "struct au_module m;\n");
     comp_printf(&g_state->header_file,
@@ -424,7 +439,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                     current_line_info_idx = i;
                     current_line_info =
                         line_info_array_at_ptr(line_info_array, i);
-                    // printf("start from # %ld\n", i);
+                    // printf("start from # %zu\n", i);
                     break;
                 }
             }
@@ -489,7 +504,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
 
         if (AU_BA_GET_BIT(labelled_lines, pos / 4)) {
-            comp_printf(state, INDENT "L%ld: ", pos);
+            comp_printf(state, INDENT "L%zu: ", pos);
         } else {
             comp_printf(state, INDENT);
         }
@@ -501,12 +516,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             comp_printf(
                 state,
                 INDENT
-                "struct _M%ld_%d*self=(void*)au_struct_coerce(args[0]);"
-                "if(self->header.vdata!=&_struct_M%ld_%d_vdata){abort();}"
+                "struct _M%zu_%zu*self=(void*)au_struct_coerce(args[0]);"
+                "if(self->header.vdata!=&_struct_M%zu_%zu_vdata){abort();}"
                 "self->header.rc++;"
                 "\n",
-                module_idx, bcs->class_idx, module_idx, bcs->class_idx,
-                module_idx, bcs->class_idx);
+                module_idx, bcs->class_idx, module_idx, bcs->class_idx);
             has_self = 1;
             break;
         }
@@ -539,7 +553,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case AU_OP_LOAD_CONST: {
             uint8_t reg = bc(pos);
             DEF_BC16(c, 1)
-            comp_printf(state, "MOVE_VALUE(r%d,_M%ld_c%d());\n", reg,
+            comp_printf(state, "MOVE_VALUE(r%d,_M%zu_c%d());\n", reg,
                         module_idx, c);
             break;
         }
@@ -616,11 +630,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             const size_t abs_offset = pos - 1 + offset;
             if (opcode == AU_OP_JIF)
                 comp_printf(state,
-                            "if(au_value_is_truthy(r%d)) goto L%ld;\n",
+                            "if(au_value_is_truthy(r%d)) goto L%zu;\n",
                             reg, abs_offset);
             else
                 comp_printf(state,
-                            "if(!au_value_is_truthy(r%d)) goto L%ld;\n",
+                            "if(!au_value_is_truthy(r%d)) goto L%zu;\n",
                             reg, abs_offset);
             break;
         }
@@ -628,14 +642,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(x, 1)
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
-            comp_printf(state, "goto L%ld;\n", abs_offset);
+            comp_printf(state, "goto L%zu;\n", abs_offset);
             break;
         }
         case AU_OP_JRELB: {
             DEF_BC16(x, 1)
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 - offset;
-            comp_printf(state, "goto L%ld;\n", abs_offset);
+            comp_printf(state, "goto L%zu;\n", abs_offset);
             break;
         }
         // Call instructions
@@ -660,10 +674,10 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 n_args = bcs->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
                 if (n_args > 0) {
-                    comp_printf(state, "_M%ld_f%d(&s_data[s_len-%d])",
+                    comp_printf(state, "_M%zu_f%d(&s_data[s_len-%d])",
                                 module_idx, func_id, n_args);
                 } else {
-                    comp_printf(state, "_M%ld_f%d()", module_idx, func_id);
+                    comp_printf(state, "_M%zu_f%d()", module_idx, func_id);
                 }
                 comp_printf(state, ");");
                 break;
@@ -687,10 +701,10 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 n_args = import_func->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
                 if (n_args > 0) {
-                    comp_printf(state, "(*_M%ld_f%d)(&s_data[s_len-%d])",
+                    comp_printf(state, "(*_M%zu_f%d)(&s_data[s_len-%d])",
                                 module_idx, func_id, n_args);
                 } else {
-                    comp_printf(state, "(*_M%ld_f%d)()", module_idx,
+                    comp_printf(state, "(*_M%zu_f%d)()", module_idx,
                                 func_id);
                 }
                 comp_printf(state, ");");
@@ -715,7 +729,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             case AU_FN_DISPATCH:
             case AU_FN_BC: {
                 comp_printf(state, "r%d=", reg);
-                comp_printf(state, "_M%ld_f%d(&r%d)", module_idx, func_id,
+                comp_printf(state, "_M%zu_f%d(&r%d)", module_idx, func_id,
                             reg);
                 comp_printf(state, ";");
                 break;
@@ -728,7 +742,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             }
             case AU_FN_IMPORTER: {
                 comp_printf(state, "r%d=", reg);
-                comp_printf(state, "(*_M%ld_f%d)(&r%d)", module_idx,
+                comp_printf(state, "(*_M%zu_f%d)(&r%d)", module_idx,
                             func_id, reg);
                 comp_printf(state, ";");
                 break;
@@ -894,14 +908,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                                    entry->idx);
                             comp_printf(&g_state->header_file,
                                         "static au_extern_func_t "
-                                        "_M%ld_f%ld_ext=0;\n",
+                                        "_M%zu_f%d_ext=0;\n",
                                         imported_module_idx_in_source,
                                         entry->idx);
                             if (au_fn_num_args(loaded_fn) == 0) {
                                 comp_printf(&g_state->header_file,
                                             "static au_value_t "
-                                            "_M%ld_f%ld(){"
-                                            "return _M%ld_f%ld_ext(0,0);"
+                                            "_M%zu_f%d(){"
+                                            "return _M%zu_f%d_ext(0,0);"
                                             "}\n",
                                             imported_module_idx_in_source,
                                             entry->idx,
@@ -910,8 +924,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                             } else {
                                 comp_printf(&g_state->header_file,
                                             "static au_value_t "
-                                            "_M%ld_f%ld(au_value_t*a){"
-                                            "return _M%ld_f%ld_ext(0,a);"
+                                            "_M%zu_f%d(au_value_t*a){"
+                                            "return _M%zu_f%d_ext(0,a);"
                                             "}\n",
                                             imported_module_idx_in_source,
                                             entry->idx,
@@ -941,14 +955,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         &loaded_module->fn_map, name, entry, {
                             (void)name_len;
                             comp_printf(&g_state->header_file,
-                                        INDENT "_M%ld_f%d_ext="
+                                        INDENT "_M%zu_f%d_ext="
                                                "au_module_get_fn"
                                                "(&m,\"%s\");\n",
                                         imported_module_idx_in_source,
                                         entry->idx, name);
                             comp_printf(&g_state->header_file,
                                         INDENT
-                                        "if(_M%ld_f%d_ext==0)"
+                                        "if(_M%zu_f%d_ext==0)"
                                         "au_fatal(\"failed to function "
                                         "'%s' from '%s'\");\n",
                                         imported_module_idx_in_source,
@@ -965,7 +979,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             }
             }
 
-            comp_printf(state, "_M%ld_main();\n",
+            comp_printf(state, "_M%zu_main();\n",
                         imported_module_idx_in_source);
 
             if (relative_module_idx != AU_PROGRAM_IMPORT_NO_MODULE) {
@@ -1049,9 +1063,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(class_idx, 1);
             comp_printf(state,
                         "MOVE_VALUE(r%d,au_value_struct("
-                        "(struct au_struct*)_struct_M%ld_%ld_new()"
+                        "(struct au_struct*)_struct_M%zu_%d_new()"
                         "));\n",
-                        reg, module_idx, class_idx, module_idx, class_idx);
+                        reg, module_idx, class_idx);
             break;
         }
         case AU_OP_CLASS_GET_INNER: {
@@ -1094,7 +1108,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
     for (size_t i = 0; i < program->data.data_val.len; i++) {
         const struct au_program_data_val *val =
             &program->data.data_val.data[i];
-        comp_printf(state, "static inline au_value_t _M%ld_c%ld() {\n",
+        comp_printf(state, "static inline au_value_t _M%zu_c%zu() {\n",
                     module_idx, i);
         switch (au_value_get_type(val->real_value)) {
         case AU_VALUE_STR: {
@@ -1134,12 +1148,12 @@ void au_c_comp_module(struct au_c_comp_state *state,
             }
             if (fn->as.bc_func.num_args > 0) {
                 comp_printf(state,
-                            "au_value_t _M%ld_f%ld"
+                            "au_value_t _M%zu_f%d"
                             "(const au_value_t*args);\n",
-                            module_idx, i);
+                            module_idx, (int)i);
             } else {
-                comp_printf(state, "au_value_t _M%ld_f%ld();\n",
-                            module_idx, i);
+                comp_printf(state, "au_value_t _M%zu_f%d();\n",
+                            module_idx, (int)i);
             }
             break;
         }
@@ -1151,13 +1165,13 @@ void au_c_comp_module(struct au_c_comp_state *state,
         case AU_FN_IMPORTER: {
             if (fn->as.import_func.num_args > 0) {
                 comp_printf(state,
-                            "static au_value_t (*_M%ld_f%ld)"
+                            "static au_value_t (*_M%zu_f%d)"
                             "(const au_value_t*)=0;\n",
-                            module_idx, i);
+                            module_idx, (int)i);
             } else {
                 comp_printf(state,
-                            "static au_value_t (*_M%ld_f%ld)()=0;\n",
-                            module_idx, i);
+                            "static au_value_t (*_M%zu_f%d)()=0;\n",
+                            module_idx, (int)i);
             }
             break;
         }
@@ -1176,19 +1190,19 @@ void au_c_comp_module(struct au_c_comp_state *state,
             continue;
         const struct au_dispatch_func *dispatch_fn = &fn->as.dispatch_func;
         comp_printf(state,
-                    "au_value_t _M%ld_f%ld"
+                    "au_value_t _M%zu_f%d"
                     "(const au_value_t*args) {\n",
-                    module_idx, i);
+                    module_idx, (int)i);
         comp_printf(state, INDENT
                     "struct au_struct*s=au_struct_coerce(args[0]);\n");
         for (size_t i = 0; i < dispatch_fn->data.len; i++) {
             const struct au_dispatch_func_instance *data =
                 &dispatch_fn->data.data[i];
             comp_printf(state,
-                        INDENT "if(s->vdata==&_struct_M%ld_%d_vdata)",
-                        module_idx, data->class_idx);
-            comp_printf(state, "return _M%ld_f%d(args);\n", module_idx,
-                        data->function_idx);
+                        INDENT "if(s->vdata==&_struct_M%zu_%d_vdata)",
+                        module_idx, (int)data->class_idx);
+            comp_printf(state, "return _M%zu_f%d(args);\n", module_idx,
+                        (int)data->function_idx);
         }
         comp_printf(state, INDENT "abort();\n");
         comp_printf(state, "}\n");
@@ -1201,11 +1215,11 @@ void au_c_comp_module(struct au_c_comp_state *state,
             if (bcs->num_args > 0) {
                 comp_printf(
                     state,
-                    "au_value_t _M%ld_f%ld(const au_value_t *args) {\n",
-                    module_idx, i);
+                    "au_value_t _M%zu_f%d(const au_value_t *args) {\n",
+                    module_idx, (int)i);
             } else {
-                comp_printf(state, "au_value_t _M%ld_f%ld() {\n",
-                            module_idx, i);
+                comp_printf(state, "au_value_t _M%zu_f%d() {\n",
+                            module_idx, (int)i);
             }
             au_c_comp_func(state, bcs, &program->data, module_idx, i,
                            g_state);
@@ -1221,88 +1235,88 @@ void au_c_comp_module(struct au_c_comp_state *state,
         }
 
         // Struct declaration
-        comp_printf(&g_state->header_file, "struct _M%ld_%d{\n",
-                    module_idx, i);
+        comp_printf(&g_state->header_file, "struct _M%zu_%d{\n",
+                    module_idx, (int)i);
         comp_printf(&g_state->header_file,
                     INDENT "struct au_struct header;\n");
         if (interface->map.entries_occ > 0) {
             comp_printf(&g_state->header_file,
-                        INDENT "au_value_t v[%d];\n",
+                        INDENT "au_value_t v[%zu];\n",
                         interface->map.entries_occ);
         }
         comp_printf(&g_state->header_file, "};\n");
 
         // Delete function
         comp_printf(&g_state->header_file,
-                    "void _struct_M%ld_%d_del_fn("
-                    "struct _M%ld_%d*s"
+                    "void _struct_M%zu_%d_del_fn("
+                    "struct _M%zu_%d*s"
                     "){\n",
-                    module_idx, i, module_idx, i);
+                    module_idx, (int)i, module_idx, (int)i);
         for (size_t i = 0; i < interface->map.entries_occ; i++) {
             comp_printf(&g_state->header_file,
-                        INDENT "au_value_deref(s->v[%d]);\n", i);
+                        INDENT "au_value_deref(s->v[%zu]);\n", i);
         }
         comp_printf(&g_state->header_file, "}\n");
 
         // Virtual data function
         comp_printf(&g_state->header_file,
-                    "static int _struct_M%ld_%d_vdata_init=0;\n",
-                    module_idx, i);
+                    "static int _struct_M%zu_%d_vdata_init=0;\n",
+                    module_idx, (int)i);
         comp_printf(&g_state->header_file,
                     "static struct au_struct_vdata"
-                    " _struct_M%ld_%d_vdata={0};\n",
-                    module_idx, i);
+                    " _struct_M%zu_%d_vdata={0};\n",
+                    module_idx, (int)i);
         comp_printf(&g_state->header_file,
                     "struct au_struct_vdata *"
-                    "_struct_M%ld_%d_vdata_get(){\n",
-                    module_idx, i);
+                    "_struct_M%zu_%d_vdata_get(){\n",
+                    module_idx, (int)i);
         comp_printf(&g_state->header_file,
-                    INDENT "if(_struct_M%ld_%d_vdata_init)"
-                           "return &_struct_M%ld_%d_vdata;\n",
-                    module_idx, i, module_idx, i);
+                    INDENT "if(_struct_M%zu_%d_vdata_init)"
+                           "return &_struct_M%zu_%d_vdata;\n",
+                    module_idx, (int)i, module_idx, (int)i);
 #define VDATA_FUNC(NAME)                                                  \
     comp_printf(&g_state->header_file,                                    \
-                INDENT "_struct_M%ld_%d_vdata." NAME "="                  \
-                       "(au_struct_" NAME "_t)_struct_M%ld_%d_" NAME      \
+                INDENT "_struct_M%zu_%d_vdata." NAME "="                  \
+                       "(au_struct_" NAME "_t)_struct_M%zu_%d_" NAME      \
                        ";\n",                                             \
-                module_idx, i, module_idx, i, module_idx, i);
+                module_idx, (int)i, module_idx, (int)i);
         VDATA_FUNC("del_fn")
 #undef VDATA_FUNC
         comp_printf(&g_state->header_file,
-                    INDENT "_struct_M%ld_%d_vdata_init=1;"
-                           "return &_struct_M%ld_%d_vdata;\n}\n",
-                    module_idx, i, module_idx, i);
+                    INDENT "_struct_M%zu_%d_vdata_init=1;"
+                           "return &_struct_M%zu_%d_vdata;\n}\n",
+                    module_idx, (int)i, module_idx, (int)i);
 
         comp_printf(&g_state->header_file,
-                    "struct _M%ld_%d *_struct_M%ld_%d_new(){\n",
-                    module_idx, i, module_idx, i);
+                    "struct _M%zu_%d *_struct_M%zu_%d_new(){\n",
+                    module_idx, (int)i, module_idx, (int)i);
         comp_printf(&g_state->header_file,
-                    INDENT "struct _M%ld_%d*k="
-                           "au_obj_malloc(sizeof(struct _M%ld_%d),"
-                           "_struct_M%ld_%d_del_fn);\n",
-                    module_idx, i, module_idx, i, module_idx, i);
+                    INDENT "struct _M%zu_%d*k="
+                           "au_obj_malloc(sizeof(struct _M%zu_%d),"
+                           "_struct_M%zu_%d_del_fn);\n",
+                    module_idx, (int)i, module_idx, (int)i, module_idx, (int)i);
         comp_printf(&g_state->header_file, INDENT "k->header.rc=1;\n");
         comp_printf(&g_state->header_file,
                     INDENT
-                    "k->header.vdata=_struct_M%ld_%d_vdata_get();\n",
-                    module_idx, i);
+                    "k->header.vdata=_struct_M%zu_%d_vdata_get();\n",
+                    module_idx, (int)i);
         for (size_t i = 0; i < interface->map.entries_occ; i++) {
             comp_printf(&g_state->header_file,
-                        INDENT "k->v[%d]=au_value_none();\n", i);
+                        INDENT "k->v[%zu]=au_value_none();\n", i);
         }
         comp_printf(&g_state->header_file, INDENT "return k;\n}\n");
     }
 
-    comp_printf(state, "static int _M%ld_main_init=0;\n", module_idx);
-    comp_printf(state, "static au_value_t _M%ld_main() {\n", module_idx);
+    comp_printf(state, "static int _M%zu_main_init=0;\n", module_idx);
+    comp_printf(state, "static au_value_t _M%zu_main() {\n", module_idx);
     comp_printf(state,
-                INDENT "if(_M%ld_main_init){return au_value_none();}\n",
+                INDENT "if(_M%zu_main_init){return au_value_none();}\n",
                 module_idx);
-    comp_printf(state, INDENT "_M%ld_main_init=1;\n", module_idx);
+    comp_printf(state, INDENT "_M%zu_main_init=1;\n", module_idx);
     au_c_comp_func(state, &program->main, &program->data, module_idx,
                    AU_SM_FUNC_ID_MAIN, g_state);
     comp_printf(state, "}\n");
-    comp_printf(&g_state->header_file, "static au_value_t _M%ld_main();\n",
+    comp_printf(&g_state->header_file, "static au_value_t _M%zu_main();\n",
                 module_idx);
 }
 
@@ -1347,16 +1361,16 @@ void au_c_comp(struct au_c_comp_state *state,
     };
     au_c_comp_module(&main_mod_state, program, 0, &g_state);
 
-    comp_printf(state, "%.*s\n", g_state.header_file.str.len,
+    comp_printf(state, "%.*s\n", (int)g_state.header_file.str.len,
                 g_state.header_file.str.data);
-    comp_printf(state, "%.*s\n", main_mod_state.str.len,
+    comp_printf(state, "%.*s\n", (int)main_mod_state.str.len,
                 main_mod_state.str.data);
 
     au_c_comp_state_del(&main_mod_state);
     comp_printf(state, "int main() { _M0_main(); return 0; }\n");
 
     for (size_t i = 0; i < g_state.modules.len; i++) {
-        comp_printf(state, "%.*s\n", g_state.modules.data[i].c_source.len,
+        comp_printf(state, "%.*s\n", (int)g_state.modules.data[i].c_source.len,
                     g_state.modules.data[i].c_source.data);
     }
 
