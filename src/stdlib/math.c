@@ -16,7 +16,6 @@ AU_EXTERN_FUNC_DECL(au_std_math_abs) {
     case AU_VALUE_INT:
         return au_value_int(abs(au_value_get_int(value)));
     default: {
-        au_value_ref(value);
         return value;
     }
     }
@@ -53,7 +52,6 @@ AU_EXTERN_FUNC_DECL(au_std_math_abs) {
             return right;                                                 \
         } else {                                                          \
             au_value_deref(right);                                        \
-            au_value_ref(left);                                           \
             return left;                                                  \
         }                                                                 \
     }

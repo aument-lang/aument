@@ -234,6 +234,10 @@ int main(int argc, char **argv) {
                 au_str_array_add(&cc.cflags, "-O2");
             }
 
+#ifdef AU_SANITIZER
+            au_str_array_add(&cc.cflags, "-fsanitize=" AU_SANITIZER);
+#endif
+
 #ifdef AU_COVERAGE
             au_str_array_add(&cc.cflags, "-fprofile-arcs");
             au_str_array_add(&cc.cflags, "-ftest-coverage");

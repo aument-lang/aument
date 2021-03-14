@@ -10,6 +10,7 @@ project(
 
 is_testing = get_option('tests')
 is_coverage = get_option('b_coverage')
+has_sanitizer = get_option('b_sanitize') != 'none'
 has_compile_feature = get_option('compiler')
 has_delayed_rc_feature = get_option('delayed_rc')
 has_leak_mem_feature = get_option('leak_mem')
@@ -23,6 +24,11 @@ prog_python = import('python').find_installation('python3')
 au_hdr_cflags = []
 au_depends = []
 au_supports_dll_import = false
+
+# Preconfigs
+if compiler.has_argument('-Wno-unused-command-line-argument')
+    add_project_arguments('-Wno-unused-command-line-argument', language : ['c'])
+endif
 
 # Flag configs
 
@@ -304,6 +310,11 @@ if get_option('debug_gc')
     add_project_arguments('-DAU_DEBUG_GC', language : ['c'])
 endif
 
+if has_sanitizer
+    add_project_arguments('-DAU_SANITIZER="' + get_option('b_sanitize') + '"',
+        language : ['c'])
+endif
+
 au_runtime_sources = [
     'src/core/rt/exception.c',
     'src/core/rt/malloc/static.c',
@@ -326,7 +337,12 @@ if has_math_library
     au_runtime_sources += ['src/stdlib/math.c']
 endif
 
-au_runtime_c_args = ['-DAU_IS_STDLIB', '-Wl,--export-all-symbols']
+au_runtime_c_args = ['-DAU_IS_STDLIB']
+if compiler.has_link_argument('-Wl,--export-all-symbols')
+    au_runtime_c_args += ['-Wl,--export-all-symbols']
+elif compiler.has_link_argument('-Wl,--export-dynamic')
+    au_runtime_c_args += ['-Wl,--export-dynamic']
+endif
 
 # Build types
 add_project_arguments('-DAU_IS_INTERPRETER', language : ['c'])
@@ -527,7 +543,7 @@ else
     endif
 
     link_args = []
-    if is_static_exe and get_option('b_sanitize') == 'none'
+    if is_static_exe and not has_sanitizer
         link_args += ['-static']
     endif
     executable('aument',
