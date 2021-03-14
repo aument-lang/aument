@@ -34,4 +34,6 @@
 #define _Likely(x) __builtin_expect(!!(x), 1)
 #define _Unlikely(x) __builtin_expect(!!(x), 0)
 
-#define _TLStorage _Thread_local
+#ifndef _Thread_local
+#define _Thread_local
+#endif
