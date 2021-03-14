@@ -1268,7 +1268,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
         comp_printf(&g_state->header_file,
                     INDENT "struct _M%d_%d*k="
                            "au_obj_malloc(sizeof(struct _M%d_%d),"
-                           "_struct_M%d_%d_del_fn);\n",
+                           "(au_obj_del_fn_t)_struct_M%d_%d_del_fn);\n",
                     (int)module_idx, (int)i, (int)module_idx, (int)i, (int)module_idx, (int)i);
         comp_printf(&g_state->header_file, INDENT "k->header.rc=1;\n");
         comp_printf(&g_state->header_file,
