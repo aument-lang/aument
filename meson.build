@@ -300,6 +300,10 @@ if is_coverage
     add_project_arguments('-DAU_COVERAGE', language : ['c'])
 endif
 
+if get_option('debug_gc')
+    add_project_arguments('-DAU_DEBUG_GC', language : ['c'])
+endif
+
 au_runtime_sources = [
     'src/core/rt/exception.c',
     'src/core/rt/malloc/static.c',

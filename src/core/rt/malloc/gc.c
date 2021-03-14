@@ -41,7 +41,11 @@ struct au_data_malloc_header {
     char data[];
 };
 
+#ifdef AU_DEBUG_GC
+#define INITIAL_HEAP_THRESHOLD 0
+#else
 #define INITIAL_HEAP_THRESHOLD 1000000
+#endif
 #define HEAP_THRESHOLD_GROWTH 1.5
 
 struct malloc_data {
