@@ -55,7 +55,7 @@ struct malloc_data {
     int do_collect;
 };
 
-static _TLStorage struct malloc_data malloc_data;
+static _Thread_local struct malloc_data malloc_data;
 
 void au_malloc_init() {
 #if __STDC_VERSION__ >= 201112L
