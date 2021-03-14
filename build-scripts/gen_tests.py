@@ -202,6 +202,10 @@ void run_gcc(const char *source, const size_t source_len) {{
     au_c_comp_state_del(&c_state);
     au_program_del(&program);
 
+#ifdef AU_SANITIZER
+    au_str_array_add(&cc.cflags, "-fsanitize=" AU_SANITIZER);
+#endif
+
 #ifdef AU_COVERAGE
     au_str_array_add(&cc.cflags, "-fprofile-arcs");
     au_str_array_add(&cc.cflags, "-ftest-coverage");

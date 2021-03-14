@@ -344,10 +344,7 @@ Sets the value of the collection `col` specified by the literal index value `idx
 
 ### Function calls
 
-**Invariant:**
-
- * Native function calls "own" the reference to the arguments passed to them, unless the function wants to return them directly, the arguments **must** be dereferenced before returning.
- * If a native function wants to return a value in the arguments passed into it, it must first **increase** its reference count and return it.
+**Invariant:** Native function calls "own" the reference to the arguments passed to them, unless the function wants to return them directly, the arguments **must** be dereferenced before returning.
 
 ### Constants
 

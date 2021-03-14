@@ -56,14 +56,15 @@ AU_EXTERN_FUNC_DECL(au_std_float) {
 }
 
 AU_EXTERN_FUNC_DECL(au_std_bool) {
-    return au_value_bool(au_value_is_truthy(_args[0]));
+    au_value_t value = au_value_bool(au_value_is_truthy(_args[0]));
+    au_value_deref(_args[0]);
+    return value;
 }
 
 AU_EXTERN_FUNC_DECL(au_std_str) {
     const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
     case AU_VALUE_STR: {
-        au_value_ref(value);
         return value;
     }
     case AU_VALUE_BOOL: {
