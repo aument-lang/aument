@@ -16,6 +16,10 @@ Classes in Aument are flat structures, accessing their internal values is as fas
 
 ## Implementation
 
+### One-pass parser
+
+The Aument parser has only one pass which generates virtual machine bytecode from a source file.
+
 ### Compact, uniform bytecode
 
 Each bytecode instruction the virtual machine executes has a clear, uniform structure: a 32-bit value with 1-2 bytes per operand. Decoding each instruction is simple.
