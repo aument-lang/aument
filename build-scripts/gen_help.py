@@ -73,7 +73,7 @@ Commands:
 Use aument help [command] for more information.
 
 Copyright (c) 2021 the aument contributors.
-Project link: https://github.com/chm8d/aulang
+Project link: https://github.com/aument-lang/aument
 """
 
 text["main"] = main_template % ('\n'.join(map(lambda x: line_pad + x[0].ljust(left_pad) + x[1],commands)))

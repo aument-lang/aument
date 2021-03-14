@@ -8,7 +8,7 @@ static const char *AU_HELP_MAIN =
     "shows this help screen\n    run         runs a program\n    version  "
     "   print aument version\n\nUse aument help [command] for more "
     "information.\n\nCopyright (c) 2021 the aument contributors.\nProject "
-    "link: https://github.com/chm8d/aulang\n";
+    "link: https://github.com/aument-lang/aument\n";
 static const char *AU_HELP_BUILD =
     "Usage:\n    aument build input-file output-file input-file "
     "output-file\n\nSummary:\n    Builds *input-file* into an executable "
