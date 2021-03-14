@@ -99,7 +99,7 @@ If you're cross-compiling for Windows (64-bit), use the command:
 
 ## Contributing
 
-This language is in alpha development, so feel free to ask any questions or suggest features in the repository's [issues page](https://github.com/chm8d/aulang/issues/).
+This language is in alpha development, so feel free to ask any questions or suggest features in the repository's [issues page](https://github.com/aument-lang/aument/issues/).
 
 ## Changelog
 

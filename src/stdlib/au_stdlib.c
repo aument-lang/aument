@@ -22,7 +22,7 @@
 
 #define MODULE_FUNC(SYMBOL, NAME, ARGS)                                   \
     (struct au_lib_func) {                                                \
-        .name = NAME, .symbol = "au_std_" #SYMBOL, .num_args = ARGS,     \
+        .name = NAME, .symbol = "au_std_" #SYMBOL, .num_args = ARGS,      \
         .func = au_std_##SYMBOL                                           \
     }
 
