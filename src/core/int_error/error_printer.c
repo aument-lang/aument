@@ -145,6 +145,11 @@ void au_print_parser_error(struct au_parser_result res,
         errored_token = res.data.duplicate_id.name_token;
         break;
     }
+    case X(DUPLICATE_CONST): {
+        fprintf(stderr, "this constant is already declared");
+        errored_token = res.data.duplicate_id.name_token;
+        break;
+    }
     }
 #undef X
     fprintf(stderr, "\n");

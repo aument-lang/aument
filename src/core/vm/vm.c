@@ -299,6 +299,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_CLASS_SET_INNER),
             &&CASE(AU_OP_CLASS_NEW),
             &&CASE(AU_OP_CALL1),
+            &&CASE(AU_OP_SET_CONST),
             &&CASE(AU_OP_MUL_INT),
             &&CASE(AU_OP_DIV_INT),
             &&CASE(AU_OP_ADD_INT),
@@ -411,6 +412,14 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     }
                 }
                 COPY_VALUE(frame.regs[reg], v);
+                DISPATCH;
+            }
+            CASE(AU_OP_SET_CONST) : {
+                const uint8_t reg = frame.bc[1];
+                const uint16_t rel_c = *(uint16_t *)(&frame.bc[2]);
+                const size_t abs_c = rel_c + p_data->tl_constant_start;
+                if(au_value_get_type(tl->const_cache[abs_c]) == AU_VALUE_NONE)
+                    tl->const_cache[abs_c] = frame.regs[reg];
                 DISPATCH;
             }
             // Unary operations
