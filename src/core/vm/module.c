@@ -100,7 +100,8 @@ enum au_module_import_result au_module_import(struct au_module *module,
 #include "core/fn/main.h"
 #include "core/hm_vars.h"
 #include "core/program.h"
-au_extern_func_t au_module_get_fn(struct au_module *module, const char *fn_name) {
+au_extern_func_t au_module_get_fn(struct au_module *module,
+                                  const char *fn_name) {
     const struct au_hm_var_value *value = au_hm_vars_get(
         &module->data.lib.lib->fn_map, fn_name, strlen(fn_name));
     if (value == 0)

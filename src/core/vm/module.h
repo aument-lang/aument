@@ -48,5 +48,6 @@ enum au_module_import_result au_module_import(struct au_module *module,
 #ifdef AU_IS_INTERPRETER
 #include "core/rt/extern_fn.h"
 #endif
-au_extern_func_t au_module_get_fn(struct au_module *module, const char *fn);
+au_extern_func_t au_module_get_fn(struct au_module *module,
+                                  const char *fn);
 #endif

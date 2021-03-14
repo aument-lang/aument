@@ -1,0 +1,3 @@
+parser error(14) in -: this constant is already declared
+2 | const a = 20;
+          ^

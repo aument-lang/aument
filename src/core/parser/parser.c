@@ -347,7 +347,8 @@ static int parser_exec_statement(struct au_parser *p, struct au_lexer *l) {
             retval = parser_exec_def_statement(p, l, 0);
         } else if (token_keyword_cmp(&t, "const")) {
             au_lexer_next(l);
-            retval = parser_exec_with_semicolon(p, l, parser_exec_const_statement(p, l, 0));
+            retval = parser_exec_with_semicolon(
+                p, l, parser_exec_const_statement(p, l, 0));
         } else if (token_keyword_cmp(&t, "if")) {
             au_lexer_next(l);
             retval = parser_exec_if_statement(p, l);
@@ -877,19 +878,20 @@ static int parser_exec_const_statement(struct au_parser *p,
 
     const struct au_token eq_tok = au_lexer_next(l);
     EXPECT_TOKEN(eq_tok.type == AU_TOK_OPERATOR &&
-        (eq_tok.len == 1 && eq_tok.src[0] == '='), eq_tok, "'='");
+                     (eq_tok.len == 1 && eq_tok.src[0] == '='),
+                 eq_tok, "'='");
 
     if (!parser_exec_expr(p, l))
         return 0;
     const uint8_t right_reg = parser_pop_reg(p);
 
-    if(p->func_id == AU_SM_FUNC_ID_MAIN) {
+    if (p->func_id == AU_SM_FUNC_ID_MAIN) {
         // Main function
         int data_len = p->p_data->data_val.len;
-        struct au_hm_var_value *old =
-            au_hm_vars_add(&p->consts, id_tok.src, id_tok.len, AU_HM_VAR_VALUE(data_len));
+        struct au_hm_var_value *old = au_hm_vars_add(
+            &p->consts, id_tok.src, id_tok.len, AU_HM_VAR_VALUE(data_len));
 
-        if(old == 0) {
+        if (old == 0) {
             au_program_data_add_data(p->p_data, au_value_none(), 0, 0);
             parser_emit_bc_u8(p, AU_OP_SET_CONST);
             parser_emit_bc_u8(p, right_reg);
@@ -1797,7 +1799,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             if (val == NULL) {
                 const struct au_hm_var_value *const_val =
                     au_hm_vars_get(&p->consts, t.src, t.len);
-                if(const_val == NULL) {
+                if (const_val == NULL) {
                     p->res = (struct au_parser_result){
                         .type = AU_PARSER_RES_UNKNOWN_VAR,
                         .data.unknown_id.name_token = t,
