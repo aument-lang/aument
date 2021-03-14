@@ -1,8 +1,8 @@
-# A brief tour of aulang
+# A brief tour of Aument
 
 ## Primitive values
 
-Like many scripting languages, aulang supports the usual core data types: integers (`3`), floats (`3.14`), strings (`"Hello World"`) and booleans (`true` and `false`).
+Like many scripting languages, Aument supports the usual core data types: integers (`3`), floats (`3.14`), strings (`"Hello World"`) and booleans (`true` and `false`).
 
 For strings, standard escape sequences work (only `\n` is implemented however).
 
@@ -38,7 +38,7 @@ Tuples are like statically sized arrays:
 a = #[1,2,3];
 ```
 
-You can index and set an item in an array or a tuple. Like C and Python, aulang's collections begin at index 0.
+You can index and set an item in an array or a tuple. Like C and Python, Aument's collections begin at index 0.
 
 ```
 a[0]; // 1
@@ -72,7 +72,7 @@ This includes the top-level scope as well. In the example above, the function `l
 
 ### Dynamic types, static names
 
-Identifiers, function names and class names in aulang are static: they are fixed and pre-determined at parsing time. As such, the concept of global variables do not exist in aulang.
+Identifiers, function names and class names in Aument are static: they are fixed and pre-determined at parsing time. As such, the concept of global variables do not exist in aulang.
 
 In order to share states through function calls, you'll have to pass variables directly or wrap them in a class.
 
@@ -98,7 +98,7 @@ if "string" {
 
 See the [`bool` function documentation](./au-stdlib.md#bool) for boolean conversion.
 
-aulang also has while loops:
+Aument also has while loops:
 
 ```
 while true {
@@ -131,9 +131,9 @@ def y(x) {
 print y(1); // 3
 ```
 
-aulang's standard library provides some useful built-in functions. See the [stdlib reference manual](./au-stdlib.md) for more details.
+Aument's standard library provides some useful built-in functions. See the [stdlib reference manual](./au-stdlib.md) for more details.
 
-Functions have names that are fixed at parse time, and the number of arguments they take is always constant. If you're trying to call or define a function, and aulang can't find it,
+Functions have names that are fixed at parse time, and the number of arguments they take is always constant. If you're trying to call or define a function, and Aument can't find it,
 
 ```
 def mistype() {}
@@ -258,4 +258,4 @@ import "importee.au" as module;
 print module::random(); // => 4
 ```
 
-You can also import a dynamically linked library. On Unix systems, these files end with `.so`. On Windows, these files end with `.dll`. See [*tests/dl-module`](/tests/dl-module) for an example of importing a C library from Aument.
+You can also import a dynamically linked library. On Unix systems, these files end with `.so`. On Windows, these files end with `.dll`. See [`tests/dl-module`](/tests/dl-module) for an example of importing a C library from Aument.
