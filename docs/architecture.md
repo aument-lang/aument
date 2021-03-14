@@ -344,6 +344,11 @@ Sets the value of the collection `col` specified by the literal index value `idx
 
 ### Function calls
 
+**Invariant:**
+
+ * Native function calls "own" the reference to the arguments passed to them, unless the function wants to return them directly, the arguments **must** be dereferenced before returning.
+ * If a native function wants to return a value in the arguments passed into it, it must first **increase** its reference count and return it.
+
 ### Constants
 
 For primitive values (strings) which can't be expressed by a simple operation, the VM supports constants. They are stored in a *constant cache* in the thread-local storage, and they can be loaded through the `OP_LOAD_CONST` instruction.

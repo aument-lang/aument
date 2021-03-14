@@ -1116,11 +1116,11 @@ static int parser_exec_return_statement(struct au_parser *p,
 }
 
 static int parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
-                                 int *n_args) {
+                                 int *num_args) {
     {
         const struct au_token t = au_lexer_peek(l, 0);
         if (t.type == AU_TOK_OPERATOR && t.len == 1 && t.src[0] == ')') {
-            *n_args = 0;
+            *num_args = 0;
             au_lexer_next(l);
             return 1;
         }
@@ -1130,7 +1130,7 @@ static int parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
         parser_emit_bc_u8(p, parser_pop_reg(p));
         parser_emit_pad8(p);
         parser_emit_pad8(p);
-        *n_args = 1;
+        *num_args = 1;
     }
     while (1) {
         const struct au_token t = au_lexer_next(l);
@@ -1145,7 +1145,7 @@ static int parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
             parser_emit_bc_u8(p, parser_pop_reg(p));
             parser_emit_pad8(p);
             parser_emit_pad8(p);
-            (*n_args)++;
+            (*num_args)++;
             continue;
         } else {
             EXPECT_TOKEN(0, t, "',' or ')'");
@@ -1660,8 +1660,8 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
         if (peek.type == AU_TOK_OPERATOR && peek.len == 1 &&
             peek.src[0] == '(') {
             au_lexer_next(l);
-            int n_args = 0;
-            if (!parser_exec_call_args(p, l, &n_args))
+            int num_args = 0;
+            if (!parser_exec_call_args(p, l, &num_args))
                 return 0;
 
             size_t func_idx = 0;
@@ -1699,7 +1699,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                     struct au_fn fn = (struct au_fn){
                         .type = AU_FN_IMPORTER,
                         .flags = 0,
-                        .as.import_func.num_args = n_args,
+                        .as.import_func.num_args = num_args,
                         .as.import_func.module_idx = module_idx,
                         .as.import_func.name = import_name,
                         .as.import_func.name_len = t.len,
@@ -1738,7 +1738,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                                func_value);
                 struct au_fn none_func = (struct au_fn){
                     .type = AU_FN_NONE,
-                    .as.none_func.num_args = n_args,
+                    .as.none_func.num_args = num_args,
                     .as.none_func.name_token = t,
                 };
                 au_fn_array_add(&p->p_data->fns, none_func);
@@ -1748,10 +1748,10 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             }
 
             if (execute_self) {
-                if (p->self_num_args != n_args) {
+                if (p->self_num_args != num_args) {
                     p->res = (struct au_parser_result){
                         .type = AU_PARSER_RES_WRONG_ARGS,
-                        .data.wrong_args.got_args = n_args,
+                        .data.wrong_args.got_args = num_args,
                         .data.wrong_args.expected_args = p->self_num_args,
                         .data.wrong_args.at_token = t,
                     };
@@ -1759,12 +1759,12 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                 }
             } else {
                 const struct au_fn *fn = &p->p_data->fns.data[func_idx];
-                int expected_n_args = au_fn_num_args(fn);
-                if (expected_n_args != n_args) {
+                int expected_num_args = au_fn_num_args(fn);
+                if (expected_num_args != num_args) {
                     p->res = (struct au_parser_result){
                         .type = AU_PARSER_RES_WRONG_ARGS,
-                        .data.wrong_args.got_args = n_args,
-                        .data.wrong_args.expected_args = expected_n_args,
+                        .data.wrong_args.got_args = num_args,
+                        .data.wrong_args.expected_args = expected_num_args,
                         .data.wrong_args.at_token = t,
                     };
                     return 0;
@@ -1772,7 +1772,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             }
 
             size_t call_fn_offset = 0;
-            if (n_args == 1 && p->bc.len > 4 &&
+            if (num_args == 1 && p->bc.len > 4 &&
                 p->bc.data[p->bc.len - 4] == AU_OP_PUSH_ARG) {
                 // OPTIMIZE: peephole optimization for function calls with
                 // 1 argument
