@@ -967,7 +967,7 @@ _AU_OP_JNIF:;
                                               (struct au_error_location){
                                                   .src = mmap.bytes,
                                                   .len = mmap.size,
-                                                  .path = p_data->file,
+                                                  .path = abspath,
                                               });
                         abort();
                     }
