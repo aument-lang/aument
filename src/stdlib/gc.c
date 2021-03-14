@@ -12,5 +12,5 @@
 #include "core/vm/vm.h"
 
 AU_EXTERN_FUNC_DECL(au_std_gc_heap_size) {
-    return au_value_int(au_malloc_heap_size());
+    return au_value_double((double)au_malloc_heap_size());
 }
