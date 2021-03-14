@@ -418,7 +418,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const uint8_t reg = frame.bc[1];
                 const uint16_t rel_c = *(uint16_t *)(&frame.bc[2]);
                 const size_t abs_c = rel_c + p_data->tl_constant_start;
-                if(au_value_get_type(tl->const_cache[abs_c]) == AU_VALUE_NONE)
+                if (au_value_get_type(tl->const_cache[abs_c]) ==
+                    AU_VALUE_NONE)
                     tl->const_cache[abs_c] = frame.regs[reg];
                 DISPATCH;
             }
