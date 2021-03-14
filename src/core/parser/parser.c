@@ -37,6 +37,8 @@ struct au_parser {
 
     /// Hash table of local variables
     struct au_hm_vars vars;
+    /// Hash table of constant variables
+    struct au_hm_vars consts;
 
     /// Global program data. This struct does not own this pointer.
     struct au_program_data *p_data;
@@ -68,6 +70,7 @@ struct au_parser {
     /// Bytesize of self_keyword
     size_t self_keyword_len;
 
+    /// Function ID
     size_t func_id;
 
     /// Result of the parser
@@ -91,6 +94,7 @@ static void parser_init(struct au_parser *p,
     p->bc = (struct au_bc_buf){0};
     parser_flush_free_regs(p);
     au_hm_vars_init(&p->vars);
+    au_hm_vars_init(&p->consts);
     p->p_data = p_data;
 
     p->num_locals = 0;
@@ -111,6 +115,7 @@ static void parser_init(struct au_parser *p,
 static void parser_del(struct au_parser *p) {
     au_data_free(p->bc.data);
     au_hm_vars_del(&p->vars);
+    au_hm_vars_del(&p->consts);
     au_data_free(p->self_fill_call.data);
     memset(p, 0, sizeof(struct au_parser));
 }
@@ -272,6 +277,8 @@ static int parser_exec_class_statement(struct au_parser *p,
                                        struct au_lexer *l, int exported);
 static int parser_exec_def_statement(struct au_parser *p,
                                      struct au_lexer *l, int exported);
+static int parser_exec_const_statement(struct au_parser *p,
+                                       struct au_lexer *l, int exported);
 static int parser_exec_while_statement(struct au_parser *p,
                                        struct au_lexer *l);
 static int parser_exec_if_statement(struct au_parser *p,
@@ -338,6 +345,9 @@ static int parser_exec_statement(struct au_parser *p, struct au_lexer *l) {
             EXPECT_GLOBAL_SCOPE(t);
             au_lexer_next(l);
             retval = parser_exec_def_statement(p, l, 0);
+        } else if (token_keyword_cmp(&t, "const")) {
+            au_lexer_next(l);
+            retval = parser_exec_with_semicolon(p, l, parser_exec_const_statement(p, l, 0));
         } else if (token_keyword_cmp(&t, "if")) {
             au_lexer_next(l);
             retval = parser_exec_if_statement(p, l);
@@ -854,6 +864,46 @@ static int parser_exec_def_statement(struct au_parser *p,
     };
 
     parser_del(&func_p);
+
+    return 1;
+}
+
+static int parser_exec_const_statement(struct au_parser *p,
+                                       struct au_lexer *l, int exported) {
+    (void)exported;
+
+    const struct au_token id_tok = au_lexer_next(l);
+    EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
+
+    const struct au_token eq_tok = au_lexer_next(l);
+    EXPECT_TOKEN(eq_tok.type == AU_TOK_OPERATOR &&
+        (eq_tok.len == 1 && eq_tok.src[0] == '='), eq_tok, "'='");
+
+    if (!parser_exec_expr(p, l))
+        return 0;
+    const uint8_t right_reg = parser_pop_reg(p);
+
+    if(p->func_id == AU_SM_FUNC_ID_MAIN) {
+        // Main function
+        int data_len = p->p_data->data_val.len;
+        struct au_hm_var_value *old =
+            au_hm_vars_add(&p->consts, id_tok.src, id_tok.len, AU_HM_VAR_VALUE(data_len));
+
+        if(old == 0) {
+            au_program_data_add_data(p->p_data, au_value_none(), 0, 0);
+            parser_emit_bc_u8(p, AU_OP_SET_CONST);
+            parser_emit_bc_u8(p, right_reg);
+            parser_emit_bc_u16(p, data_len);
+        } else {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_DUPLICATE_CONST,
+                .data.duplicate_id.name_token = id_tok,
+            };
+            return 0;
+        }
+    } else {
+        assert(0);
+    }
 
     return 1;
 }
@@ -1745,17 +1795,29 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             const struct au_hm_var_value *val =
                 au_hm_vars_get(&p->vars, t.src, t.len);
             if (val == NULL) {
-                p->res = (struct au_parser_result){
-                    .type = AU_PARSER_RES_UNKNOWN_VAR,
-                    .data.unknown_id.name_token = t,
-                };
-                return 0;
+                const struct au_hm_var_value *const_val =
+                    au_hm_vars_get(&p->consts, t.src, t.len);
+                if(const_val == NULL) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_UNKNOWN_VAR,
+                        .data.unknown_id.name_token = t,
+                    };
+                    return 0;
+                } else {
+                    // TODO: constants in local functions
+                    uint8_t reg;
+                    EXPECT_BYTECODE(parser_new_reg(p, &reg));
+                    parser_emit_bc_u8(p, AU_OP_LOAD_CONST);
+                    parser_emit_bc_u8(p, reg);
+                    parser_emit_bc_u16(p, const_val->idx);
+                }
+            } else {
+                uint8_t reg;
+                EXPECT_BYTECODE(parser_new_reg(p, &reg));
+                parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
+                parser_emit_bc_u8(p, reg);
+                parser_emit_bc_u16(p, val->idx);
             }
-            uint8_t reg;
-            EXPECT_BYTECODE(parser_new_reg(p, &reg));
-            parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
-            parser_emit_bc_u8(p, reg);
-            parser_emit_bc_u16(p, val->idx);
         }
         break;
     }

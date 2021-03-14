@@ -24,6 +24,7 @@ enum au_parser_result_type {
     X(UNKNOWN_MODULE) = 11,
     X(DUPLICATE_PROP) = 12,
     X(DUPLICATE_ARG) = 13,
+    X(DUPLICATE_CONST) = 14,
 };
 #undef X
 

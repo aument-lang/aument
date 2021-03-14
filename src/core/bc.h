@@ -13,7 +13,7 @@
 #define AU_MAX_LOCALS 65536
 #define AU_MAX_ARRAY 65536
 #define AU_MAX_STATIC_IDX 256
-#define AU_OP_MAX_PRINTABLE 44
+#define AU_OP_MAX_PRINTABLE 45
 
 enum au_opcode {
     AU_OP_LOAD_SELF = 0,
@@ -61,29 +61,30 @@ enum au_opcode {
     AU_OP_CLASS_SET_INNER = 42,
     AU_OP_CLASS_NEW = 43,
     AU_OP_CALL1 = 44,
-    AU_OP_MUL_INT = 45,
-    AU_OP_DIV_INT = 46,
-    AU_OP_ADD_INT = 47,
-    AU_OP_SUB_INT = 48,
-    AU_OP_MOD_INT = 49,
-    AU_OP_EQ_INT = 50,
-    AU_OP_NEQ_INT = 51,
-    AU_OP_LT_INT = 52,
-    AU_OP_GT_INT = 53,
-    AU_OP_LEQ_INT = 54,
-    AU_OP_GEQ_INT = 55,
-    AU_OP_JIF_BOOL = 56,
-    AU_OP_JNIF_BOOL = 57,
-    AU_OP_MUL_DOUBLE = 58,
-    AU_OP_DIV_DOUBLE = 59,
-    AU_OP_ADD_DOUBLE = 60,
-    AU_OP_SUB_DOUBLE = 61,
-    AU_OP_EQ_DOUBLE = 62,
-    AU_OP_NEQ_DOUBLE = 63,
-    AU_OP_LT_DOUBLE = 64,
-    AU_OP_GT_DOUBLE = 65,
-    AU_OP_LEQ_DOUBLE = 66,
-    AU_OP_GEQ_DOUBLE = 67,
+    AU_OP_SET_CONST = 45,
+    AU_OP_MUL_INT = 46,
+    AU_OP_DIV_INT = 47,
+    AU_OP_ADD_INT = 48,
+    AU_OP_SUB_INT = 49,
+    AU_OP_MOD_INT = 50,
+    AU_OP_EQ_INT = 51,
+    AU_OP_NEQ_INT = 52,
+    AU_OP_LT_INT = 53,
+    AU_OP_GT_INT = 54,
+    AU_OP_LEQ_INT = 55,
+    AU_OP_GEQ_INT = 56,
+    AU_OP_JIF_BOOL = 57,
+    AU_OP_JNIF_BOOL = 58,
+    AU_OP_MUL_DOUBLE = 59,
+    AU_OP_DIV_DOUBLE = 60,
+    AU_OP_ADD_DOUBLE = 61,
+    AU_OP_SUB_DOUBLE = 62,
+    AU_OP_EQ_DOUBLE = 63,
+    AU_OP_NEQ_DOUBLE = 64,
+    AU_OP_LT_DOUBLE = 65,
+    AU_OP_GT_DOUBLE = 66,
+    AU_OP_LEQ_DOUBLE = 67,
+    AU_OP_GEQ_DOUBLE = 68,
 };
 
 extern const char *au_opcode_dbg[AU_REGS];

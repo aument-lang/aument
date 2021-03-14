@@ -55,7 +55,8 @@ const char *au_opcode_dbg[256] = {"load_self",
                                   "mov_class",
                                   "mov_class",
                                   "class_new",
-                                  "call_1"};
+                                  "call_1",
+                                  "set_const"};
 
 #ifdef AU_COVERAGE
 void au_bc_dbg(const struct au_bc_storage *bcs,
@@ -167,6 +168,13 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             uint8_t reg = bc(pos);
             DEF_BC16(c, 1)
             printf(" c%d -> r%d\n", c, reg);
+            pos += 3;
+            break;
+        }
+        case AU_OP_SET_CONST: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(c, 1)
+            printf(" r%d -> c%d\n", reg, c);
             pos += 3;
             break;
         }
