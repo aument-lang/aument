@@ -28,8 +28,8 @@ enum au_fn_type {
 /// [struct] An imported function. This object stores information about a
 /// possibly unresolved function imported from another module.
 struct au_imported_func {
-    int num_args;
-    int module_idx;
+    int32_t num_args;
+    int32_t module_idx;
     char *name;
     size_t name_len;
     const struct au_fn *fn_cached;
@@ -45,7 +45,7 @@ void au_imported_func_del(struct au_imported_func *fn);
 /// only appear while parsing, and must not appear anywhere else.
 struct au_none_func {
     /// Expected number of arguments this function has
-    int num_args;
+    int32_t num_args;
     /// Expected name of the function
     struct au_token name_token;
 };
@@ -64,7 +64,7 @@ ARRAY_TYPE_COPY(struct au_dispatch_func_instance,
 
 /// [struct] A dispatch method
 struct au_dispatch_func {
-    int num_args;
+    int32_t num_args;
     struct au_dispatch_func_instance_array data;
     size_t fallback_fn;
 };
@@ -94,9 +94,9 @@ struct au_fn {
 /// [func] Returns the number of arguments the function takes.
 /// @param fn the function
 /// @return the number of arguments
-static inline int au_fn_num_args(const struct au_fn *fn);
+static inline int32_t au_fn_num_args(const struct au_fn *fn);
 
-static inline int au_fn_num_args(const struct au_fn *fn) {
+static inline int32_t au_fn_num_args(const struct au_fn *fn) {
     switch (fn->type) {
     case AU_FN_NONE: {
         return fn->as.none_func.num_args;

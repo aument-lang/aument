@@ -33,6 +33,7 @@ enum au_vtype {
 };
 
 struct au_string;
+struct au_fn_value;
 
 #ifdef AU_USE_NAN_TAGGING
 typedef union {
@@ -125,13 +126,14 @@ au_value_get_string(const au_value_t v) {
     return (struct au_string *)(AU_REPR_GET_POINTER(v.raw));
 }
 
-static _AlwaysInline au_value_t au_value_fn(uint32_t n) {
+static _AlwaysInline au_value_t au_value_fn(struct au_fn_value *data) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(AU_VALUE_FN, (uint64_t)n);
+    v.raw = AU_REPR_BOXED(AU_VALUE_STRUCT, (uint64_t)data);
     return v;
 }
-static _AlwaysInline uint32_t au_value_get_fn(const au_value_t v) {
-    return (uint32_t)(AU_REPR_GET_POINTER(v.raw));
+static _AlwaysInline struct au_fn_value *
+au_value_get_fn(const au_value_t v) {
+    return (struct au_fn_value *)(AU_REPR_GET_POINTER(v.raw));
 }
 
 static _AlwaysInline au_value_t au_value_struct(struct au_struct *data) {
@@ -147,7 +149,6 @@ au_value_get_struct(const au_value_t v) {
 union au_value_data {
     int32_t d_int;
     void *d_ptr;
-    uint32_t d_fn_idx;
     double d_double;
 };
 
@@ -219,14 +220,14 @@ au_value_get_string(const au_value_t v) {
     return (struct au_string *)v._data.d_ptr;
 }
 
-static _AlwaysInline au_value_t au_value_fn(uint32_t n) {
+static _AlwaysInline au_value_t au_value_fn(struct au_fn_value *data) {
     au_value_t v = {0};
     v._type = AU_VALUE_FN;
-    v._data.d_fn_idx = n;
+    v._data.d_ptr = data;
     return v;
 }
-static _AlwaysInline uint32_t au_value_get_fn(const au_value_t v) {
-    return v._data.d_fn_idx;
+static _AlwaysInline struct au_fn_value * au_value_get_fn(const au_value_t v) {
+    return (struct au_string *)v._data.d_ptr;
 }
 
 static _AlwaysInline au_value_t au_value_struct(struct au_struct *data) {
@@ -253,8 +254,8 @@ static au_value_t au_value_bool(int32_t n);
 static int32_t au_value_get_bool(const au_value_t v);
 static au_value_t au_value_string(struct au_string *data);
 static struct au_string *au_value_get_string(const au_value_t v);
-static au_value_t au_value_fn(uint32_t n);
-static uint32_t au_value_get_fn(const au_value_t v);
+static au_value_t au_value_fn(struct au_fn_value *data);
+static struct au_fn_value *au_value_get_fn(const au_value_t v);
 /// [func] Creates a value from a pointer to a structure.
 ///     The pointer must be allocated using au_obj_malloc.
 static au_value_t au_value_struct(struct au_struct *data);
@@ -313,7 +314,7 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
                                    (double)au_value_get_int(rhs));
         case AU_VALUE_DOUBLE:
             return au_value_double(au_value_get_double(lhs) +
-                                   au_value_get_double(lhs));
+                                   au_value_get_double(rhs));
         default:
             return au_value_op_error();
         }
@@ -353,7 +354,7 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
                     double) au_value_get_int(rhs));                       \
             case AU_VALUE_DOUBLE:                                         \
                 return au_value_double(au_value_get_double(lhs)           \
-                                           OP au_value_get_double(lhs));  \
+                                           OP au_value_get_double(rhs));  \
             default:                                                      \
                 return au_value_op_error();                               \
             }                                                             \
