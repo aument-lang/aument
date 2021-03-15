@@ -5,23 +5,29 @@
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
 #pragma once
+#include "core/value_array.h"
 #include "value.h"
 #include <stdlib.h>
 #endif
 
-struct au_fn_value;
+struct au_fn;
+struct au_program_data;
 
-struct au_fn_value *au_fn_value_new();
+struct au_fn_value {
+    uint32_t rc;
+    const struct au_fn *fn;
+    const struct au_program_data *p_data;
+    struct au_value_array bound_args;
+};
+
+struct au_fn_value *au_fn_value_new(const struct au_fn *fn,
+                                    const struct au_program_data *p_data);
 void au_fn_value_del(struct au_fn_value *fn_value);
 
-#ifdef _AUMENT_H
-struct au_fn_value *au_fn_value_coerce(au_value_t value);
-#else
-extern struct au_struct_vdata au_fn_value_vdata;
+void au_fn_value_add_arg(struct au_fn_value *fn_value, au_value_t value);
+
 static inline struct au_fn_value *au_fn_value_coerce(au_value_t value) {
-    if (au_value_get_type(value) != AU_VALUE_STRUCT ||
-        au_value_get_struct(value)->vdata != &au_fn_value_vdata)
+    if (au_value_get_type(value) != AU_VALUE_FN)
         return 0;
-    return (struct au_fn_value *)au_value_get_struct(value);
+    return au_value_get_fn(value);
 }
-#endif

@@ -249,10 +249,13 @@ static int parser_exec_muldiv(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_unary_expr(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_index_expr(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_val(struct au_parser *p, struct au_lexer *l);
+static int parser_resolve_fn(struct au_parser *p,
+                             struct au_token module_tok,
+                             struct au_token id_tok, int num_args,
+                             size_t *func_idx_out, int *execute_self_out);
 static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
                             struct au_token module_tok,
-                            struct au_token id_tok,
-                            int has_self_argument);
+                            struct au_token id_tok, int has_self_argument);
 static int parser_exec_array_or_tuple(struct au_parser *p,
                                       struct au_lexer *l, int is_tuple);
 static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l);
@@ -1550,30 +1553,67 @@ static int parser_exec_index_expr(struct au_parser *p,
                 p->rstack_len -= 2;
             }
         } else if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
-            tok.src[0] == '.') {
+                   tok.src[0] == '.') {
             au_lexer_next(l);
-        
+
             struct au_token id_tok = au_lexer_next(l);
-            EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
-        
-            struct au_token peek = au_lexer_peek(l, 0);        
-            struct au_token module_tok = (struct au_token){.type = AU_TOK_EOF};
+            if (id_tok.type == AU_TOK_OPERATOR && id_tok.len == 1 &&
+                id_tok.src[0] == '(') {
 
-            if (peek.type == AU_TOK_OPERATOR && peek.len == 2 &&
-                peek.src[0] == ':' && peek.src[1] == ':') {
-                module_tok = id_tok;
-                au_lexer_next(l);
-                id_tok = au_lexer_next(l);
-                EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
-                peek = au_lexer_peek(l, 0);
-            }
+                int num_args = 0;
+                if (!parser_exec_call_args(p, l, &num_args))
+                    return 0;
+                EXPECT_BYTECODE(num_args < 256);
 
-            if (peek.type == AU_TOK_OPERATOR && peek.len == 1 &&
-                peek.src[0] == '(') {
-                au_lexer_next(l);
-                parser_exec_call(p, l, module_tok, id_tok, 1);
+                parser_emit_bc_u8(p, AU_OP_CALL_FUNC_VALUE);
+                parser_emit_bc_u8(p, parser_pop_reg(p));
+                parser_emit_bc_u8(p, num_args);
+                uint8_t return_reg;
+                EXPECT_BYTECODE(parser_new_reg(p, &return_reg));
+                parser_emit_bc_u8(p, return_reg);
             } else {
-                EXPECT_TOKEN(0, peek, "'('");
+                EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok,
+                             "identifier or arguments");
+
+                struct au_token peek = au_lexer_peek(l, 0);
+                struct au_token module_tok =
+                    (struct au_token){.type = AU_TOK_EOF};
+
+                if (peek.type == AU_TOK_OPERATOR && peek.len == 2 &&
+                    peek.src[0] == ':' && peek.src[1] == ':') {
+                    module_tok = id_tok;
+                    au_lexer_next(l);
+                    id_tok = au_lexer_next(l);
+                    EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok,
+                                 "identifier");
+                    peek = au_lexer_peek(l, 0);
+                }
+
+                if (peek.type == AU_TOK_OPERATOR && peek.len == 1 &&
+                    peek.src[0] == '(') {
+                    au_lexer_next(l);
+                    parser_exec_call(p, l, module_tok, id_tok, 1);
+                } else {
+                    size_t func_idx = 0;
+                    int execute_self = 0;
+
+                    if (!parser_resolve_fn(p, module_tok, id_tok, 1,
+                                           &func_idx, &execute_self))
+                        return 0;
+
+                    EXPECT_BYTECODE(func_idx < AU_MAX_FUNC_ID);
+
+                    parser_emit_bc_u8(p, AU_OP_LOAD_FUNC);
+                    uint8_t func_reg;
+                    EXPECT_BYTECODE(parser_new_reg(p, &func_reg));
+                    parser_emit_bc_u8(p, func_reg);
+                    parser_emit_bc_u16(p, func_idx);
+
+                    parser_emit_bc_u8(p, AU_OP_BIND_ARG_TO_FUNC);
+                    parser_emit_bc_u8(p, func_reg);
+                    parser_emit_bc_u8(p, left_reg);
+                    parser_emit_pad8(p);
+                }
             }
         } else {
             break;
@@ -1583,24 +1623,10 @@ static int parser_exec_index_expr(struct au_parser *p,
     return 1;
 }
 
-static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
-                            struct au_token module_tok,
-                            struct au_token id_tok,
-                            int has_self_argument) {
-    if(has_self_argument) {
-        parser_emit_bc_u8(p, AU_OP_PUSH_ARG);
-        parser_emit_bc_u8(p, parser_pop_reg(p));
-        parser_emit_pad8(p);
-        parser_emit_pad8(p);
-    }
-    
-    int num_args = 0;
-    if (!parser_exec_call_args(p, l, &num_args))
-        return 0;
-    
-    if(has_self_argument)
-        num_args++;
-
+static int parser_resolve_fn(struct au_parser *p,
+                             struct au_token module_tok,
+                             struct au_token id_tok, int num_args_in,
+                             size_t *func_idx_out, int *execute_self_out) {
     size_t func_idx = 0;
     int func_idx_found = 0;
     int execute_self = 0;
@@ -1635,7 +1661,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
             struct au_fn fn = (struct au_fn){
                 .type = AU_FN_IMPORTER,
                 .flags = 0,
-                .as.import_func.num_args = num_args,
+                .as.import_func.num_args = num_args_in,
                 .as.import_func.module_idx = module_idx,
                 .as.import_func.name = import_name,
                 .as.import_func.name_len = id_tok.len,
@@ -1673,7 +1699,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
                        func_value);
         struct au_fn none_func = (struct au_fn){
             .type = AU_FN_NONE,
-            .as.none_func.num_args = num_args,
+            .as.none_func.num_args = num_args_in,
             .as.none_func.name_token = id_tok,
         };
         au_fn_array_add(&p->p_data->fns, none_func);
@@ -1681,6 +1707,38 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
                          au_data_strndup(id_tok.src, id_tok.len));
         func_idx = func_value.idx;
     }
+
+    *func_idx_out = func_idx;
+    *execute_self_out = execute_self;
+    return 1;
+}
+
+static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
+                            struct au_token module_tok,
+                            struct au_token id_tok,
+                            int has_self_argument) {
+    if (has_self_argument) {
+        parser_emit_bc_u8(p, AU_OP_PUSH_ARG);
+        parser_emit_bc_u8(p, parser_pop_reg(p));
+        parser_emit_pad8(p);
+        parser_emit_pad8(p);
+    }
+
+    int num_args = 0;
+    if (!parser_exec_call_args(p, l, &num_args))
+        return 0;
+
+    if (has_self_argument)
+        num_args++;
+
+    size_t func_idx = 0;
+    int execute_self = 0;
+
+    if (!parser_resolve_fn(p, module_tok, id_tok, num_args, &func_idx,
+                           &execute_self))
+        return 0;
+
+    EXPECT_BYTECODE(func_idx < AU_MAX_FUNC_ID);
 
     if (execute_self) {
         if (p->self_num_args != num_args) {
