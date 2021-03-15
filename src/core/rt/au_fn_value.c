@@ -24,6 +24,8 @@ struct au_fn_value *au_fn_value_new(const struct au_fn *fn,
 }
 
 void au_fn_value_del(struct au_fn_value *fn_value) {
+    for(size_t i = 0; i < fn_value->bound_args.len; i++)
+        au_value_deref(fn_value->bound_args.data[i]);
     au_data_free(fn_value->bound_args.data);
 }
 
@@ -31,7 +33,6 @@ void au_fn_value_add_arg(struct au_fn_value *fn_value, au_value_t value) {
     au_value_ref(value);
     au_value_array_add(&fn_value->bound_args, value);
 }
-
 
 au_value_t au_fn_value_call(const struct au_fn_value *fn_value, struct au_vm_thread_local *tl,
                     const struct au_program_data *p_data,
@@ -56,5 +57,6 @@ au_value_t au_fn_value_call(const struct au_fn_value *fn_value, struct au_vm_thr
     for(int32_t i = 0; i < total_args; i++) {
         au_value_deref(args[i]);
     }
+    au_data_free(args);
     return retval;
 }
