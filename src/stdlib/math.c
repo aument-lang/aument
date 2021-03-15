@@ -4,9 +4,10 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 
+#include <math.h>
 #include "core/rt/extern_fn.h"
 
-#include <math.h>
+#ifdef AU_FEAT_MATH_LIB
 
 AU_EXTERN_FUNC_DECL(au_std_math_abs) {
     const au_value_t value = _args[0];
@@ -180,3 +181,5 @@ CLASSIFY_FUNC(au_std_math_is_finite, isfinite)
 CLASSIFY_FUNC(au_std_math_is_infinite, isinf)
 CLASSIFY_FUNC(au_std_math_is_nan, isnan)
 CLASSIFY_FUNC(au_std_math_is_normal, isnormal)
+
+#endif
