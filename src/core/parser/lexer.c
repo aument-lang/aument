@@ -209,7 +209,7 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
         };
     } else if (start_ch == '(' || start_ch == ')' || start_ch == ';' ||
                start_ch == ',' || start_ch == '{' || start_ch == '}' ||
-               start_ch == '[' || start_ch == ']') {
+               start_ch == '[' || start_ch == ']' || start_ch == '.') {
         l->pos++;
         return (struct au_token){
             .type = AU_TOK_OPERATOR,

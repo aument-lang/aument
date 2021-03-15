@@ -180,7 +180,7 @@ alice = new Human;
 
 Just like functions, if you try to use a undeclared class, it will error out after parsing.
 
-### Method
+### Methods
 
 To modify or access a private variable in a class instance, you'll need to declare a *method*, a function that can only be called if the first argument's type matches that of the class:
 
@@ -218,6 +218,20 @@ Prints out:
 ```
 I'm Alice
 meow!
+```
+
+### Dot calls
+
+You can use the dot operator `.` to call a function, such that the left-hand side of the operation is the first argument of the function:
+
+```
+alice.say();
+```
+
+Is equivalent to:
+
+```
+say(alice);
 ```
 
 ## Modules
