@@ -120,7 +120,7 @@ static void test_{i}_check(au_value_t value) {{ switch(test_{i}_idx) {{
     test_src = f"""
 #include <assert.h>
 {test_src}
-void au_value_print(au_value_t v)
+void __au_value_print(au_value_t v)
 {{ test_{i}_check(v); }}
 """
     test_srcs.append(test_src)
@@ -151,7 +151,6 @@ static void test_{i}() {{
 }}\n\n"""
 
 c_src += """
-void au_value_print(au_value_t v) { (void)v; }
 int main() {
 """
 
@@ -172,9 +171,6 @@ stdlib_cache_file = os.path.join(source_path, "../build/libau_runtime.a")
 stdlib_cache_file = stdlib_cache_file.replace("\\","/")
 c_src_comp_test += f"""
 struct au_cc_options cc;
-
-void au_value_print(au_value_t v)
-{{ (void)v; }}
 
 void setup() {{
     au_cc_options_default(&cc);

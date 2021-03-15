@@ -12,12 +12,17 @@ binary = sys.argv[1]
 
 def test(n):
     global binary
-    subprocess.run([binary, str(n)])
+    subprocess.check_output([binary, str(n)])
 
 num_tests = int(subprocess.check_output([binary, "-1"]).decode("utf-8"))
 with multiprocessing.Pool() as p:
     threads = []
     for i in range(num_tests):
         threads.append(p.apply_async(test, (i,)))
-    for thread in threads:
-        thread.get()
+    for i, thread in enumerate(threads):
+        try:
+            thread.get()
+        except:
+            print(f"Error in test #%d" % i)
+            import sys, signal
+            sys.exit(signal.SIGABRT)

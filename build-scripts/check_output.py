@@ -121,10 +121,20 @@ if args.file:
 else:
     with multiprocessing.Pool() as p: 
         threads = []
-        for out_path in glob.glob(args.path + '/*' + out_extension):
+        files = list(glob.glob(args.path + '/*' + out_extension))
+        for out_path in files:
             threads.append(
                 p.apply_async(check_fn, (out_path,))
             )
-        for thread in threads:
-            thread.get()
+        for i, thread in enumerate(threads):
+            try:
+                thread.get()
+            except AssertionError:
+                print(f"Assertion error in %s" % files[i])
+                import sys, signal
+                sys.exit(signal.SIGABRT)
+            except:
+                import sys, signal
+                sys.exit(signal.SIGABRT)
+
     
