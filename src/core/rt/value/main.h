@@ -228,7 +228,7 @@ static _AlwaysInline au_value_t au_value_fn(struct au_fn_value *data) {
 }
 static _AlwaysInline struct au_fn_value *
 au_value_get_fn(const au_value_t v) {
-    return (struct au_string *)v._data.d_ptr;
+    return (struct au_fn_value *)v._data.d_ptr;
 }
 
 static _AlwaysInline au_value_t au_value_struct(struct au_struct *data) {

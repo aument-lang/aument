@@ -11,7 +11,7 @@ for root, _, files in os.walk("src/"):
     for file in files:
         if file.endswith(".h") or file.endswith(".c"):
             path = os.path.join(root, file)
-            all_files.append(path)
+            all_files.append(path.replace("\\","/"))
 all_files.sort()
 exclude = set(glob.glob('src/compiler/*') +
     glob.glob('src/lib/*') +
@@ -20,6 +20,7 @@ exclude = set(glob.glob('src/compiler/*') +
     'src/core/rt/stdlib_end.h',
     'src/core/rt/malloc/gc.c',
     'src/core/rt/malloc/static.c',
+    'src/core/rt/fn_value/comp_impl.c',
     'src/main.c',
     'src/platform/spawn.c',
     'src/platform/tmpfile.c',

@@ -4,9 +4,9 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
-#include "au_fn_value.h"
-#include "au_array.h"
-#include "value.h"
+#include "../au_fn_value.h"
+#include "../au_array.h"
+#include "../value.h"
 
 #include "core/fn.h"
 #include "core/vm/tl.h"
@@ -21,17 +21,6 @@ struct au_fn_value *au_fn_value_new(const struct au_fn *fn,
     fn_value->p_data = p_data;
     fn_value->bound_args = (struct au_value_array){0};
     return fn_value;
-}
-
-void au_fn_value_del(struct au_fn_value *fn_value) {
-    for (size_t i = 0; i < fn_value->bound_args.len; i++)
-        au_value_deref(fn_value->bound_args.data[i]);
-    au_data_free(fn_value->bound_args.data);
-}
-
-void au_fn_value_add_arg(struct au_fn_value *fn_value, au_value_t value) {
-    au_value_ref(value);
-    au_value_array_add(&fn_value->bound_args, value);
 }
 
 au_value_t au_fn_value_call(const struct au_fn_value *fn_value,
