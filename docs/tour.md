@@ -234,6 +234,22 @@ Is equivalent to:
 say(alice);
 ```
 
+### Dot binding
+
+You can also use the dot operator to bind an argument to a function. Note that bound functions must be called using the `.(` operator:
+
+```
+def add(x,y){ return x + y; }
+add_5 = (5).add;
+print add_5.(10);
+```
+
+Outputs:
+
+```
+15
+```
+
 ## Modules
 
 You can import files using the `import` statement. Note that all files are executed separately and you cannot directly use an imported file's variables/functions (unless exported).
