@@ -7,6 +7,9 @@
 #include "au_fn_value.h"
 #include "au_array.h"
 #include "value.h"
+
+#include "core/fn.h"
+#include "core/vm/tl.h"
 #endif
 
 struct au_fn_value *au_fn_value_new(const struct au_fn *fn,
@@ -27,4 +30,31 @@ void au_fn_value_del(struct au_fn_value *fn_value) {
 void au_fn_value_add_arg(struct au_fn_value *fn_value, au_value_t value) {
     au_value_ref(value);
     au_value_array_add(&fn_value->bound_args, value);
+}
+
+
+au_value_t au_fn_value_call(const struct au_fn_value *fn_value, struct au_vm_thread_local *tl,
+                    const struct au_program_data *p_data,
+                    au_value_t *unbound_args, int32_t num_unbound_args, int *is_native_out) {
+    const int32_t num_bound_args = fn_value->bound_args.len;
+    const int32_t total_args = num_bound_args + num_unbound_args;
+    if(total_args != au_fn_num_args(fn_value->fn)) {
+        return au_value_op_error();
+    }
+    au_value_t *args = au_value_calloc(total_args);
+    for(int32_t i = 0; i < (int32_t)fn_value->bound_args.len; i++) {
+        if(i == num_bound_args)
+            break;
+        au_value_ref(fn_value->bound_args.data[i]);
+        args[i] = fn_value->bound_args.data[i];
+    }
+    for(int32_t i = 0; i < num_unbound_args; i++) {
+        args[num_bound_args + i] = unbound_args[i];
+        unbound_args[i] = au_value_none();
+    }
+    au_value_t retval = au_fn_call_internal(fn_value->fn, tl, p_data, args, is_native_out);
+    for(int32_t i = 0; i < total_args; i++) {
+        au_value_deref(args[i]);
+    }
+    return retval;
 }
