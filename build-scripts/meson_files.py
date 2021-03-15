@@ -30,4 +30,4 @@ exclude = set(glob.glob('src/compiler/*') +
     'src/core/stdlib/math.c',
 ])
 all_files = filter(lambda x: x not in exclude, all_files)
-print('\n'.join(map(lambda s: "'%s',"%s, all_files)))
+print('\n'.join(all_files), end='')

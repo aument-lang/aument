@@ -8,9 +8,6 @@
 #include <stdio.h>
 #endif
 
-#ifdef AU_TEST_RT_CODE
-__attribute__((weak))
-#endif
 void au_value_print(au_value_t value) {
     switch (au_value_get_type(value)) {
     case AU_VALUE_INT: {
