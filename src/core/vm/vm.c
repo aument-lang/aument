@@ -38,6 +38,7 @@
 #include "core/int_error/error_printer.h"
 #include "core/rt/au_array.h"
 #include "core/rt/au_class.h"
+#include "core/rt/au_fn_value.h"
 #include "core/rt/au_string.h"
 #include "core/rt/au_struct.h"
 #include "core/rt/au_tuple.h"
@@ -300,6 +301,10 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_CLASS_NEW),
             &&CASE(AU_OP_CALL1),
             &&CASE(AU_OP_SET_CONST),
+            &&CASE(AU_OP_LOAD_FUNC),
+            &&CASE(AU_OP_BIND_ARG_TO_FUNC),
+            &&CASE(AU_OP_CALL_FUNC_VALUE),
+            &&CASE(AU_OP_MAX_PRINTABLE),
             &&CASE(AU_OP_MUL_INT),
             &&CASE(AU_OP_DIV_INT),
             &&CASE(AU_OP_ADD_INT),
@@ -748,6 +753,73 @@ _AU_OP_JNIF:;
                 // no need to clean up the argument stack
                 DISPATCH;
             }
+            // Function values
+            CASE(AU_OP_LOAD_FUNC): {
+                const uint8_t reg = frame.bc[1];
+                const uint16_t func_id = *((uint16_t *)(&frame.bc[2]));
+                const struct au_fn *fn = &p_data->fns.data[func_id];
+                struct au_fn_value *fn_value = au_fn_value_new(fn, p_data);
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
+                frame.regs[reg] = au_value_fn(fn_value);
+                // INVARIANT(GC): from au_fn_value_new
+                fn_value->rc = 0;
+#else
+                MOVE_VALUE(
+                    frame.regs[reg],
+                    au_value_fn(fn_value)
+                );
+#endif // clang-format on
+                DISPATCH;
+            }
+            CASE(AU_OP_BIND_ARG_TO_FUNC) : {
+                const uint8_t func_reg = frame.bc[1];
+                const uint8_t arg_reg = frame.bc[2];
+                struct au_fn_value *fn_value =
+                    au_fn_value_coerce(frame.regs[func_reg]);
+                if (_Likely(fn_value != 0)) {
+                    au_fn_value_add_arg(fn_value, frame.regs[arg_reg]);
+                } else {
+                    assert(0);
+                }
+                DISPATCH;
+            }
+            CASE(AU_OP_CALL_FUNC_VALUE) : {
+                const uint8_t func_reg = frame.bc[1];
+                const uint8_t num_args = frame.bc[2];
+                const uint8_t ret_reg = frame.bc[3];
+                struct au_fn_value *fn_value =
+                    au_fn_value_coerce(frame.regs[func_reg]);
+                if (_Likely(fn_value != 0)) {
+                    const au_value_t *args =
+                        &frame.arg_stack
+                             .data[frame.arg_stack.len - num_args];
+                    int is_native = 0;
+                    const au_value_t callee_retval = au_fn_value_call(
+                        fn_value, tl, p_data, args, num_args, &is_native);
+                    if (_Unlikely(au_value_is_op_error(callee_retval)))
+                        call_error(p_data, &frame);
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
+                    frame.regs[ret_reg] = callee_retval;
+                    // INVARIANT(GC): native functions always return
+                    // a RC'd value
+                    if (is_native)
+                        au_value_deref(callee_retval);
+#else
+                    MOVE_VALUE(frame.regs[ret_reg], callee_retval);
+#endif // clang-format on
+                    if (is_native) {
+                        // Native functions do not clean up the argument
+                        // stack for us, we have to do it manually.
+                        for (int i = 0; i < num_args; i++) {
+                            au_value_deref(frame.arg_stack.data[i]);
+                        }
+                    }
+                    frame.arg_stack.len -= num_args;
+                } else {
+                    assert(0);
+                }
+                DISPATCH;
+            }
             // Return instructions
             CASE(AU_OP_RET_LOCAL) : {
                 const uint8_t ret_local = frame.bc[2];
@@ -1026,6 +1098,9 @@ _import_dispatch:;
                 const au_value_t reg = frame.regs[frame.bc[1]];
                 tl->print_fn(reg);
                 DISPATCH;
+            }
+            CASE(AU_OP_MAX_PRINTABLE) : {
+                // fallthrough
             }
             CASE(AU_OP_NOP) : { DISPATCH; }
 #undef COPY_VALUE

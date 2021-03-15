@@ -56,7 +56,10 @@ const char *au_opcode_dbg[256] = {"load_self",
                                   "mov_class",
                                   "class_new",
                                   "call_1",
-                                  "set_const"};
+                                  "set_const",
+                                  "load_func",
+                                  "bind_arg_to_func",
+                                  "call_func_value"};
 
 #ifdef AU_COVERAGE
 void au_bc_dbg(const struct au_bc_storage *bcs,
@@ -75,7 +78,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         assert(pos % 4 == 0);
         uint8_t opcode = bc(pos);
         printf("%5" PRIdPTR ": ", pos);
-        if (opcode > AU_OP_MAX_PRINTABLE) {
+        if (opcode >= AU_OP_MAX_PRINTABLE) {
             au_fatal("unknown opcode %d", opcode);
         } else {
             printf("%s", au_opcode_dbg[opcode]);
