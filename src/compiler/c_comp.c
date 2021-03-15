@@ -1070,7 +1070,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         case AU_OP_PRINT: {
             uint8_t lhs = bc(pos);
+#ifdef AU_TEST_RT_CODE
+            comp_printf(state, "__au_value_print(r%d);\n", lhs);
+#else
             comp_printf(state, "au_value_print(r%d);\n", lhs);
+#endif
             break;
         }
         default: {
@@ -1324,6 +1328,10 @@ void au_c_comp(struct au_c_comp_state *state,
     comp_write(state, AU_C_COMP_EXTERN_FUNC_DECL,
                strlen(AU_C_COMP_EXTERN_FUNC_DECL));
     comp_putc(state, '\n');
+
+#ifdef AU_TEST_RT_CODE
+    comp_printf(state, "void __au_value_print(au_value_t v);\n");
+#endif
 
     struct au_c_comp_global_state g_state =
         (struct au_c_comp_global_state){0};
