@@ -741,19 +741,21 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(func_id, 1)
             const struct au_fn *fn =
                 au_fn_array_at_ptr(&p_data->fns, func_id);
-            comp_printf(state, "r%d=au_fn_value_from_ptr(&", reg);
+            comp_printf(state, "MOVE_VALUE(r%d,", reg);
             switch (fn->type) {
             case AU_FN_DISPATCH:
             case AU_FN_BC: {
-                comp_printf(state, "_M%d_f%d", (int)module_idx,
-                            func_id);
+                comp_printf(state, "au_fn_value_from_compiled(&");
+                comp_printf(state, "_M%d_f%d", (int)module_idx, func_id);
                 break;
             }
             case AU_FN_NATIVE: {
-                comp_printf(state, "%s", lib_func->symbol);
+                comp_printf(state, "au_fn_value_from_native(&");
+                comp_printf(state, "%s", fn->as.native_func.symbol);
                 break;
             }
             case AU_FN_IMPORTER: {
+                comp_printf(state, "au_fn_value_from_compiled(&");
                 comp_printf(state, "_M%d_f%d", (int)module_idx,
                             (int)func_id);
                 break;
@@ -762,19 +764,25 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 au_fatal("generating none function");
             }
             }
-            comp_printf(state, ");\n");
+            comp_printf(state, ",%d));\n", au_fn_num_args(fn));
             break;
         }
         case AU_OP_BIND_ARG_TO_FUNC: {
             const uint8_t func_reg = bc(pos);
-            const uint8_t arg_reg = bc(pos+1);
-            comp_printf(state, "if(!au_fn_value_add_arg_rt(r%d, r%d)) abort();\n", func_reg, arg_reg);
+            const uint8_t arg_reg = bc(pos + 1);
+            comp_printf(state,
+                        "if(!au_fn_value_add_arg_rt(r%d, r%d)) abort();\n",
+                        func_reg, arg_reg);
             break;
         }
         case AU_OP_CALL_FUNC_VALUE: {
             const uint8_t func_reg = bc(pos);
-            const uint8_t num_args = bc(pos+1);
-            const uint8_t ret_reg = bc(pos+2);
+            const uint8_t num_args = bc(pos + 1);
+            const uint8_t ret_reg = bc(pos + 2);
+            comp_printf(state,
+                        "MOVE_VALUE(r%d,au_fn_value_call_rt(r%d,&s_data[s_"
+                        "len-%d],%d));\n",
+                        ret_reg, func_reg, num_args, num_args);
             break;
         }
         // Return instructions

@@ -16,8 +16,10 @@ struct au_vm_frame_link;
 typedef au_value_t (*au_extern_func_t)(struct au_vm_thread_local *tl,
                                        const au_value_t *args);
 
+typedef au_value_t (*au_compiled_func_t)(const au_value_t *args);
+
 struct au_lib_func {
-    int num_args;
+    int32_t num_args;
     au_extern_func_t func;
     const char *name;
     const char *symbol;
