@@ -128,7 +128,7 @@ au_value_get_string(const au_value_t v) {
 
 static _AlwaysInline au_value_t au_value_fn(struct au_fn_value *data) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(AU_VALUE_STRUCT, (uint64_t)data);
+    v.raw = AU_REPR_BOXED(AU_VALUE_FN, (uint64_t)data);
     return v;
 }
 static _AlwaysInline struct au_fn_value *

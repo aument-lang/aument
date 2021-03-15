@@ -790,7 +790,7 @@ _AU_OP_JNIF:;
                 struct au_fn_value *fn_value =
                     au_fn_value_coerce(frame.regs[func_reg]);
                 if (_Likely(fn_value != 0)) {
-                    const au_value_t *args =
+                    au_value_t *args =
                         &frame.arg_stack
                              .data[frame.arg_stack.len - num_args];
                     int is_native = 0;

@@ -16,10 +16,10 @@
 /// @param p_data the program data containing the function
 /// @param args the arguments passed to the function
 /// @return the return value of the function
-static au_value_t au_fn_call(const struct au_fn *fn,
-                             struct au_vm_thread_local *tl,
-                             const struct au_program_data *p_data,
-                             const au_value_t *args);
+_Unused static au_value_t
+au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
+                    const struct au_program_data *p_data,
+                    const au_value_t *args, int *is_native);
 
 _Unused static au_value_t
 au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
@@ -84,9 +84,3 @@ self_call:
     }
 }
 
-_Unused au_value_t au_fn_call(const struct au_fn *fn,
-                              struct au_vm_thread_local *tl,
-                              const struct au_program_data *p_data,
-                              const au_value_t *args) {
-    return au_fn_call_internal(fn, tl, p_data, args, (int *)0);
-}
