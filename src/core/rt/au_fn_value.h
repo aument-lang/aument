@@ -13,21 +13,7 @@
 
 struct au_fn;
 struct au_program_data;
-
-struct au_fn_value {
-#ifdef AU_IS_STDLIB
-    uint32_t rc;
-    int32_t num_args;
-    struct au_value_array bound_args;
-    void *fn_ptr;
-    int is_native_fn;
-#else
-    uint32_t rc;
-    struct au_value_array bound_args;
-    const struct au_fn *fn;
-    const struct au_program_data *p_data;
-#endif
-};
+struct au_fn_value;
 
 void au_fn_value_del(struct au_fn_value *fn_value);
 

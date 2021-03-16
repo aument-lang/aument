@@ -45,7 +45,7 @@ typedef union {
 #define AU_REPR_EXPONENT(x) ((x) >> 52 & 0x7ff)
 #define AU_REPR_SPECIAL_EXPONENT 0x7ff
 #define AU_REPR_BOXED(TAG, POINTER)                                       \
-    (INT64_C(0x7ff0000000000000) |                                               \
+    (INT64_C(0x7ff0000000000000) |                                        \
      ((((uint64_t)TAG) << 48) | ((POINTER)&INT64_C(0xffffffffffff))))
 #define AU_REPR_GET_POINTER(x) ((x)&INT64_C(0x0000ffffffffffff))
 

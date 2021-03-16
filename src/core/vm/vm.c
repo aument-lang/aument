@@ -767,7 +767,7 @@ _AU_OP_JNIF:;
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[reg] = au_value_fn(fn_value);
                 // INVARIANT(GC): from au_fn_value_new
-                fn_value->rc = 0;
+                au_fn_value_deref(fn_value);
 #else
                 MOVE_VALUE(
                     frame.regs[reg],
@@ -1135,13 +1135,13 @@ end:
 #else
 #ifndef AU_FEAT_DELAYED_RC
     for (int i = 0; i < bcs->num_registers; i++) {
-        au_value_deref(frame->regs[i]);
+        au_value_deref(frame.regs[i]);
     }
     for (int i = 0; i < bcs->num_locals; i++) {
-        au_value_deref(frame->locals[i]);
+        au_value_deref(frame.locals[i]);
     }
 #endif
-    au_data_free(frame->locals);
+    au_data_free(frame.locals);
 #endif
 
     au_data_free(frame.arg_stack.data);

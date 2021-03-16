@@ -38,7 +38,8 @@ void au_fn_fill_import_cache_unsafe(
     const struct au_fn *fn, const struct au_fn *fn_cached,
     const struct au_program_data *p_data_cached) {
     *(const struct au_fn **)(&fn->as.imported_func.fn_cached) = fn_cached;
-    *(const struct au_program_data **)(&fn->as.imported_func.p_data_cached) =
+    *(const struct au_program_data **)(&fn->as.imported_func
+                                            .p_data_cached) =
         p_data_cached;
 }
 
