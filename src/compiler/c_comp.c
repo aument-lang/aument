@@ -192,8 +192,8 @@ static void link_to_imported(
         const struct au_fn *relative_fn =
             au_fn_array_at_ptr(&p_data->fns, entry->idx);
         assert(relative_fn->type == AU_FN_IMPORTER);
-        const struct au_imported_func *import_func =
-            &relative_fn->as.import_func;
+        const struct au_imported_func *imported_func =
+            &relative_fn->as.imported_func;
         const struct au_hm_var_value *fn_idx =
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
         if (fn_idx == 0)
@@ -201,10 +201,10 @@ static void link_to_imported(
         struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
         if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
             au_fatal("this function is not exported");
-        if (au_fn_num_args(fn) != import_func->num_args)
+        if (au_fn_num_args(fn) != imported_func->num_args)
             au_fatal("unexpected number of arguments");
         if (module_type == AU_MODULE_SOURCE) {
-            if (import_func->num_args == 0) {
+            if (imported_func->num_args == 0) {
                 comp_printf(state, INDENT "extern au_value_t _M%d_f%d();",
                             (int)imported_module_idx_in_source,
                             fn_idx->idx);
@@ -666,8 +666,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 comp_printf(state, ");");
                 break;
             }
-            case AU_FN_NATIVE: {
-                const struct au_lib_func *lib_func = &fn->as.native_func;
+            case AU_FN_LIB: {
+                const struct au_lib_func *lib_func = &fn->as.lib_func;
                 n_args = lib_func->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
                 if (n_args > 0) {
@@ -680,9 +680,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 break;
             }
             case AU_FN_IMPORTER: {
-                const struct au_imported_func *import_func =
-                    &fn->as.import_func;
-                n_args = import_func->num_args;
+                const struct au_imported_func *imported_func =
+                    &fn->as.imported_func;
+                n_args = imported_func->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
                 if (n_args > 0) {
                     comp_printf(state, "(*_M%d_f%d)(&s_data[s_len-%d])",
@@ -719,8 +719,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 comp_printf(state, ";");
                 break;
             }
-            case AU_FN_NATIVE: {
-                const struct au_lib_func *lib_func = &fn->as.native_func;
+            case AU_FN_LIB: {
+                const struct au_lib_func *lib_func = &fn->as.lib_func;
                 comp_printf(state, "r%d=", (int)reg);
                 comp_printf(state, "%s(0,&r%d);", lib_func->symbol,
                             (int)reg);
@@ -754,9 +754,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 comp_printf(state, "_M%d_f%d", (int)module_idx, func_id);
                 break;
             }
-            case AU_FN_NATIVE: {
+            case AU_FN_LIB: {
                 comp_printf(state, "au_fn_value_from_native(&");
-                comp_printf(state, "%s", fn->as.native_func.symbol);
+                comp_printf(state, "%s", fn->as.lib_func.symbol);
                 break;
             }
             case AU_FN_IMPORTER: {
@@ -1199,13 +1199,13 @@ void au_c_comp_module(struct au_c_comp_state *state,
             }
             break;
         }
-        case AU_FN_NATIVE: {
+        case AU_FN_LIB: {
             comp_printf(state, "extern AU_EXTERN_FUNC_DECL(%s);\n",
-                        fn->as.native_func.symbol);
+                        fn->as.lib_func.symbol);
             break;
         }
         case AU_FN_IMPORTER: {
-            if (fn->as.import_func.num_args > 0) {
+            if (fn->as.imported_func.num_args > 0) {
                 comp_printf(state,
                             "static au_value_t (*_M%d_f%d)"
                             "(const au_value_t*)=0;\n",

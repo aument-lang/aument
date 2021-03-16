@@ -1661,12 +1661,12 @@ static int parser_resolve_fn(struct au_parser *p,
             struct au_fn fn = (struct au_fn){
                 .type = AU_FN_IMPORTER,
                 .flags = 0,
-                .as.import_func.num_args = num_args_in,
-                .as.import_func.module_idx = module_idx,
-                .as.import_func.name = import_name,
-                .as.import_func.name_len = id_tok.len,
-                .as.import_func.fn_cached = 0,
-                .as.import_func.p_data_cached = 0,
+                .as.imported_func.num_args = num_args_in,
+                .as.imported_func.module_idx = module_idx,
+                .as.imported_func.name = import_name,
+                .as.imported_func.name_len = id_tok.len,
+                .as.imported_func.fn_cached = 0,
+                .as.imported_func.p_data_cached = 0,
             };
             au_fn_array_add(&p->p_data->fns, fn);
             func_idx = value.idx;

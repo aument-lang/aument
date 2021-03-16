@@ -8,6 +8,9 @@
 #include "core/program.h"
 #include "core/rt/extern_fn.h"
 #include "core/rt/malloc.h"
+#include "core/fn/main.h"
+
+#include "platform/platform.h"
 
 /// [func] Creates a new external module
 /// @return a reference to the module
@@ -29,12 +32,12 @@ static _Unused inline int au_module_add_fn(struct au_program_data *p_data,
                                            int num_args) {
     struct au_fn fn;
     fn.flags = AU_FN_FLAG_EXPORTED;
-    fn.type = AU_FN_NATIVE;
-    fn.as.native_func = (struct au_lib_func){
+    fn.type = AU_FN_LIB;
+    fn.as.lib_func = (struct au_lib_func){
         .num_args = num_args,
+        .func = func,
         .name = name,
         .symbol = name,
-        .func = func,
     };
     const size_t fn_len = p_data->fns.len;
     if (au_hm_vars_add(&p_data->fn_map, name, strlen(name),

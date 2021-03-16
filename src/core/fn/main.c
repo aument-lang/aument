@@ -21,7 +21,7 @@ void au_fn_del(struct au_fn *fn) {
         break;
     }
     case AU_FN_IMPORTER: {
-        au_imported_func_del(&fn->as.import_func);
+        au_imported_func_del(&fn->as.imported_func);
         break;
     }
     case AU_FN_DISPATCH: {
@@ -37,8 +37,8 @@ void au_fn_del(struct au_fn *fn) {
 void au_fn_fill_import_cache_unsafe(
     const struct au_fn *fn, const struct au_fn *fn_cached,
     const struct au_program_data *p_data_cached) {
-    *(const struct au_fn **)(&fn->as.import_func.fn_cached) = fn_cached;
-    *(const struct au_program_data **)(&fn->as.import_func.p_data_cached) =
+    *(const struct au_fn **)(&fn->as.imported_func.fn_cached) = fn_cached;
+    *(const struct au_program_data **)(&fn->as.imported_func.p_data_cached) =
         p_data_cached;
 }
 

@@ -19,7 +19,7 @@
 
 enum au_fn_type {
     AU_FN_NONE = 0,
-    AU_FN_NATIVE,
+    AU_FN_LIB,
     AU_FN_BC,
     AU_FN_IMPORTER,
     AU_FN_DISPATCH,
@@ -83,9 +83,9 @@ struct au_fn {
     enum au_fn_type type;
     uint32_t flags;
     union {
-        struct au_lib_func native_func;
+        struct au_lib_func lib_func;
         struct au_bc_storage bc_func;
-        struct au_imported_func import_func;
+        struct au_imported_func imported_func;
         struct au_none_func none_func;
         struct au_dispatch_func dispatch_func;
     } as;
@@ -101,14 +101,14 @@ static inline int32_t au_fn_num_args(const struct au_fn *fn) {
     case AU_FN_NONE: {
         return fn->as.none_func.num_args;
     }
-    case AU_FN_NATIVE: {
-        return fn->as.native_func.num_args;
+    case AU_FN_LIB: {
+        return fn->as.lib_func.num_args;
     }
     case AU_FN_BC: {
         return fn->as.bc_func.num_args;
     }
     case AU_FN_IMPORTER: {
-        return fn->as.import_func.num_args;
+        return fn->as.imported_func.num_args;
     }
     case AU_FN_DISPATCH: {
         return fn->as.dispatch_func.num_args;
