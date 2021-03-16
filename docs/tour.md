@@ -2,7 +2,7 @@
 
 ## Primitive values
 
-Like many scripting languages, Aument supports the usual core data types: integers (`3`), floats (`3.14`), strings (`"Hello World"`) and booleans (`true` and `false`).
+Like many scripting languages, Aument supports the usual core data types: integers (`3`), floats (`3.14`), strings (`"Hello World"`), booleans (`true` and `false`) and a none value (`nil`).
 
 For strings, standard escape sequences work (only `\n` is implemented however).
 
