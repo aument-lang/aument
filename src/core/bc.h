@@ -15,6 +15,8 @@
 #define AU_MAX_STATIC_IDX 256
 #define AU_MAX_FUNC_ID 65536
 
+#define AU_OP_MAX_PRINTABLE AU_OP_MUL_INT
+
 enum au_opcode {
     AU_OP_LOAD_SELF = 0,
     AU_OP_MOV_U16 = 1,
@@ -65,7 +67,7 @@ enum au_opcode {
     AU_OP_LOAD_FUNC = 46,
     AU_OP_BIND_ARG_TO_FUNC = 47,
     AU_OP_CALL_FUNC_VALUE = 48,
-    AU_OP_MAX_PRINTABLE = 49,
+    AU_OP_LOAD_NIL = 49,
     AU_OP_MUL_INT = 50,
     AU_OP_DIV_INT = 51,
     AU_OP_ADD_INT = 52,

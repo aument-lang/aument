@@ -506,7 +506,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case AU_OP_MOV_U16: {
             uint8_t reg = bc(pos);
             DEF_BC16(n, 1)
-            comp_printf(state, "MOVE_VALUE(r%d, au_value_int(%d));\n", reg,
+            comp_printf(state, "COPY_VALUE(r%d, au_value_int(%d));\n", reg,
                         n);
             break;
         }
@@ -524,8 +524,13 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
         case AU_OP_MOV_BOOL: {
             uint8_t n = bc(pos), reg = bc(pos + 1);
-            comp_printf(state, "MOVE_VALUE(r%d,au_value_bool(%d));\n", reg,
+            comp_printf(state, "COPY_VALUE(r%d,au_value_bool(%d));\n", reg,
                         n);
+            break;
+        }
+        case AU_OP_LOAD_NIL: {
+            uint8_t reg = bc(pos);
+            comp_printf(state, "COPY_VALUE(r%d,au_value_none());\n", reg);
             break;
         }
         case AU_OP_LOAD_CONST: {
@@ -595,7 +600,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             uint8_t reg = bc(pos);
             comp_printf(
                 state,
-                "MOVE_VALUE(r%d,au_value_bool(!au_value_is_truthy(r%d)));",
+                "COPY_VALUE(r%d,au_value_bool(!au_value_is_truthy(r%d)));",
                 reg, reg);
             break;
         }

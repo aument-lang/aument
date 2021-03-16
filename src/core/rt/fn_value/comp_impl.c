@@ -4,14 +4,15 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
-#include "../au_fn_value.h"
 #include "../au_array.h"
+#include "../au_fn_value.h"
 #include "../value.h"
 
 #include "core/vm/tl.h"
 #endif
 
-au_value_t au_fn_value_from_compiled(au_compiled_func_t fn_ptr, int32_t num_args) {
+au_value_t au_fn_value_from_compiled(au_compiled_func_t fn_ptr,
+                                     int32_t num_args) {
     struct au_fn_value *fn_value = au_obj_malloc(
         sizeof(struct au_fn_value), (au_obj_del_fn_t)au_fn_value_del);
     fn_value->rc = 1;
@@ -22,7 +23,8 @@ au_value_t au_fn_value_from_compiled(au_compiled_func_t fn_ptr, int32_t num_args
     return au_value_fn(fn_value);
 }
 
-au_value_t au_fn_value_from_native(au_extern_func_t fn_ptr, int32_t num_args) {
+au_value_t au_fn_value_from_native(au_extern_func_t fn_ptr,
+                                   int32_t num_args) {
     struct au_fn_value *fn_value = au_obj_malloc(
         sizeof(struct au_fn_value), (au_obj_del_fn_t)au_fn_value_del);
     fn_value->rc = 1;
@@ -45,9 +47,9 @@ au_value_t au_fn_value_call_rt(au_value_t fn_value_,
                                au_value_t *unbound_args,
                                int32_t num_unbound_args) {
     struct au_fn_value *fn_value = au_fn_value_coerce(fn_value_);
-    if(fn_value == 0)
+    if (fn_value == 0)
         return au_value_op_error();
-    
+
     const int32_t num_bound_args = fn_value->bound_args.len;
     const int32_t total_args = num_bound_args + num_unbound_args;
     if (total_args != fn_value->num_args) {
@@ -64,13 +66,13 @@ au_value_t au_fn_value_call_rt(au_value_t fn_value_,
         args[num_bound_args + i] = unbound_args[i];
         unbound_args[i] = au_value_none();
     }
-    
+
     au_value_t retval;
-    if(fn_value->is_native_fn)
+    if (fn_value->is_native_fn)
         retval = ((au_extern_func_t)fn_value->fn_ptr)(0, args);
     else
         retval = ((au_compiled_func_t)fn_value->fn_ptr)(args);
-    
+
     for (int32_t i = 0; i < total_args; i++) {
         au_value_deref(args[i]);
     }

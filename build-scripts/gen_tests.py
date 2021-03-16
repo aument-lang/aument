@@ -52,6 +52,8 @@ def gen_check_value(item, val_type, val_contents):
         return f"assert(au_value_get_type({item}) == AU_VALUE_DOUBLE && au_value_get_double({item}) == {val_contents});"
     elif val_type == 'bool':
         return f"assert(au_value_get_type({item}) == AU_VALUE_BOOL && au_value_get_bool({item}) == {'1' if val_contents == 'true' else '0'});"
+    elif val_type == 'nil':
+        return f"assert(au_value_get_type({item}) == AU_VALUE_NONE);"
     elif val_type == 'str':
         return f"char *s={val_contents};assert(au_value_get_type({item}) == AU_VALUE_STR && au_value_get_string({item})->len == strlen(s) && memcmp(au_value_get_string({item})->data, s, strlen(s)) == 0);\n"
     raise NotImplementedError(val_type)
