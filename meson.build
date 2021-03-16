@@ -282,6 +282,9 @@ elif compiler.has_link_argument('-Wl,--export-dynamic')
     au_runtime_c_args += ['-Wl,--export-dynamic']
 endif
 
+add_project_arguments('-DAU_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"', language : ['c'])
+add_project_arguments('-DAU_INCLUDEDIR="' + join_paths(get_option('prefix'), get_option('includedir')) + '"', language : ['c'])
+
 # Build types
 add_project_arguments('-DAU_IS_INTERPRETER', language : ['c'])
 
