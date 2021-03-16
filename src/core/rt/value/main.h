@@ -41,19 +41,19 @@ typedef union {
     uint64_t raw;
 } au_value_t;
 
-#define AU_REPR_FRACTION(x) ((x)&0xfffffffffffffUL)
+#define AU_REPR_FRACTION(x) ((x)&INT64_C(0xfffffffffffff))
 #define AU_REPR_EXPONENT(x) ((x) >> 52 & 0x7ff)
 #define AU_REPR_SPECIAL_EXPONENT 0x7ff
 #define AU_REPR_BOXED(TAG, POINTER)                                       \
-    (0x7ff0000000000000UL |                                               \
-     ((((uint64_t)TAG) << 48) | ((POINTER)&0xffffffffffffUL)))
-#define AU_REPR_GET_POINTER(x) ((x)&0x0000ffffffffffffUL)
+    (INT64_C(0x7ff0000000000000) |                                               \
+     ((((uint64_t)TAG) << 48) | ((POINTER)&INT64_C(0xffffffffffff))))
+#define AU_REPR_GET_POINTER(x) ((x)&INT64_C(0x0000ffffffffffff))
 
-#define AU_REPR_OP_ERROR (0x7ff0ffffffffffffUL)
-#define AU_REPR_CANONICAL_NAN (0x7ff0000000000001UL)
+#define AU_REPR_OP_ERROR INT64_C(0x7ff0ffffffffffff)
+#define AU_REPR_CANONICAL_NAN INT64_C(0x7ff0000000000001)
 
-#define AU_REPR_MAGIC_BITMASK (0x7fffffffffffffffUL)
-#define AU_REPR_MAGIC_THRESHOLD (0x7ff0000000000002UL)
+#define AU_REPR_MAGIC_BITMASK INT64_C(0x7fffffffffffffff)
+#define AU_REPR_MAGIC_THRESHOLD INT64_C(0x7ff0000000000002)
 
 static _AlwaysInline enum au_vtype au_value_get_type(const au_value_t v) {
     // OPTIMIZE: this function checks if the value is a not a regular
@@ -96,7 +96,7 @@ static _AlwaysInline au_value_t au_value_double(double n) {
                   (AU_REPR_FRACTION(v.raw) != 0))) {
         v.raw = AU_REPR_CANONICAL_NAN;
         if (n < 0) {
-            v.raw |= (1UL << 63UL);
+            v.raw |= (INT64_C(1) << INT64_C(63));
         }
     } else {
         v.d = n;
