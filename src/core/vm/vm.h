@@ -21,15 +21,12 @@ struct au_vm_frame {
     au_value_t regs[AU_REGS];
 #endif
     au_value_t *locals;
-    /// This pointer is mutable because we want to do bytecode optimization
-    /// on the fly. It should be thread safe if au_bc_storage isn't shared
-    /// across threads
-    uint8_t *bc;
+    const uint8_t *bc;
     const uint8_t *bc_start;
-    au_value_t retval;
     struct au_obj_class *self;
     struct au_value_array arg_stack;
     struct au_vm_frame_link link;
+    au_value_t retval;
 };
 
 /// [func] Executes unverified bytecode in a au_bc_storage
