@@ -1878,6 +1878,14 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             parser_emit_bc_u8(p, reg);
             parser_emit_pad8(p);
             return 1;
+        } else if (token_keyword_cmp(&t, "nil")) {
+            uint8_t reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &reg));
+            parser_emit_bc_u8(p, AU_OP_LOAD_NIL);
+            parser_emit_bc_u8(p, reg);
+            parser_emit_pad8(p);
+            parser_emit_pad8(p);
+            return 1;
         }
 
         struct au_token peek = au_lexer_peek(l, 0);

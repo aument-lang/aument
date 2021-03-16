@@ -304,7 +304,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_LOAD_FUNC),
             &&CASE(AU_OP_BIND_ARG_TO_FUNC),
             &&CASE(AU_OP_CALL_FUNC_VALUE),
-            &&CASE(AU_OP_MAX_PRINTABLE),
+            &&CASE(AU_OP_LOAD_NIL),
             &&CASE(AU_OP_MUL_INT),
             &&CASE(AU_OP_DIV_INT),
             &&CASE(AU_OP_ADD_INT),
@@ -389,6 +389,11 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const uint8_t n = frame.bc[1];
                 const uint8_t reg = frame.bc[2];
                 COPY_VALUE(frame.regs[reg], au_value_bool(n));
+                DISPATCH;
+            }
+            CASE(AU_OP_LOAD_NIL) : {
+                const uint8_t reg = frame.bc[1];
+                COPY_VALUE(frame.regs[reg], au_value_none());
                 DISPATCH;
             }
             CASE(AU_OP_LOAD_CONST) : {
@@ -1098,9 +1103,6 @@ _import_dispatch:;
                 const au_value_t reg = frame.regs[frame.bc[1]];
                 tl->print_fn(reg);
                 DISPATCH;
-            }
-            CASE(AU_OP_MAX_PRINTABLE) : {
-                // fallthrough
             }
             CASE(AU_OP_NOP) : { DISPATCH; }
 #undef COPY_VALUE

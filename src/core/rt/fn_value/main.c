@@ -4,8 +4,8 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
-#include "../au_fn_value.h"
 #include "../au_array.h"
+#include "../au_fn_value.h"
 #include "../value.h"
 
 #include "core/vm/tl.h"

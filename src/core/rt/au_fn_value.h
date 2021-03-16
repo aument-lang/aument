@@ -34,9 +34,11 @@ void au_fn_value_del(struct au_fn_value *fn_value);
 void au_fn_value_add_arg(struct au_fn_value *fn_value, au_value_t value);
 
 #ifdef AU_IS_STDLIB
-au_value_t au_fn_value_from_compiled(au_compiled_func_t fn_ptr, int32_t num_args);
+au_value_t au_fn_value_from_compiled(au_compiled_func_t fn_ptr,
+                                     int32_t num_args);
 
-au_value_t au_fn_value_from_native(au_extern_func_t fn_ptr, int32_t num_args);
+au_value_t au_fn_value_from_native(au_extern_func_t fn_ptr,
+                                   int32_t num_args);
 
 int au_fn_value_add_arg_rt(au_value_t func_value, au_value_t arg_value);
 

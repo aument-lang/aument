@@ -10,6 +10,10 @@
 
 void au_value_print(au_value_t value) {
     switch (au_value_get_type(value)) {
+    case AU_VALUE_NONE: {
+        printf("(none)");
+        break;
+    }
     case AU_VALUE_INT: {
         printf("%d", au_value_get_int(value));
         break;
