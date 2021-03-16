@@ -89,8 +89,8 @@ static void link_to_imported(const struct au_program_data *p_data,
         &p_data->imported_modules.data[relative_module_idx];
     AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
         assert(p_data->fns.data[entry->idx].type == AU_FN_IMPORTER);
-        const struct au_imported_func *import_func =
-            &p_data->fns.data[entry->idx].as.import_func;
+        const struct au_imported_func *imported_func =
+            &p_data->fns.data[entry->idx].as.imported_func;
         const struct au_hm_var_value *fn_idx =
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
         if (fn_idx == 0)
@@ -98,7 +98,7 @@ static void link_to_imported(const struct au_program_data *p_data,
         struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
         if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
             au_fatal("this function is not exported");
-        if (au_fn_num_args(fn) != import_func->num_args)
+        if (au_fn_num_args(fn) != imported_func->num_args)
             au_fatal("unexpected number of arguments");
         au_fn_fill_import_cache_unsafe(&p_data->fns.data[entry->idx], fn,
                                        loaded_module);

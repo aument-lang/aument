@@ -27,11 +27,11 @@ au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
                     const au_value_t *args, int *is_native) {
 self_call:
     switch (fn->type) {
-    case AU_FN_NATIVE: {
+    case AU_FN_LIB: {
         if (is_native) {
             *is_native = 1;
         }
-        return fn->as.native_func.func(tl, args);
+        return fn->as.lib_func.func(tl, args);
     }
     case AU_FN_BC: {
         if ((fn->flags & AU_FN_FLAG_HAS_CLASS) != 0) {
@@ -49,8 +49,8 @@ self_call:
     }
     case AU_FN_IMPORTER: {
         const struct au_fn *old_fn = fn;
-        fn = old_fn->as.import_func.fn_cached;
-        p_data = old_fn->as.import_func.p_data_cached;
+        fn = old_fn->as.imported_func.fn_cached;
+        p_data = old_fn->as.imported_func.p_data_cached;
         goto self_call;
     }
     case AU_FN_DISPATCH: {
