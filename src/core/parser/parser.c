@@ -1592,7 +1592,8 @@ static int parser_exec_index_expr(struct au_parser *p,
                 if (peek.type == AU_TOK_OPERATOR && peek.len == 1 &&
                     peek.src[0] == '(') {
                     au_lexer_next(l);
-                    parser_exec_call(p, l, module_tok, id_tok, 1);
+                    if (!parser_exec_call(p, l, module_tok, id_tok, 1))
+                        return 0;
                 } else {
                     size_t func_idx = 0;
                     int execute_self = 0;
@@ -1786,7 +1787,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
     } else {
         parser_replace_bc_u16(p, call_fn_offset, func_idx);
     }
-    return 0;
+    return 1;
 }
 
 static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
@@ -1912,7 +1913,8 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
         if (peek.type == AU_TOK_OPERATOR && peek.len == 1 &&
             peek.src[0] == '(') {
             au_lexer_next(l);
-            parser_exec_call(p, l, module_tok, t, 0);
+            if (!parser_exec_call(p, l, module_tok, t, 0))
+                return 0;
         } else {
             assert(module_tok.type == AU_TOK_EOF);
             const struct au_hm_var_value *val =

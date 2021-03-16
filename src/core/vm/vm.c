@@ -185,6 +185,10 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     tl->current_frame.data = p_data;
     tl->current_frame.frame = &frame;
 
+    // Since frame.retval is right next to frame.link, we should update it
+    // here too
+    frame.retval = au_value_none();
+
 #ifdef AU_STACK_GROWS_UP
     if (_Unlikely(((uintptr_t)&frame - tl->stack_start) > tl->stack_max)) {
         au_fatal("stack overflow");
@@ -215,12 +219,21 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         frame.locals[i] = args[i];
     }
 
-    frame.retval = au_value_none();
-    frame.bc = (uint8_t *)bcs->bc.data;
-    frame.bc_start = frame.bc;
+    frame.bc = 0;
+    frame.bc_start = bcs->bc.data;
 
     frame.arg_stack = (struct au_value_array){0};
     frame.self = 0;
+
+    /// This pointer is mutable because we want to do bytecode optimization
+    /// on the fly. It should be thread safe if au_bc_storage isn't shared
+    /// across threads
+    register uint8_t *bc = (uint8_t *)bcs->bc.data;
+
+#define FLUSH_BC()                                                        \
+    do {                                                                  \
+        frame.bc = bc;                                                    \
+    } while (0);
 
     while (1) {
 #ifdef DEBUG_VM
@@ -233,25 +246,25 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #define CASE(x) case x
 #define DISPATCH                                                          \
     DISPATCH_DEBUG;                                                       \
-    frame.bc += 4;                                                        \
+    bc += 4;                                                              \
     continue
 #define DISPATCH_JMP                                                      \
     DISPATCH_DEBUG;                                                       \
     continue
-        switch (frame.bc[0]) {
+        switch (bc[0]) {
 #else
 #define CASE(x) CB_##x
 #define DISPATCH                                                          \
     do {                                                                  \
         DISPATCH_DEBUG;                                                   \
-        frame.bc += 4;                                                    \
-        uint8_t op = frame.bc[0];                                         \
+        bc += 4;                                                          \
+        uint8_t op = bc[0];                                               \
         goto *cb[op];                                                     \
     } while (0)
 #define DISPATCH_JMP                                                      \
     do {                                                                  \
         DISPATCH_DEBUG;                                                   \
-        uint8_t op = frame.bc[0];                                         \
+        uint8_t op = bc[0];                                               \
         goto *cb[op];                                                     \
     } while (0)
         static void *cb[] = {
@@ -329,7 +342,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_LEQ_DOUBLE),
             &&CASE(AU_OP_GEQ_DOUBLE),
         };
-        goto *cb[frame.bc[0]];
+        goto *cb[bc[0]];
 #endif
 
 #ifdef AU_FEAT_DELAYED_RC
@@ -368,37 +381,37 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             // Register/local move operations
             CASE(AU_OP_MOV_U16) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t n = *(uint16_t *)(&frame.bc[2]);
+                const uint8_t reg = bc[1];
+                const uint16_t n = *(uint16_t *)(&bc[2]);
                 COPY_VALUE(frame.regs[reg], au_value_int(n));
                 DISPATCH;
             }
             CASE(AU_OP_MOV_REG_LOCAL) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t local = *(uint16_t *)(&frame.bc[2]);
+                const uint8_t reg = bc[1];
+                const uint16_t local = *(uint16_t *)(&bc[2]);
                 COPY_VALUE(frame.locals[local], frame.regs[reg]);
                 DISPATCH;
             }
             CASE(AU_OP_MOV_LOCAL_REG) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t local = *(uint16_t *)(&frame.bc[2]);
+                const uint8_t reg = bc[1];
+                const uint16_t local = *(uint16_t *)(&bc[2]);
                 COPY_VALUE(frame.regs[reg], frame.locals[local]);
                 DISPATCH;
             }
             CASE(AU_OP_MOV_BOOL) : {
-                const uint8_t n = frame.bc[1];
-                const uint8_t reg = frame.bc[2];
+                const uint8_t n = bc[1];
+                const uint8_t reg = bc[2];
                 COPY_VALUE(frame.regs[reg], au_value_bool(n));
                 DISPATCH;
             }
             CASE(AU_OP_LOAD_NIL) : {
-                const uint8_t reg = frame.bc[1];
+                const uint8_t reg = bc[1];
                 COPY_VALUE(frame.regs[reg], au_value_none());
                 DISPATCH;
             }
             CASE(AU_OP_LOAD_CONST) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t rel_c = *(uint16_t *)(&frame.bc[2]);
+                const uint8_t reg = bc[1];
+                const uint16_t rel_c = *(uint16_t *)(&bc[2]);
                 const size_t abs_c = rel_c + p_data->tl_constant_start;
                 au_value_t v;
                 if (au_value_get_type(tl->const_cache[abs_c]) !=
@@ -425,8 +438,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 DISPATCH;
             }
             CASE(AU_OP_SET_CONST) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t rel_c = *(uint16_t *)(&frame.bc[2]);
+                const uint8_t reg = bc[1];
+                const uint16_t rel_c = *(uint16_t *)(&bc[2]);
                 const size_t abs_c = rel_c + p_data->tl_constant_start;
                 if (au_value_get_type(tl->const_cache[abs_c]) ==
                     AU_VALUE_NONE)
@@ -435,7 +448,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             // Unary operations
             CASE(AU_OP_NOT) : {
-                const uint8_t reg = frame.bc[1];
+                const uint8_t reg = bc[1];
                 if (_Likely(au_value_get_type(frame.regs[reg]) ==
                             AU_VALUE_BOOL)) {
                     frame.regs[reg] =
@@ -451,7 +464,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #define SPECIALIZED_INT_ONLY(NAME)                                        \
     if ((au_value_get_type(lhs) == AU_VALUE_INT) &&                       \
         (au_value_get_type(rhs) == AU_VALUE_INT)) {                       \
-        frame.bc[0] = NAME##_INT;                                         \
+        bc[0] = NAME##_INT;                                               \
         goto _##NAME##_INT;                                               \
     }
 
@@ -459,7 +472,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     SPECIALIZED_INT_ONLY(NAME)                                            \
     else if ((au_value_get_type(lhs) == AU_VALUE_DOUBLE) &&               \
              (au_value_get_type(rhs) == AU_VALUE_DOUBLE)) {               \
-        frame.bc[0] = NAME##_DOUBLE;                                      \
+        bc[0] = NAME##_DOUBLE;                                            \
         goto _##NAME##_DOUBLE;                                            \
     }
 
@@ -467,12 +480,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #define BIN_OP(NAME, FUN, SPECIALIZER)                                    \
     CASE(NAME) : {                                                        \
         _##NAME:;                                                         \
-        const au_value_t lhs = frame.regs[frame.bc[1]];                   \
-        const au_value_t rhs = frame.regs[frame.bc[2]];                   \
-        const uint8_t res = frame.bc[3];                                  \
+        const au_value_t lhs = frame.regs[bc[1]];                         \
+        const au_value_t rhs = frame.regs[bc[2]];                         \
+        const uint8_t res = bc[3];                                        \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
         if (_Unlikely(au_value_is_op_error(result))) {                    \
+            FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         frame.regs[res] = result;                                         \
@@ -485,12 +499,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #define BIN_OP(NAME, FUN, SPECIALIZER)                                    \
     CASE(NAME) : {                                                        \
         _##NAME:;                                                         \
-        const au_value_t lhs = frame.regs[frame.bc[1]];                   \
-        const au_value_t rhs = frame.regs[frame.bc[2]];                   \
-        const uint8_t res = frame.bc[3];                                  \
+        const au_value_t lhs = frame.regs[bc[1]];                         \
+        const au_value_t rhs = frame.regs[bc[2]];                         \
+        const uint8_t res = bc[3];                                        \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
         if (_Unlikely(au_value_is_op_error(result))) {                    \
+            FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         MOVE_VALUE(frame.regs[res], result);                              \
@@ -520,12 +535,12 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #define BIN_OP(NAME, OP, TYPE)                                            \
     CASE(NAME##_INT) : {                                                  \
         _##NAME##_INT:;                                                   \
-        const au_value_t lhs = frame.regs[frame.bc[1]];                   \
-        const au_value_t rhs = frame.regs[frame.bc[2]];                   \
-        const uint8_t res = frame.bc[3];                                  \
+        const au_value_t lhs = frame.regs[bc[1]];                         \
+        const au_value_t rhs = frame.regs[bc[2]];                         \
+        const uint8_t res = bc[3];                                        \
         if (_Unlikely((au_value_get_type(lhs) != AU_VALUE_INT) ||         \
                       (au_value_get_type(rhs) != AU_VALUE_INT))) {        \
-            frame.bc[0] = NAME;                                           \
+            bc[0] = NAME;                                                 \
             goto _##NAME;                                                 \
         }                                                                 \
         const au_value_t result =                                         \
@@ -555,12 +570,12 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #define BIN_OP(NAME, OP, TYPE)                                            \
     CASE(NAME##_DOUBLE) : {                                               \
         _##NAME##_DOUBLE:;                                                \
-        const au_value_t lhs = frame.regs[frame.bc[1]];                   \
-        const au_value_t rhs = frame.regs[frame.bc[2]];                   \
-        const uint8_t res = frame.bc[3];                                  \
+        const au_value_t lhs = frame.regs[bc[1]];                         \
+        const au_value_t rhs = frame.regs[bc[2]];                         \
+        const uint8_t res = bc[3];                                        \
         if (_Unlikely((au_value_get_type(lhs) != AU_VALUE_DOUBLE) ||      \
                       (au_value_get_type(rhs) != AU_VALUE_DOUBLE))) {     \
-            frame.bc[0] = NAME;                                           \
+            bc[0] = NAME;                                                 \
             goto _##NAME;                                                 \
         }                                                                 \
         const au_value_t result =                                         \
@@ -583,14 +598,14 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             // Jump instructions
             CASE(AU_OP_JIF) : {
 _AU_OP_JIF:;
-                const au_value_t cmp = frame.regs[frame.bc[1]];
-                const uint16_t n = *(uint16_t *)(&frame.bc[2]);
+                const au_value_t cmp = frame.regs[bc[1]];
+                const uint16_t n = *(uint16_t *)(&bc[2]);
                 const size_t offset = ((size_t)n) * 4;
                 if (au_value_get_type(cmp) == AU_VALUE_BOOL) {
-                    frame.bc[0] = AU_OP_JIF_BOOL;
+                    bc[0] = AU_OP_JIF_BOOL;
                 }
                 if (au_value_is_truthy(cmp)) {
-                    frame.bc += offset;
+                    bc += offset;
                     DISPATCH_JMP;
                 } else {
                     DISPATCH;
@@ -598,57 +613,57 @@ _AU_OP_JIF:;
             }
             CASE(AU_OP_JNIF) : {
 _AU_OP_JNIF:;
-                const au_value_t cmp = frame.regs[frame.bc[1]];
-                const uint16_t n = *(uint16_t *)(&frame.bc[2]);
+                const au_value_t cmp = frame.regs[bc[1]];
+                const uint16_t n = *(uint16_t *)(&bc[2]);
                 const size_t offset = ((size_t)n) * 4;
                 if (au_value_get_type(cmp) == AU_VALUE_BOOL) {
-                    frame.bc[0] = AU_OP_JNIF_BOOL;
+                    bc[0] = AU_OP_JNIF_BOOL;
                 }
                 if (!au_value_is_truthy(cmp)) {
-                    frame.bc += offset;
+                    bc += offset;
                     DISPATCH_JMP;
                 } else {
                     DISPATCH;
                 }
             }
             CASE(AU_OP_JREL) : {
-                const uint16_t *ptr = (uint16_t *)(&frame.bc[2]);
+                const uint16_t *ptr = (uint16_t *)(&bc[2]);
                 const size_t offset = ((size_t)ptr[0]) * 4;
-                frame.bc += offset;
+                bc += offset;
                 DISPATCH_JMP;
             }
             CASE(AU_OP_JRELB) : {
-                const uint16_t n = *(uint16_t *)(&frame.bc[2]);
+                const uint16_t n = *(uint16_t *)(&bc[2]);
                 const size_t offset = ((size_t)n) * 4;
-                frame.bc -= offset;
+                bc -= offset;
                 DISPATCH_JMP;
             }
             // Jump instructions optimized on bools
             CASE(AU_OP_JIF_BOOL) : {
-                const au_value_t cmp = frame.regs[frame.bc[1]];
-                const uint16_t n = *(uint16_t *)(&frame.bc[2]);
+                const au_value_t cmp = frame.regs[bc[1]];
+                const uint16_t n = *(uint16_t *)(&bc[2]);
                 const size_t offset = ((size_t)n) * 4;
                 if (_Unlikely(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
-                    frame.bc[0] = AU_OP_JIF;
+                    bc[0] = AU_OP_JIF;
                     goto _AU_OP_JIF;
                 }
                 if (au_value_get_bool(cmp)) {
-                    frame.bc += offset;
+                    bc += offset;
                     DISPATCH_JMP;
                 } else {
                     DISPATCH;
                 }
             }
             CASE(AU_OP_JNIF_BOOL) : {
-                const au_value_t cmp = frame.regs[frame.bc[1]];
-                const uint16_t n = *(uint16_t *)(&frame.bc[2]);
+                const au_value_t cmp = frame.regs[bc[1]];
+                const uint16_t n = *(uint16_t *)(&bc[2]);
                 const size_t offset = ((size_t)n) * 4;
                 if (_Unlikely(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
-                    frame.bc[0] = AU_OP_JNIF;
+                    bc[0] = AU_OP_JNIF;
                     goto _AU_OP_JNIF;
                 }
                 if (!au_value_get_bool(cmp)) {
-                    frame.bc += offset;
+                    bc += offset;
                     DISPATCH_JMP;
                 } else {
                     DISPATCH;
@@ -658,12 +673,13 @@ _AU_OP_JNIF:;
 #ifdef AU_FEAT_DELAYED_RC
 #define BIN_AU_OP_ASG(NAME, FUN)                                          \
     CASE(NAME) : {                                                        \
-        const uint8_t reg = frame.bc[1];                                  \
-        const uint8_t local = frame.bc[2];                                \
+        const uint8_t reg = bc[1];                                        \
+        const uint8_t local = bc[2];                                      \
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
         if (_Unlikely(au_value_is_op_error(result))) {                    \
+            FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         frame.locals[local] = result;                                     \
@@ -675,12 +691,13 @@ _AU_OP_JNIF:;
 #else
 #define BIN_AU_OP_ASG(NAME, FUN)                                          \
     CASE(NAME) : {                                                        \
-        const uint8_t reg = frame.bc[1];                                  \
-        const uint8_t local = frame.bc[2];                                \
+        const uint8_t reg = bc[1];                                        \
+        const uint8_t local = bc[2];                                      \
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
         if (_Unlikely(au_value_is_op_error(result))) {                    \
+            FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         MOVE_VALUE(frame.locals[local], result);                          \
@@ -695,14 +712,14 @@ _AU_OP_JNIF:;
 #undef BIN_AU_OP_ASG
             // Call instructions
             CASE(AU_OP_PUSH_ARG) : {
-                const uint8_t reg = frame.bc[1];
+                const uint8_t reg = bc[1];
                 au_value_array_add(&frame.arg_stack, frame.regs[reg]);
                 au_value_ref(frame.regs[reg]);
                 DISPATCH;
             }
             CASE(AU_OP_CALL) : {
-                const uint8_t ret_reg = frame.bc[1];
-                const uint16_t func_id = *((uint16_t *)(&frame.bc[2]));
+                const uint8_t ret_reg = bc[1];
+                const uint16_t func_id = *((uint16_t *)(&bc[2]));
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
                 int n_regs = au_fn_num_args(call_fn);
                 const au_value_t *args =
@@ -710,8 +727,10 @@ _AU_OP_JNIF:;
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, args, &is_native);
-                if (_Unlikely(au_value_is_op_error(callee_retval)))
+                if (_Unlikely(au_value_is_op_error(callee_retval))) {
+                    FLUSH_BC();
                     call_error(p_data, &frame);
+                }
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[ret_reg] = callee_retval;
                 // INVARIANT(GC): native functions always return
@@ -732,8 +751,8 @@ _AU_OP_JNIF:;
                 DISPATCH;
             }
             CASE(AU_OP_CALL1) : {
-                const uint8_t ret_reg = frame.bc[1];
-                const uint16_t func_id = *((uint16_t *)(&frame.bc[2]));
+                const uint8_t ret_reg = bc[1];
+                const uint16_t func_id = *((uint16_t *)(&bc[2]));
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
 
                 au_value_t arg_reg = frame.regs[ret_reg];
@@ -742,8 +761,10 @@ _AU_OP_JNIF:;
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, &arg_reg, &is_native);
-                if (_Unlikely(au_value_is_op_error(callee_retval)))
+                if (_Unlikely(au_value_is_op_error(callee_retval))) {
+                    FLUSH_BC();
                     call_error(p_data, &frame);
+                }
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[ret_reg] = callee_retval;
@@ -760,8 +781,8 @@ _AU_OP_JNIF:;
             }
             // Function values
             CASE(AU_OP_LOAD_FUNC): {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t func_id = *((uint16_t *)(&frame.bc[2]));
+                const uint8_t reg = bc[1];
+                const uint16_t func_id = *((uint16_t *)(&bc[2]));
                 const struct au_fn *fn = &p_data->fns.data[func_id];
                 struct au_fn_value *fn_value = au_fn_value_new(fn, p_data);
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -777,8 +798,8 @@ _AU_OP_JNIF:;
                 DISPATCH;
             }
             CASE(AU_OP_BIND_ARG_TO_FUNC) : {
-                const uint8_t func_reg = frame.bc[1];
-                const uint8_t arg_reg = frame.bc[2];
+                const uint8_t func_reg = bc[1];
+                const uint8_t arg_reg = bc[2];
                 struct au_fn_value *fn_value =
                     au_fn_value_coerce(frame.regs[func_reg]);
                 if (_Likely(fn_value != 0)) {
@@ -789,9 +810,9 @@ _AU_OP_JNIF:;
                 DISPATCH;
             }
             CASE(AU_OP_CALL_FUNC_VALUE) : {
-                const uint8_t func_reg = frame.bc[1];
-                const uint8_t num_args = frame.bc[2];
-                const uint8_t ret_reg = frame.bc[3];
+                const uint8_t func_reg = bc[1];
+                const uint8_t num_args = bc[2];
+                const uint8_t ret_reg = bc[3];
                 struct au_fn_value *fn_value =
                     au_fn_value_coerce(frame.regs[func_reg]);
                 if (_Likely(fn_value != 0)) {
@@ -801,8 +822,11 @@ _AU_OP_JNIF:;
                     int is_native = 0;
                     const au_value_t callee_retval = au_fn_value_call(
                         fn_value, tl, p_data, args, num_args, &is_native);
-                    if (_Unlikely(au_value_is_op_error(callee_retval)))
+                    if (_Unlikely(au_value_is_op_error(callee_retval))) {
+                        FLUSH_BC();
                         call_error(p_data, &frame);
+                    }
+
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                     frame.regs[ret_reg] = callee_retval;
                     // INVARIANT(GC): native functions always return
@@ -827,15 +851,15 @@ _AU_OP_JNIF:;
             }
             // Return instructions
             CASE(AU_OP_RET_LOCAL) : {
-                const uint8_t ret_local = frame.bc[2];
+                const uint16_t local = *((uint16_t *)(&bc[2]));
                 // Move ownership of value in ret_local -> return reg in
                 // prev. frame
-                frame.retval = frame.locals[ret_local];
-                frame.locals[ret_local] = au_value_none();
+                frame.retval = frame.locals[local];
+                frame.locals[local] = au_value_none();
                 goto end;
             }
             CASE(AU_OP_RET) : {
-                const uint8_t ret_reg = frame.bc[1];
+                const uint8_t ret_reg = bc[1];
                 // Move ownership of value in ret_reg -> return reg in
                 // prev. frame
                 frame.retval = frame.regs[ret_reg];
@@ -845,8 +869,8 @@ _AU_OP_JNIF:;
             CASE(AU_OP_RET_NULL) : { goto end; }
             // Array instructions
             CASE(AU_OP_ARRAY_NEW) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t capacity = *((uint16_t *)(&frame.bc[2]));
+                const uint8_t reg = bc[1];
+                const uint16_t capacity = *((uint16_t *)(&bc[2]));
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 struct au_struct *s =
                     (struct au_struct *)au_obj_array_new(capacity);
@@ -864,8 +888,8 @@ _AU_OP_JNIF:;
                 DISPATCH;
             }
             CASE(AU_OP_ARRAY_PUSH) : {
-                const au_value_t array_val = frame.regs[frame.bc[1]];
-                const au_value_t value_val = frame.regs[frame.bc[2]];
+                const au_value_t array_val = frame.regs[bc[1]];
+                const au_value_t value_val = frame.regs[bc[2]];
                 struct au_obj_array *obj_array =
                     au_obj_array_coerce(array_val);
                 if (_Likely(obj_array != 0)) {
@@ -874,44 +898,48 @@ _AU_OP_JNIF:;
                 DISPATCH;
             }
             CASE(AU_OP_IDX_GET) : {
-                const au_value_t col_val = frame.regs[frame.bc[1]];
-                const au_value_t idx_val = frame.regs[frame.bc[2]];
-                const uint8_t ret_reg = frame.bc[3];
+                const au_value_t col_val = frame.regs[bc[1]];
+                const au_value_t idx_val = frame.regs[bc[2]];
+                const uint8_t ret_reg = bc[3];
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
                     au_value_t value;
                     if (!collection->vdata->idx_get_fn(collection, idx_val,
                                                        &value)) {
+                        FLUSH_BC();
                         invalid_index_error(col_val, idx_val, p_data,
                                             &frame);
                     }
                     COPY_VALUE(frame.regs[ret_reg], value);
                 } else {
+                    FLUSH_BC();
                     indexing_non_collection_error(col_val, p_data, &frame);
                 }
                 DISPATCH;
             }
             CASE(AU_OP_IDX_SET) : {
-                const au_value_t col_val = frame.regs[frame.bc[1]];
-                const au_value_t idx_val = frame.regs[frame.bc[2]];
-                const au_value_t value_val = frame.regs[frame.bc[3]];
+                const au_value_t col_val = frame.regs[bc[1]];
+                const au_value_t idx_val = frame.regs[bc[2]];
+                const au_value_t value_val = frame.regs[bc[3]];
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
                     if (_Unlikely(collection->vdata->idx_set_fn(
                                       collection, idx_val, value_val) ==
                                   0)) {
+                        FLUSH_BC();
                         invalid_index_error(col_val, idx_val, p_data,
                                             &frame);
                     }
                 } else {
+                    FLUSH_BC();
                     indexing_non_collection_error(col_val, p_data, &frame);
                 }
                 DISPATCH;
             }
             // Tuple instructions
             CASE(AU_OP_TUPLE_NEW) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t length = *((uint16_t *)(&frame.bc[2]));
+                const uint8_t reg = bc[1];
+                const uint16_t length = *((uint16_t *)(&bc[2]));
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 struct au_struct *s =
                     (struct au_struct *)au_obj_tuple_new(length);
@@ -929,26 +957,28 @@ _AU_OP_JNIF:;
                 DISPATCH;
             }
             CASE(AU_OP_IDX_SET_STATIC) : {
-                const au_value_t col_val = frame.regs[frame.bc[1]];
-                const au_value_t idx_val = au_value_int(frame.bc[2]);
-                const au_value_t value_val = frame.regs[frame.bc[3]];
+                const au_value_t col_val = frame.regs[bc[1]];
+                const au_value_t idx_val = au_value_int(bc[2]);
+                const au_value_t value_val = frame.regs[bc[3]];
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
                     if (_Unlikely(collection->vdata->idx_set_fn(
                                       collection, idx_val, value_val) ==
                                   0)) {
+                        FLUSH_BC();
                         invalid_index_error(col_val, idx_val, p_data,
                                             &frame);
                     }
                 } else {
+                    FLUSH_BC();
                     indexing_non_collection_error(col_val, p_data, &frame);
                 }
                 DISPATCH;
             }
             // Class instructions
             CASE(AU_OP_CLASS_NEW) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t class_id = *(uint16_t *)(&frame.bc[2]);
+                const uint8_t reg = bc[1];
+                const uint16_t class_id = *(uint16_t *)(&bc[2]);
                 struct au_struct *obj_class =
                     (struct au_struct *)au_obj_class_new(
                         p_data->classes.data[class_id]);
@@ -963,20 +993,20 @@ _AU_OP_JNIF:;
                 DISPATCH;
             }
             CASE(AU_OP_CLASS_GET_INNER) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t inner = *(uint16_t *)(&frame.bc[2]);
+                const uint8_t reg = bc[1];
+                const uint16_t inner = *(uint16_t *)(&bc[2]);
                 COPY_VALUE(frame.regs[reg], frame.self->data[inner]);
                 DISPATCH;
             }
             CASE(AU_OP_CLASS_SET_INNER) : {
-                const uint8_t reg = frame.bc[1];
-                const uint16_t inner = *(uint16_t *)(&frame.bc[2]);
+                const uint8_t reg = bc[1];
+                const uint16_t inner = *(uint16_t *)(&bc[2]);
                 COPY_VALUE(frame.self->data[inner], frame.regs[reg]);
                 DISPATCH;
             }
             // Module instructions
             CASE(AU_OP_IMPORT) : {
-                const uint16_t idx = *((uint16_t *)(&frame.bc[2]));
+                const uint16_t idx = *((uint16_t *)(&bc[2]));
                 const size_t relative_module_idx =
                     p_data->imports.data[idx].module_idx;
                 const char *relpath = p_data->imports.data[idx].path;
@@ -1100,7 +1130,7 @@ _import_dispatch:;
             }
             // Other
             CASE(AU_OP_PRINT) : {
-                const au_value_t reg = frame.regs[frame.bc[1]];
+                const au_value_t reg = frame.regs[bc[1]];
                 tl->print_fn(reg);
                 DISPATCH;
             }
@@ -1112,7 +1142,7 @@ _import_dispatch:;
     }
 end:
 #ifdef AU_USE_ALLOCA
-    if (_Likely(alloca_values)) {
+    if (_Likely(alloca_values != 0)) {
 #ifndef AU_FEAT_DELAYED_RC
         for (int i = 0; i < bcs->num_values; i++) {
             au_value_deref(alloca_values[i]);
@@ -1144,14 +1174,15 @@ end:
     au_data_free(frame.locals);
 #endif
 
-    au_data_free(frame.arg_stack.data);
-
 #ifdef AU_FEAT_DELAYED_RC
     // INVARIANT(GC): we don't hold a ref to self
 #else
-    if (frame.self)
+    if (frame.self != 0)
         frame.self->header.rc--;
 #endif
+
+    if (frame.arg_stack.data != 0)
+        au_data_free(frame.arg_stack.data);
 
     tl->current_frame = frame.link;
     return frame.retval;
