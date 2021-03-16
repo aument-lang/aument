@@ -65,9 +65,8 @@ void au_install_stdlib(struct au_program_data *data) {
 
         for (int i = 0; i < mod_funcs_len; i++) {
             struct au_lib_func lib_func = mod_funcs[i];
-            struct au_fn fn = (struct au_fn){.flags = 0,
-                                             .type = AU_FN_LIB,
-                                             .as.lib_func = lib_func};
+            struct au_fn fn = (struct au_fn){
+                .flags = 0, .type = AU_FN_LIB, .as.lib_func = lib_func};
             const size_t fn_len = data->fns.len;
             au_fn_array_add(&data->fns, fn);
             au_hm_vars_add(&data->fn_map, lib_func.name,

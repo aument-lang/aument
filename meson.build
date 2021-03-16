@@ -174,6 +174,7 @@ if has_compile_feature
         'src/core/rt/struct/vdata.h',
         'src/core/rt/struct/coerce.h',
         'src/core/rt/struct/helper.h',
+        'src/core/rt/fn_value/ref.h',
         'src/core/rt/value/ref.h',
         'src/core/rt/au_array.h',
         'src/core/rt/au_tuple.h',
@@ -200,7 +201,6 @@ if has_compile_feature
     rt_code_depends = files(
         'src/core/rt/struct/helper.c',
         'src/core/rt/value/print.c',
-        'src/core/rt/fn_value/main.c',
     )
     rt_code_src = custom_target(
         'comp_code.c',

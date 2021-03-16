@@ -12,6 +12,24 @@
 #include "core/vm/tl.h"
 #endif
 
+struct au_fn_value {
+    uint32_t rc;
+    struct au_value_array bound_args;
+    const struct au_fn *fn;
+    const struct au_program_data *p_data;
+};
+
+void au_fn_value_del(struct au_fn_value *fn_value) {
+    for (size_t i = 0; i < fn_value->bound_args.len; i++)
+        au_value_deref(fn_value->bound_args.data[i]);
+    au_data_free(fn_value->bound_args.data);
+}
+
+void au_fn_value_add_arg(struct au_fn_value *fn_value, au_value_t value) {
+    au_value_ref(value);
+    au_value_array_add(&fn_value->bound_args, value);
+}
+
 struct au_fn_value *au_fn_value_new(const struct au_fn *fn,
                                     const struct au_program_data *p_data) {
     struct au_fn_value *fn_value = au_obj_malloc(
@@ -51,4 +69,17 @@ au_value_t au_fn_value_call(const struct au_fn_value *fn_value,
     }
     au_data_free(args);
     return retval;
+}
+
+void au_fn_value_ref(struct au_fn_value *header) { header->rc++; }
+
+void au_fn_value_deref(struct au_fn_value *header) {
+    if (header->rc != 0) {
+        header->rc--;
+    }
+#ifndef AU_FEAT_DELAYED_RC
+    if (header->rc == 0) {
+        au_obj_free(header);
+    }
+#endif
 }

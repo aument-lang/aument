@@ -9,16 +9,22 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "../au_string.h"
-#include "../struct/vdata.h"
-#include "main.h"
+#include "core/rt/au_string.h"
+#include "core/rt/fn_value/ref.h"
+#include "core/rt/struct/vdata.h"
 #include "platform/platform.h"
+
+#include "main.h"
 #endif
 
 static _AlwaysInline void au_value_ref(const au_value_t v) {
     switch (au_value_get_type(v)) {
     case AU_VALUE_STR: {
         au_string_ref(au_value_get_string(v));
+        break;
+    }
+    case AU_VALUE_FN: {
+        au_fn_value_ref(au_value_get_fn(v));
         break;
     }
     case AU_VALUE_STRUCT: {
@@ -34,6 +40,10 @@ static _AlwaysInline void au_value_deref(const au_value_t v) {
     switch (au_value_get_type(v)) {
     case AU_VALUE_STR: {
         au_string_deref(au_value_get_string(v));
+        break;
+    }
+    case AU_VALUE_FN: {
+        au_fn_value_deref(au_value_get_fn(v));
         break;
     }
     case AU_VALUE_STRUCT: {
