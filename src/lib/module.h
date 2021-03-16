@@ -5,10 +5,10 @@
 // See LICENSE.txt for license information
 #pragma once
 
+#include "core/fn/main.h"
 #include "core/program.h"
 #include "core/rt/extern_fn.h"
 #include "core/rt/malloc.h"
-#include "core/fn/main.h"
 
 #include "platform/platform.h"
 
