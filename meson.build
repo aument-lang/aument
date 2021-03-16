@@ -64,13 +64,22 @@ endif
 code = '''#include<float.h>
 #include<stdint.h>
 #include<stdlib.h>
+#include<stdio.h>
+int supports_ieee754() {
+#ifdef __STDC_IEC_559__
+    return 1;
+#else
+#if __GCC_IEC_559 > 0
+	return 1;
+#else
+	return 0;
+#endif
+#endif
+}
 int main(int argc, char **argv) {
   printf("%d",
-#ifdef __STDC_IEC_559__
-    1
-#else
-    0
-#endif
+    supports_ieee754()
+    && sizeof(double) == sizeof(uint64_t)
     && sizeof(uintptr_t) == sizeof(uint64_t)
     && ((uintptr_t)malloc(128)) < 0xffffffffffff
   );
