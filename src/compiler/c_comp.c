@@ -1228,6 +1228,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
                     (int)module_idx, (int)i);
         comp_printf(state, INDENT
                     "struct au_struct*s=au_struct_coerce(args[0]);\n");
+        comp_printf(state, INDENT "if(s==0) goto fallback;\n");
         for (size_t i = 0; i < dispatch_fn->data.len; i++) {
             const struct au_dispatch_func_instance *data =
                 &dispatch_fn->data.data[i];
@@ -1237,7 +1238,8 @@ void au_c_comp_module(struct au_c_comp_state *state,
             comp_printf(state, "return _M%d_f%d(args);\n", (int)module_idx,
                         (int)data->function_idx);
         }
-        if(dispatch_fn->fallback_fn == AU_DISPATCH_FUNC_NO_FALLBACK) {
+        comp_printf(state, INDENT "fallback:\n");
+        if (dispatch_fn->fallback_fn == AU_DISPATCH_FUNC_NO_FALLBACK) {
             comp_printf(state, INDENT "abort();\n");
         } else {
             comp_printf(state, "return _M%d_f%d(args);\n", (int)module_idx,
