@@ -360,6 +360,7 @@ aument_header_files = [
 
 # Libraries
 'src/lib/module.h',
+'src/lib/string_builder.h',
     ]
 aument_header = custom_target(
     'aument.h',
