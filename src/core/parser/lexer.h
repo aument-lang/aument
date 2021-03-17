@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "platform/platform.h"
+
 #define AU_TOK_EOF 0
 #define AU_TOK_INT 1
 #define AU_TOK_DOUBLE 2
@@ -53,19 +55,20 @@ struct au_lexer {
     struct au_token_lookahead lh[LOOKAHEAD_MAX];
 };
 
-/// Initializes a lexer instance
+/// [func] Initializes a lexer instance
 /// @param l instance to be initialized
 /// @param src pointer to source code to be lexed
 /// @param len byte-size length of the source code
-void au_lexer_init(struct au_lexer *l, const char *src, size_t len);
+_Public void au_lexer_init(struct au_lexer *l, const char *src,
+                           size_t len);
 
-/// Deinitializes a lexer instance
+/// [func] Deinitializes a lexer instance
 /// @param l instance to be deinitialized
-void au_lexer_del(struct au_lexer *l);
+_Public void au_lexer_del(struct au_lexer *l);
 
-/// Gets the next token in the lexer stream
-struct au_token au_lexer_next(struct au_lexer *l);
+/// [func] Gets the next token in the lexer stream
+_Public struct au_token au_lexer_next(struct au_lexer *l);
 
-/// Look ahead the next token in the lexer stream without
-///     consuming it
-struct au_token au_lexer_peek(struct au_lexer *l, int lh_pos);
+/// [func] Look ahead the next token in the lexer stream without
+/// consuming it
+_Public struct au_token au_lexer_peek(struct au_lexer *l, int lh_pos);

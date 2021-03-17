@@ -7,7 +7,10 @@
 #pragma once
 #include "../value/main.h"
 #include "main.h"
+#include "platform/platform.h"
 #endif
 
-au_value_t au_struct_idx_get(au_value_t value, au_value_t idx);
-void au_struct_idx_set(au_value_t value, au_value_t idx, au_value_t item);
+_Public au_value_t au_struct_idx_get(au_value_t value, au_value_t idx);
+
+_Public void au_struct_idx_set(au_value_t value, au_value_t idx,
+                               au_value_t item);

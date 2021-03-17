@@ -184,6 +184,7 @@ if has_compile_feature
         'src/core/rt/extern_fn.h',
         'src/core/rt/au_fn_value.h',
         'src/core/vm/frame_link.h',
+        'src/platform/mmap.h',
         'src/core/vm/module.h',
     )
     stdlib_begin_hdr = files('src/core/rt/includes/stdlib_begin.h')
@@ -389,9 +390,9 @@ if is_testing
         include_directories: incs,
         c_args: ['-DAU_TEST_EXE'],
         dependencies: au_depends,
-        export_dynamic: au_supports_dll_import)
+        export_dynamic: au_supports_dll_import,
+        implib: au_supports_dll_import)
 
-    if false
     e = executable('aument-tests-feature',
             sources + [join_paths(meson.build_root(), 'tests.c')],
             include_directories: incs,
@@ -437,15 +438,13 @@ if is_testing
             ],
             depends: [aument_exe, au_runtime])
 
-    test('error output', prog_python,
-        args: files('./build-scripts/check_output.py') + [
-            '--check', 'errors',
-            '--binary', join_paths(meson.build_root(), 'aument'),
-            '--path', join_paths(meson.source_root(), 'tests/errors'),
-        ],
-        depends: [aument_exe])
-
-    endif
+        test('error output', prog_python,
+            args: files('./build-scripts/check_output.py') + [
+                '--check', 'errors',
+                '--binary', join_paths(meson.build_root(), 'aument'),
+                '--path', join_paths(meson.source_root(), 'tests/errors'),
+            ],
+            depends: [aument_exe])
     endif
 
     if au_supports_dll_import
@@ -455,20 +454,29 @@ if is_testing
     ]
         import_lib_test = shared_module(import_lib_info[0],
             files(import_lib_info[1] + '/lib.c'),
-            include_directories: incs)
+            include_directories: incs,
+            link_with: aument_exe)
+
+        if target_machine.system() == 'windows'
+            test_file = join_paths(meson.source_root(), import_lib_info[1], 'win.out')
+        else
+            test_file = join_paths(meson.source_root(), import_lib_info[1], 'unix.out')
+        endif
+
         test(import_lib_info[0], prog_python,
             args: files('./build-scripts/check_output.py') + [
                 '--check', 'output',
                 '--binary', join_paths(meson.build_root(), 'aument'),
-                '--path', join_paths(meson.source_root(), import_lib_info[1]),
+                '--file', test_file,
             ],
             depends: [aument_exe, import_lib_test])
+
         test(import_lib_info[0] + ' (compiled)',
             prog_python,
             args: files('./build-scripts/check_output.py') + [
                 '--check', 'comp_to_path',
                 '--binary', join_paths(meson.build_root(), 'aument'),
-                '--file', join_paths(meson.source_root(), import_lib_info[1], 'unix.out'),
+                '--file', test_file,
                 '--param', join_paths(meson.build_root(), import_lib_info[0] + '_bin'),
             ],
             depends: [aument_exe, import_lib_test])
@@ -495,5 +503,6 @@ else
         link_args: link_args,
         install: true,
         dependencies: au_depends,
-        export_dynamic: au_supports_dll_import)
+        export_dynamic: au_supports_dll_import,
+        implib: au_supports_dll_import)
 endif

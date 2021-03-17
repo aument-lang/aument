@@ -40,7 +40,7 @@ static _AlwaysInline void au_value_ref(const au_value_t v) {
         return;
     }
     if (obj_rc != 0) {
-        if(_Unlikely(obj_rc->rc == SIZE_MAX))
+        if (_Unlikely(obj_rc->rc == SIZE_MAX))
             abort();
         obj_rc++;
     }

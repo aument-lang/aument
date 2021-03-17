@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include "hash.h"
+#include "platform/platform.h"
 
 #define AU_HM_VAR_VALUE_NONE ((uint32_t)-1)
 #define AU_HM_VAR_VALUE(x) ((struct au_hm_var_value){.idx = x})
@@ -39,11 +40,11 @@ struct au_hm_vars {
 
 /// Initializes an au_hm_vars instance
 /// @param vars instance to be initialized
-void au_hm_vars_init(struct au_hm_vars *vars);
+_Public void au_hm_vars_init(struct au_hm_vars *vars);
 
 /// Deinitializes an au_hm_vars instance
 /// @param vars instance to be destroyed
-void au_hm_vars_del(struct au_hm_vars *vars);
+_Public void au_hm_vars_del(struct au_hm_vars *vars);
 
 /// Adds a key-value pair into an au_hm_vars instance
 /// @param vars the au_hm_vars instance
@@ -51,9 +52,9 @@ void au_hm_vars_del(struct au_hm_vars *vars);
 /// @param len the bytesize length of the key
 /// @param value the value to be added
 /// @return the old value (if it exists), otherwise `NULL`
-struct au_hm_var_value *au_hm_vars_add(struct au_hm_vars *vars,
-                                       const char *key, size_t len,
-                                       const struct au_hm_var_value value);
+_Public struct au_hm_var_value *
+au_hm_vars_add(struct au_hm_vars *vars, const char *key, size_t len,
+               const struct au_hm_var_value value);
 
 /// Retrieves a value from an au_hm_vars instance
 /// @param vars the au_hm_vars instance

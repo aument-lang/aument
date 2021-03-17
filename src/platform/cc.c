@@ -95,11 +95,15 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
             cc->_stdlib_cache[stdlib_cache_len] = 0;
         }
         if (cc->loads_dl) {
+#ifdef _WIN32
+            au_str_array_add(&args, cc->_stdlib_cache);
+#else
             au_str_array_add(&args, "-rdynamic");
             au_str_array_add(&args, "-Wl,--whole-archive");
             au_str_array_add(&args, cc->_stdlib_cache);
             au_str_array_add(&args, "-Wl,--no-whole-archive");
             au_str_array_add(&args, "-Wl,-rpath,$ORIGIN");
+#endif
         } else {
             au_str_array_add(&args, cc->_stdlib_cache);
         }

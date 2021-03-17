@@ -60,7 +60,7 @@ static void io_vdata_init() {
 #define MAX_SMALL_PATH 256
 
 AU_EXTERN_FUNC_DECL(au_std_io_stdout) {
-    struct au_std_io *io = 
+    struct au_std_io *io =
         au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
     io_vdata_init();
     io->header = (struct au_struct){
@@ -73,7 +73,7 @@ AU_EXTERN_FUNC_DECL(au_std_io_stdout) {
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_stdin) {
-    struct au_std_io *io = 
+    struct au_std_io *io =
         au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
     io_vdata_init();
     io->header = (struct au_struct){
@@ -86,7 +86,7 @@ AU_EXTERN_FUNC_DECL(au_std_io_stdin) {
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_stderr) {
-    struct au_std_io *io = 
+    struct au_std_io *io =
         au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
     io_vdata_init();
     io->header = (struct au_struct){

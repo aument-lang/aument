@@ -5,6 +5,7 @@
 // See LICENSE.txt for license information
 #pragma once
 #include "core/rt/value.h"
+#include "platform/platform.h"
 
 struct au_vm_thread_local;
 struct au_bc_storage;
@@ -44,6 +45,6 @@ struct au_interpreter_result {
 /// @param bcs the bytecode storage
 /// @param p_data program data
 /// @param frame the frame at which the error occurred
-void au_vm_error(struct au_interpreter_result res,
-                 const struct au_program_data *p_data,
-                 struct au_vm_frame *frame);
+_Public void au_vm_error(struct au_interpreter_result res,
+                         const struct au_program_data *p_data,
+                         struct au_vm_frame *frame);

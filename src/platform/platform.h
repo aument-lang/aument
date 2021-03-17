@@ -37,3 +37,16 @@
 #ifndef _Thread_local
 #define _Thread_local
 #endif
+
+#if defined(_WIN32)
+#ifdef _AUMENT_H
+#define _Public __declspec(dllimport)
+#define _Private
+#else
+#define _Public __declspec(dllexport)
+#define _Private
+#endif
+#else
+#define _Public __attribute__((visibility("default")))
+#define _Private __attribute__((visibility("hidden")))
+#endif

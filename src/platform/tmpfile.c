@@ -52,12 +52,13 @@ static int new_tmpfile(_Unused struct au_tmpfile *tmp,
 
     srand(time(0));
     int tries = 0;
+    const size_t ext_len = strlen(ext);
     while (tries < 128) {
         for (int i = 0; i < TMPFILE_RAND_CHARS; i++) {
             name[len + i] = rand_chars[rand() % sizeof(rand_chars)];
         }
         len += TMPFILE_RAND_CHARS;
-        strcat(&name[len], ext);
+        memcpy(&name[len], ext, ext_len);
         HANDLE hfile =
             CreateFileA(name, GENERIC_WRITE, 0, NULL, CREATE_NEW,
                         FILE_ATTRIBUTE_NORMAL, NULL);

@@ -720,7 +720,7 @@ _AU_OP_JNIF:;
                 int n_regs = au_fn_num_args(call_fn);
                 const au_value_t *args =
                     &frame.arg_stack.data[frame.arg_stack.len - n_regs];
-                
+
                 FLUSH_BC();
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
@@ -1053,6 +1053,10 @@ _AU_OP_JNIF:;
                     goto _import_dispatch;
                 }
                 case AU_MODULE_IMPORT_FAIL: {
+                    au_fatal("unable to import %s\n", abspath);
+                    break;
+                }
+                case AU_MODULE_IMPORT_FAIL_DL: {
                     au_module_lib_perror();
                     au_fatal("unable to import %s\n", abspath);
                     break;
