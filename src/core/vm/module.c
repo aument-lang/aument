@@ -30,11 +30,11 @@
 
 au_extern_func_t au_module_get_fn(struct au_module *module,
                                   const char *fn_name) {
-    const struct au_hm_var_value *value = au_hm_vars_get(
+    const au_hm_var_value_t *value = au_hm_vars_get(
         &module->data.lib.lib->fn_map, fn_name, strlen(fn_name));
     if (value == 0)
         return 0;
-    const struct au_fn fn = module->data.lib.lib->fns.data[value->idx];
+    const struct au_fn fn = module->data.lib.lib->fns.data[*value];
     if (fn.type != AU_FN_LIB)
         return 0;
     return fn.as.lib_func.func;

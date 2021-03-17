@@ -419,9 +419,9 @@ static int parser_exec_import_statement(struct au_parser *p,
         au_imported_module_init(&module, 0);
         au_imported_module_array_add(&p->p_data->imported_modules, module);
 
-        const struct au_hm_var_value *old_value =
+        const au_hm_var_value_t *old_value =
             au_hm_vars_add(&p->p_data->imported_module_map, module_tok.src,
-                           module_tok.len, AU_HM_VAR_VALUE(module_idx));
+                           module_tok.len, module_idx);
         if (old_value != 0) {
             p->res = (struct au_parser_result){
                 .type = AU_PARSER_RES_DUPLICATE_MODULE,
@@ -473,10 +473,8 @@ static int parser_exec_class_statement(struct au_parser *p,
     const struct au_token id_tok = au_lexer_next(l);
     EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
 
-    struct au_hm_var_value class_value = (struct au_hm_var_value){
-        .idx = p->p_data->classes.len,
-    };
-    struct au_hm_var_value *old_value = au_hm_vars_add(
+    au_hm_var_value_t class_value = p->p_data->classes.len;
+    au_hm_var_value_t *old_value = au_hm_vars_add(
         &p->p_data->class_map, id_tok.src, id_tok.len, class_value);
     if (old_value != 0) {
         p->res = (struct au_parser_result){
@@ -495,8 +493,8 @@ static int parser_exec_class_statement(struct au_parser *p,
 
     struct au_token t = au_lexer_next(l);
     if (t.type == AU_TOK_OPERATOR && t.len == 1 && t.src[0] == ';') {
-        au_class_interface_ptr_array_set(&p->p_data->classes,
-                                         class_value.idx, interface);
+        au_class_interface_ptr_array_set(&p->p_data->classes, class_value,
+                                         interface);
         return 1;
     } else if (!(t.type == AU_TOK_OPERATOR && t.len == 1 &&
                  t.src[0] == '{')) {
@@ -510,11 +508,9 @@ static int parser_exec_class_statement(struct au_parser *p,
             const struct au_token name_tok = au_lexer_next(l);
             EXPECT_TOKEN(name_tok.type == AU_TOK_IDENTIFIER, name_tok,
                          "identifier");
-            struct au_hm_var_value prop_value = (struct au_hm_var_value){
-                .idx = interface->map.entries_occ,
-            };
+            au_hm_var_value_t prop_value = interface->map.entries_occ;
 
-            const struct au_hm_var_value *old_prop_value = au_hm_vars_add(
+            const au_hm_var_value_t *old_prop_value = au_hm_vars_add(
                 &interface->map, name_tok.src, name_tok.len, prop_value);
             if (old_prop_value != 0) {
                 p->res = (struct au_parser_result){
@@ -540,7 +536,7 @@ static int parser_exec_class_statement(struct au_parser *p,
         EXPECT_TOKEN(0, t, "'}'");
     }
 
-    au_class_interface_ptr_array_set(&p->p_data->classes, class_value.idx,
+    au_class_interface_ptr_array_set(&p->p_data->classes, class_value,
                                      interface);
     return 1;
 }
@@ -581,7 +577,7 @@ static int parser_exec_def_statement(struct au_parser *p,
             module_tok = name_tok;
             au_lexer_next(l);
             name_tok = au_lexer_next(l);
-            const struct au_hm_var_value *module_val =
+            const au_hm_var_value_t *module_val =
                 au_hm_vars_get(&p->p_data->imported_module_map,
                                module_tok.src, module_tok.len);
             if (module_val == 0) {
@@ -591,22 +587,20 @@ static int parser_exec_def_statement(struct au_parser *p,
                 };
                 return 0;
             }
-            const uint32_t module_idx = module_val->idx;
+            const uint32_t module_idx = *module_val;
             struct au_imported_module *module =
                 &p->p_data->imported_modules.data[module_idx];
-            struct au_hm_var_value class_val = (struct au_hm_var_value){
-                .idx = p->p_data->classes.len,
-            };
-            const struct au_hm_var_value *old_class_val = au_hm_vars_add(
+            au_hm_var_value_t class_val = p->p_data->classes.len;
+            const au_hm_var_value_t *old_class_val = au_hm_vars_add(
                 &module->class_map, name_tok.src, name_tok.len, class_val);
             if (old_class_val != 0) {
                 class_val = *old_class_val;
             } else {
                 au_class_interface_ptr_array_add(&p->p_data->classes, 0);
             }
-            class_idx = class_val.idx;
+            class_idx = class_val;
         } else {
-            const struct au_hm_var_value *class_val = au_hm_vars_get(
+            const au_hm_var_value_t *class_val = au_hm_vars_get(
                 &p->p_data->class_map, name_tok.src, name_tok.len);
             if (class_val == 0) {
                 p->res = (struct au_parser_result){
@@ -615,7 +609,7 @@ static int parser_exec_def_statement(struct au_parser *p,
                 };
                 return 0;
             }
-            class_idx = class_val->idx;
+            class_idx = *class_val;
             class_interface = p->p_data->classes.data[class_idx];
         }
 
@@ -633,13 +627,11 @@ static int parser_exec_def_statement(struct au_parser *p,
 
     int expected_num_args = -1;
 
-    struct au_hm_var_value func_value = (struct au_hm_var_value){
-        .idx = p->p_data->fns.len,
-    };
-    struct au_hm_var_value *old_value = au_hm_vars_add(
+    au_hm_var_value_t func_value = p->p_data->fns.len;
+    au_hm_var_value_t *old_value = au_hm_vars_add(
         &p->p_data->fn_map, id_tok.src, id_tok.len, func_value);
     if (old_value) {
-        struct au_fn *old = &p->p_data->fns.data[old_value->idx];
+        struct au_fn *old = &p->p_data->fns.data[*old_value];
         expected_num_args = au_fn_num_args(old);
 
         const int has_same_visibility =
@@ -647,7 +639,7 @@ static int parser_exec_def_statement(struct au_parser *p,
             (fn_flags & AU_FN_FLAG_EXPORTED);
 
         if (old->type == AU_FN_NONE) {
-            func_value.idx = old_value->idx;
+            func_value = *old_value;
             old_id_tok = old->as.none_func.name_token;
         }
         // Record the new function into a multi-dispatch function, and
@@ -659,7 +651,7 @@ static int parser_exec_def_statement(struct au_parser *p,
             if (old->type == AU_FN_DISPATCH) {
                 struct au_dispatch_func_instance el =
                     (struct au_dispatch_func_instance){
-                        .function_idx = func_value.idx,
+                        .function_idx = func_value,
                         .class_idx = class_idx,
                         .class_interface_cache = class_interface,
                     };
@@ -706,7 +698,7 @@ static int parser_exec_def_statement(struct au_parser *p,
                 old = 0;
 
                 au_fn_array_add(&p->p_data->fns, fallback_fn);
-                func_value.idx = new_fn_idx;
+                func_value = new_fn_idx;
             }
 
             struct au_fn none_func = (struct au_fn){
@@ -718,7 +710,7 @@ static int parser_exec_def_statement(struct au_parser *p,
             au_str_array_add(&p->p_data->fn_names,
                              au_data_strndup(id_tok.src, id_tok.len));
         } else {
-            func_value.idx = old_value->idx;
+            func_value = *old_value;
             au_fn_del(old);
             *old = (struct au_fn){
                 .type = AU_FN_NONE,
@@ -741,7 +733,7 @@ static int parser_exec_def_statement(struct au_parser *p,
     parser_init(&func_p, p->p_data);
     func_p.self_name = id_tok.src;
     func_p.self_len = id_tok.len;
-    func_p.func_id = func_value.idx;
+    func_p.func_id = func_value;
     func_p.class_interface = class_interface;
     struct au_bc_storage bcs = {0};
 
@@ -749,8 +741,7 @@ static int parser_exec_def_statement(struct au_parser *p,
         if (!token_keyword_cmp(&self_tok, "_")) {
             func_p.self_keyword = self_tok.src;
             func_p.self_keyword_len = self_tok.len;
-            au_hm_vars_add(&func_p.vars, self_tok.src, self_tok.len,
-                           AU_HM_VAR_VALUE(0));
+            au_hm_vars_add(&func_p.vars, self_tok.src, self_tok.len, 0);
         }
         bcs.num_args++;
         func_p.num_locals++;
@@ -765,8 +756,8 @@ static int parser_exec_def_statement(struct au_parser *p,
     if (tok.type == AU_TOK_IDENTIFIER) {
         au_lexer_next(l);
 
-        const struct au_hm_var_value *old = au_hm_vars_add(
-            &func_p.vars, tok.src, tok.len, AU_HM_VAR_VALUE(bcs.num_args));
+        const au_hm_var_value_t *old =
+            au_hm_vars_add(&func_p.vars, tok.src, tok.len, bcs.num_args);
         if (old != NULL) {
             p->res = (struct au_parser_result){
                 .type = AU_PARSER_RES_DUPLICATE_ARG,
@@ -790,9 +781,8 @@ static int parser_exec_def_statement(struct au_parser *p,
                 tok = au_lexer_next(l);
                 EXPECT_TOKEN(tok.type == AU_TOK_IDENTIFIER, tok,
                              "identifier");
-                const struct au_hm_var_value *old =
-                    au_hm_vars_add(&func_p.vars, tok.src, tok.len,
-                                   AU_HM_VAR_VALUE(bcs.num_args));
+                const au_hm_var_value_t *old = au_hm_vars_add(
+                    &func_p.vars, tok.src, tok.len, bcs.num_args);
                 if (old != NULL) {
                     p->res = (struct au_parser_result){
                         .type = AU_PARSER_RES_DUPLICATE_ARG,
@@ -864,9 +854,9 @@ static int parser_exec_def_statement(struct au_parser *p,
 
     for (size_t i = 0; i < func_p.self_fill_call.len; i++) {
         const size_t offset = func_p.self_fill_call.data[i];
-        replace_bc_u16(&bcs.bc, offset, func_value.idx);
+        replace_bc_u16(&bcs.bc, offset, func_value);
     }
-    *au_fn_array_at_mut(&p->p_data->fns, func_value.idx) = (struct au_fn){
+    *au_fn_array_at_mut(&p->p_data->fns, func_value) = (struct au_fn){
         .type = AU_FN_BC,
         .flags = fn_flags,
         .as.bc_func = bcs,
@@ -896,8 +886,8 @@ static int parser_exec_const_statement(struct au_parser *p,
     if (p->func_id == AU_SM_FUNC_ID_MAIN) {
         // Main function
         int data_len = p->p_data->data_val.len;
-        struct au_hm_var_value *old = au_hm_vars_add(
-            &p->consts, id_tok.src, id_tok.len, AU_HM_VAR_VALUE(data_len));
+        au_hm_var_value_t *old =
+            au_hm_vars_add(&p->consts, id_tok.src, id_tok.len, data_len);
 
         if (old == 0) {
             au_program_data_add_data(p->p_data, au_value_none(), 0, 0);
@@ -1193,7 +1183,7 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                     return 0;
                 }
 
-                const struct au_hm_var_value *value =
+                const au_hm_var_value_t *value =
                     au_hm_vars_get(&interface->map, &t.src[1], t.len - 1);
                 if (value == 0) {
                     p->res = (struct au_parser_result){
@@ -1208,7 +1198,7 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                     EXPECT_BYTECODE(parser_new_reg(p, &reg));
                     parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
                     parser_emit_bc_u8(p, reg);
-                    parser_emit_bc_u16(p, value->idx);
+                    parser_emit_bc_u16(p, *value);
                     switch (op.src[0]) {
 #define BIN_OP_ASG(OP, OPCODE)                                            \
     case OP: {                                                            \
@@ -1228,14 +1218,12 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
 
                 parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
                 parser_emit_bc_u8(p, parser_last_reg(p));
-                parser_emit_bc_u16(p, value->idx);
+                parser_emit_bc_u16(p, *value);
 
                 return 1;
             }
 
-            struct au_hm_var_value var_value = (struct au_hm_var_value){
-                .idx = p->num_locals,
-            };
+            au_hm_var_value_t var_value = p->num_locals;
 
             if (!(op.len == 1 && op.src[0] == '=')) {
                 switch (op.src[0]) {
@@ -1256,14 +1244,14 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
             }
 
             parser_emit_bc_u8(p, parser_last_reg(p));
-            struct au_hm_var_value *old_value =
+            au_hm_var_value_t *old_value =
                 au_hm_vars_add(&p->vars, t.src, t.len, var_value);
             if (old_value) {
-                parser_emit_bc_u16(p, old_value->idx);
+                parser_emit_bc_u16(p, *old_value);
             } else {
                 p->num_locals++;
                 EXPECT_BYTECODE(p->num_locals <= AU_MAX_LOCALS);
-                parser_emit_bc_u16(p, var_value.idx);
+                parser_emit_bc_u16(p, var_value);
             }
             return 1;
         }
@@ -1633,7 +1621,7 @@ static int parser_resolve_fn(struct au_parser *p,
     int func_idx_found = 0;
     int execute_self = 0;
     if (module_tok.type != AU_TOK_EOF) {
-        const struct au_hm_var_value *module_val =
+        const au_hm_var_value_t *module_val =
             au_hm_vars_get(&p->p_data->imported_module_map, module_tok.src,
                            module_tok.len);
         if (module_val == 0) {
@@ -1643,10 +1631,10 @@ static int parser_resolve_fn(struct au_parser *p,
             };
             return 0;
         }
-        const uint32_t module_idx = module_val->idx;
+        const uint32_t module_idx = *module_val;
         struct au_imported_module *module =
             &p->p_data->imported_modules.data[module_idx];
-        const struct au_hm_var_value *val =
+        const au_hm_var_value_t *val =
             au_hm_vars_get(&module->fn_map, id_tok.src, id_tok.len);
         if (val == 0 && module->is_finished) {
             p->res = (struct au_parser_result){
@@ -1655,9 +1643,7 @@ static int parser_resolve_fn(struct au_parser *p,
             };
             return 0;
         } else if (val == 0) {
-            struct au_hm_var_value value = (struct au_hm_var_value){
-                .idx = p->p_data->fns.len,
-            };
+            au_hm_var_value_t value = p->p_data->fns.len;
             char *import_name = au_data_malloc(id_tok.len);
             memcpy(import_name, id_tok.src, id_tok.len);
             struct au_fn fn = (struct au_fn){
@@ -1671,13 +1657,13 @@ static int parser_resolve_fn(struct au_parser *p,
                 .as.imported_func.p_data_cached = 0,
             };
             au_fn_array_add(&p->p_data->fns, fn);
-            func_idx = value.idx;
-            struct au_hm_var_value *old = au_hm_vars_add(
+            func_idx = value;
+            au_hm_var_value_t *old = au_hm_vars_add(
                 &module->fn_map, id_tok.src, id_tok.len, value);
             EXPECT_BYTECODE(old == 0);
             val = au_hm_vars_get(&module->fn_map, id_tok.src, id_tok.len);
         } else {
-            func_idx = val->idx;
+            func_idx = *val;
         }
         func_idx_found = 1;
     } else if (p->self_name && id_tok.len == p->self_len &&
@@ -1685,18 +1671,16 @@ static int parser_resolve_fn(struct au_parser *p,
         execute_self = 1;
         func_idx_found = 1;
     } else {
-        const struct au_hm_var_value *val =
+        const au_hm_var_value_t *val =
             au_hm_vars_get(&p->p_data->fn_map, id_tok.src, id_tok.len);
         if (val) {
-            func_idx = val->idx;
+            func_idx = *val;
             func_idx_found = 1;
         }
     }
 
     if (!func_idx_found) {
-        struct au_hm_var_value func_value = (struct au_hm_var_value){
-            .idx = p->p_data->fns.len,
-        };
+        au_hm_var_value_t func_value = p->p_data->fns.len;
         au_hm_vars_add(&p->p_data->fn_map, id_tok.src, id_tok.len,
                        func_value);
         struct au_fn none_func = (struct au_fn){
@@ -1707,7 +1691,7 @@ static int parser_resolve_fn(struct au_parser *p,
         au_fn_array_add(&p->p_data->fns, none_func);
         au_str_array_add(&p->p_data->fn_names,
                          au_data_strndup(id_tok.src, id_tok.len));
-        func_idx = func_value.idx;
+        func_idx = func_value;
     }
 
     *func_idx_out = func_idx;
@@ -1918,10 +1902,10 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                 return 0;
         } else {
             assert(module_tok.type == AU_TOK_EOF);
-            const struct au_hm_var_value *val =
+            const au_hm_var_value_t *val =
                 au_hm_vars_get(&p->vars, t.src, t.len);
             if (val == NULL) {
-                const struct au_hm_var_value *const_val =
+                const au_hm_var_value_t *const_val =
                     au_hm_vars_get(&p->consts, t.src, t.len);
                 if (const_val == NULL) {
                     p->res = (struct au_parser_result){
@@ -1935,14 +1919,14 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                     EXPECT_BYTECODE(parser_new_reg(p, &reg));
                     parser_emit_bc_u8(p, AU_OP_LOAD_CONST);
                     parser_emit_bc_u8(p, reg);
-                    parser_emit_bc_u16(p, const_val->idx);
+                    parser_emit_bc_u16(p, *const_val);
                 }
             } else {
                 uint8_t reg;
                 EXPECT_BYTECODE(parser_new_reg(p, &reg));
                 parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
                 parser_emit_bc_u8(p, reg);
-                parser_emit_bc_u16(p, val->idx);
+                parser_emit_bc_u16(p, *val);
             }
         }
         break;
@@ -2008,7 +1992,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
         EXPECT_BYTECODE(parser_new_reg(p, &reg));
         parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
         parser_emit_bc_u8(p, reg);
-        const struct au_hm_var_value *value =
+        const au_hm_var_value_t *value =
             au_hm_vars_get(&interface->map, &t.src[1], t.len - 1);
         if (value == 0) {
             p->res = (struct au_parser_result){
@@ -2017,7 +2001,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             };
             return 0;
         }
-        parser_emit_bc_u16(p, value->idx);
+        parser_emit_bc_u16(p, *value);
         break;
     }
     default: {
@@ -2112,7 +2096,7 @@ static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
     const struct au_token id_tok = au_lexer_next(l);
     EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
 
-    const struct au_hm_var_value *class_value =
+    const au_hm_var_value_t *class_value =
         au_hm_vars_get(&p->p_data->class_map, id_tok.src, id_tok.len);
     if (class_value == 0) {
         p->res = (struct au_parser_result){
@@ -2122,7 +2106,7 @@ static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
         return 0;
     }
 
-    size_t class_idx = class_value->idx;
+    size_t class_idx = *class_value;
 
     uint8_t result_reg;
     EXPECT_BYTECODE(parser_new_reg(p, &result_reg));

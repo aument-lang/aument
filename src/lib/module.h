@@ -14,7 +14,9 @@
 
 /// [func] Creates a new external module
 /// @return a reference to the module
-static _Unused inline struct au_program_data *au_module_new() {
+static _Unused inline struct au_program_data *au_module_new();
+
+struct au_program_data *au_module_new() {
     return (struct au_program_data *)au_data_calloc(
         sizeof(struct au_program_data));
 }
@@ -29,7 +31,10 @@ static _Unused inline struct au_program_data *au_module_new() {
 static _Unused inline int au_module_add_fn(struct au_program_data *p_data,
                                            const char *name,
                                            au_extern_func_t func,
-                                           int num_args) {
+                                           int num_args);
+
+int au_module_add_fn(struct au_program_data *p_data, const char *name,
+                     au_extern_func_t func, int num_args) {
     struct au_fn fn;
     fn.flags = AU_FN_FLAG_EXPORTED;
     fn.type = AU_FN_LIB;
@@ -39,9 +44,8 @@ static _Unused inline int au_module_add_fn(struct au_program_data *p_data,
         .name = name,
         .symbol = name,
     };
-    const size_t fn_len = p_data->fns.len;
-    if (au_hm_vars_add(&p_data->fn_map, name, strlen(name),
-                       AU_HM_VAR_VALUE(fn_len)) == 0) {
+    const au_hm_var_value_t fn_idx = p_data->fns.len;
+    if (au_hm_vars_add(&p_data->fn_map, name, strlen(name), fn_idx) == 0) {
         au_fn_array_add(&p_data->fns, fn);
         return 1;
     } else {

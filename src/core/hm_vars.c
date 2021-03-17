@@ -65,10 +65,9 @@ static void rehash_table(struct au_hm_vars *vars) {
     vars->buckets_len = new_len;
 }
 
-struct au_hm_var_value *
-au_hm_vars_add(struct au_hm_vars *vars, const char *key, size_t len,
-               const struct au_hm_var_value value) {
-    const hash_t hash = au_hash((const uint8_t *)key, len);
+au_hm_var_value_t *au_hm_vars_add(struct au_hm_vars *vars, const char *key,
+                                  size_t len, au_hm_var_value_t value) {
+    const au_hash_t hash = au_hash((const uint8_t *)key, len);
     if (vars->buckets_len > 0) {
         const int bucket_idx = ((int)hash) & (vars->buckets_len - 1);
         const struct au_hm_bucket *bucket = &vars->buckets[bucket_idx];
@@ -126,13 +125,13 @@ au_hm_vars_add(struct au_hm_vars *vars, const char *key, size_t len,
     return 0;
 }
 
-const struct au_hm_var_value *au_hm_vars_get(const struct au_hm_vars *vars,
-                                             const char *key, size_t len) {
+const au_hm_var_value_t *au_hm_vars_get(const struct au_hm_vars *vars,
+                                        const char *key, size_t len) {
     if (vars->buckets_len == 0) {
         return 0;
     }
 
-    const hash_t hash = au_hash((const uint8_t *)key, len);
+    const au_hash_t hash = au_hash((const uint8_t *)key, len);
     const int bucket_idx = ((int)hash) & (vars->buckets_len - 1);
     const struct au_hm_bucket *bucket = &vars->buckets[bucket_idx];
     for (size_t i = 0; i < bucket->len; i++) {
