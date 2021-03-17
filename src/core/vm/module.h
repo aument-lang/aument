@@ -20,15 +20,17 @@ struct au_module_lib {
 
 void au_module_lib_del(struct au_module_lib *lib);
 
+#ifdef AU_IS_STDLIB
+struct au_module;
+#else
 struct au_module {
     enum au_module_type type;
     union {
-#ifndef AU_IS_STDLIB
         struct au_mmap_info source;
-#endif
         struct au_module_lib lib;
     } data;
 };
+#endif
 
 char *au_module_resolve(const char *relpath, const char *parent_dir);
 
@@ -36,7 +38,6 @@ enum au_module_import_result {
     AU_MODULE_IMPORT_SUCCESS = 0,
     AU_MODULE_IMPORT_SUCCESS_NO_MODULE = 1,
     AU_MODULE_IMPORT_FAIL = 2,
-    AU_MODULE_IMPORT_FAIL_DLERROR = 3,
 };
 
 void au_module_lib_perror();
