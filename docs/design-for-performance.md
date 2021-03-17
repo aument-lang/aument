@@ -8,17 +8,17 @@ Although at its core, Aument is meant to be a dynamic scripting language, it doe
 
 ### Static names
 
-All names in Aument (identifiers, functions and classes) are static, predetermined at parse time and constant at runtime.
+All names in Aument (identifiers, functions and classes) are static, they are resolved at parse time and constant at runtime. You cannot define new functions or classes at runtime, of course, but in practice, it isn't a big limitation.
 
 ### [Classes](docs/architecture.md#classes)
 
-Classes in Aument are flat structures, accessing their internal values is as fast as a pointer dereference.
+Classes in Aument are flat structures, they are laid out in memory like an array of values with named keys. Accessing private values is as fast as a pointer dereference.
 
 ## Implementation
 
-### One-pass parser
+### Single pass parser
 
-The Aument parser has only one pass which generates virtual machine bytecode from a source file.
+The Aument parser has only one pass which generates virtual machine bytecode directly from a source file. This keeps startup overhead low and reduces the implementation's complexity.
 
 ### Compact, uniform bytecode
 
