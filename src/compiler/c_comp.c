@@ -1237,7 +1237,12 @@ void au_c_comp_module(struct au_c_comp_state *state,
             comp_printf(state, "return _M%d_f%d(args);\n", (int)module_idx,
                         (int)data->function_idx);
         }
-        comp_printf(state, INDENT "abort();\n");
+        if(dispatch_fn->fallback_fn == AU_DISPATCH_FUNC_NO_FALLBACK) {
+            comp_printf(state, INDENT "abort();\n");
+        } else {
+            comp_printf(state, "return _M%d_f%d(args);\n", (int)module_idx,
+                        (int)dispatch_fn->fallback_fn);
+        }
         comp_printf(state, "}\n");
     }
 
