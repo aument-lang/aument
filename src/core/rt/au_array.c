@@ -52,6 +52,7 @@ void au_obj_array_del(struct au_obj_array *obj_array) {
 }
 
 void au_obj_array_push(struct au_obj_array *obj_array, au_value_t el) {
+    au_value_ref(el);
     au_value_array_add(&obj_array->array, el);
 }
 
