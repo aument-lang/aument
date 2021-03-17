@@ -37,32 +37,3 @@ struct au_string *au_string_add(struct au_string *left,
 /// @param right Second string
 /// @return Comparison of `left` and `right`
 int au_string_cmp(struct au_string *left, struct au_string *right);
-
-/// Increases the reference count of an au_string
-/// @param header the au_string instance
-static inline void au_string_ref(struct au_string *header) {
-    header->rc++;
-#ifdef DEBUG_RC
-    printf("[%.*s]: [ref] rc now %d\n", header->len, header->data,
-           header->rc);
-#endif
-}
-
-/// Decreases the reference count of an au_string.
-///     Automatically frees the au_string if the
-///     reference count reaches 0.
-/// @param header the au_string instance
-static inline void au_string_deref(struct au_string *header) {
-    if (header->rc != 0) {
-        header->rc--;
-#ifdef DEBUG_RC
-        printf("[%.*s]: [deref] rc now %d\n", header->len, header->data,
-               header->rc);
-#endif
-    }
-#ifndef AU_FEAT_DELAYED_RC
-    if (header->rc == 0) {
-        au_obj_free(header);
-    }
-#endif
-}

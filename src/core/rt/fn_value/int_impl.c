@@ -70,16 +70,3 @@ au_value_t au_fn_value_call(const struct au_fn_value *fn_value,
     au_data_free(args);
     return retval;
 }
-
-void au_fn_value_ref(struct au_fn_value *header) { header->rc++; }
-
-void au_fn_value_deref(struct au_fn_value *header) {
-    if (header->rc != 0) {
-        header->rc--;
-    }
-#ifndef AU_FEAT_DELAYED_RC
-    if (header->rc == 0) {
-        au_obj_free(header);
-    }
-#endif
-}

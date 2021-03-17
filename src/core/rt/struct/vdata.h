@@ -37,34 +37,3 @@ struct au_struct_vdata {
     /// object.
     au_struct_len_fn_t len_fn;
 };
-
-/// Increases the reference count of an au_struct
-/// @param header the au_struct instance
-static inline void au_struct_ref(struct au_struct *header) {
-    header->rc++;
-#ifdef DEBUG_RC
-    printf("[%p]: [ref] rc now %d\n", header, header->rc);
-#endif
-}
-
-/// Decreases the reference count of an au_struct.
-///     Automatically frees the au_struct if the
-///     reference count reaches 0.
-/// @param header the au_struct instance
-static inline void au_struct_deref(struct au_struct *header) {
-    if (header->rc != 0) {
-#ifdef DEBUG_RC
-        printf("[%p]: [ref] rc from %d\n", header, header->rc);
-#endif
-        header->rc--;
-#ifdef DEBUG_RC
-        printf("[%p]: [ref] rc now %d\n", header, header->rc);
-#endif
-    }
-#ifndef AU_FEAT_DELAYED_RC
-    if (header->rc == 0) {
-        header->vdata->del_fn(header);
-        au_obj_free(header);
-    }
-#endif
-}
