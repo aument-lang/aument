@@ -39,11 +39,9 @@ static _AlwaysInline void au_value_ref(const au_value_t v) {
     default:
         return;
     }
-    if (obj_rc != 0) {
-        if (_Unlikely(obj_rc->rc == SIZE_MAX))
-            abort();
-        obj_rc++;
-    }
+    if (_Unlikely(obj_rc->rc == SIZE_MAX))
+        abort();
+    obj_rc->rc++;
 }
 
 static _AlwaysInline void au_value_deref(const au_value_t v) {
@@ -65,15 +63,13 @@ static _AlwaysInline void au_value_deref(const au_value_t v) {
     default:
         return;
     }
-    if (obj_rc != 0) {
-#ifdef AU_FEAT_DELAYED_RC
-        obj_rc->rc--;
-#else
-        if (obj_rc->rc == 0) {
-            au_obj_free(obj_rc);
-        } else {
-            obj_rc->rc--;
-        }
+
+    if (_Unlikely(obj_rc == 0))
+        abort();
+    obj_rc->rc--;
+
+#ifndef AU_FEAT_DELAYED_RC
+    if (obj_rc->rc == 0)
+        au_obj_free(obj_rc);
 #endif
-    }
 }
