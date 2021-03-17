@@ -20,10 +20,6 @@
 #define ALLOCA_MAX_VALUES 256
 #endif
 
-#ifdef AU_FEAT_LIBDL
-#include <dlfcn.h>
-#endif
-
 #include "platform/mmap.h"
 #include "platform/path.h"
 #include "platform/platform.h"
@@ -1054,13 +1050,8 @@ _AU_OP_JNIF:;
                     goto _import_dispatch;
                 }
                 case AU_MODULE_IMPORT_FAIL: {
+                    au_module_lib_perror();
                     au_fatal("unable to import %s\n", abspath);
-                    break;
-                }
-                case AU_MODULE_IMPORT_FAIL_DLERROR: {
-#ifdef AU_FEAT_LIBDL
-                    au_fatal("dlerror: %s\n", dlerror());
-#endif
                     break;
                 }
                 }

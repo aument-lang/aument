@@ -17,6 +17,31 @@
 #define AU_MODULE_LIB_EXT ".so"
 #define AU_MODULE_LOAD_FN "au_module_load"
 
+#ifdef AU_IS_STDLIB
+struct au_module {
+    enum au_module_type type;
+    union {
+        struct au_mmap_info source;
+        struct au_module_lib lib;
+    } data;
+};
+
+#include "core/fn/main.h"
+#include "core/hm_vars.h"
+#include "core/program.h"
+au_extern_func_t au_module_get_fn(struct au_module *module,
+                                  const char *fn_name) {
+    const struct au_hm_var_value *value = au_hm_vars_get(
+        &module->data.lib.lib->fn_map, fn_name, strlen(fn_name));
+    if (value == 0)
+        return 0;
+    const struct au_fn fn = module->data.lib.lib->fns.data[value->idx];
+    if (fn.type != AU_FN_LIB)
+        return 0;
+    return fn.as.lib_func.func;
+}
+#endif
+
 void au_module_lib_del(struct au_module_lib *lib) {
     (void)lib;
 #ifdef AU_FEAT_LIBDL
@@ -59,6 +84,9 @@ enum au_module_import_result au_module_import(struct au_module *module,
     if (abspath_len > strlen(AU_MODULE_LIB_EXT) &&
         memcmp(&abspath[abspath_len - strlen(AU_MODULE_LIB_EXT)],
                AU_MODULE_LIB_EXT, strlen(AU_MODULE_LIB_EXT)) == 0) {
+#ifdef _WIN32
+        return AU_MODULE_IMPORT_FAIL;
+#else
 #ifdef AU_FEAT_LIBDL
         module->type = AU_MODULE_LIB;
         module->data.lib.dl_handle =
@@ -82,6 +110,7 @@ enum au_module_import_result au_module_import(struct au_module *module,
 #else
         return AU_MODULE_IMPORT_FAIL;
 #endif
+#endif
     }
 #ifndef AU_IS_STDLIB
     else {
@@ -95,20 +124,3 @@ enum au_module_import_result au_module_import(struct au_module *module,
 #endif
     return AU_MODULE_IMPORT_SUCCESS;
 }
-
-#ifdef AU_IS_STDLIB
-#include "core/fn/main.h"
-#include "core/hm_vars.h"
-#include "core/program.h"
-au_extern_func_t au_module_get_fn(struct au_module *module,
-                                  const char *fn_name) {
-    const struct au_hm_var_value *value = au_hm_vars_get(
-        &module->data.lib.lib->fn_map, fn_name, strlen(fn_name));
-    if (value == 0)
-        return 0;
-    const struct au_fn fn = module->data.lib.lib->fns.data[value->idx];
-    if (fn.type != AU_FN_LIB)
-        return 0;
-    return fn.as.lib_func.func;
-}
-#endif

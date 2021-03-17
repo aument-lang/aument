@@ -40,7 +40,11 @@ if target_machine.system() != 'windows'
     if result
         add_project_arguments('-DAU_USE_MMAP', language : ['c'])
     endif
+endif
 
+if target_machine.system() == 'windows'
+    au_supports_dll_import = true
+else
     libdl = compiler.find_library('dl', required: false)
     if libdl.found()
         add_project_arguments('-DAU_FEAT_LIBDL', language : ['c'])
@@ -386,6 +390,7 @@ if is_testing
         dependencies: au_depends,
         export_dynamic: au_supports_dll_import)
 
+    if false
     e = executable('aument-tests-feature',
             sources + [join_paths(meson.build_root(), 'tests.c')],
             include_directories: incs,
@@ -440,6 +445,7 @@ if is_testing
         depends: [aument_exe])
 
     endif
+    endif
 
     if au_supports_dll_import
     foreach import_lib_info : [
@@ -449,26 +455,22 @@ if is_testing
         import_lib_test = shared_module(import_lib_info[0],
             files(import_lib_info[1] + '/lib.c'),
             include_directories: incs)
-        if target_machine.system() == 'windows'
-            # TODO: import_lib_test for windows
-        else
-            test(import_lib_info[0], prog_python,
-                args: files('./build-scripts/check_output.py') + [
-                    '--check', 'output',
-                    '--binary', join_paths(meson.build_root(), 'aument'),
-                    '--path', join_paths(meson.source_root(), import_lib_info[1]),
-                ],
-                depends: [aument_exe, import_lib_test])
-            test(import_lib_info[0] + ' (compiled)',
-                prog_python,
-                args: files('./build-scripts/check_output.py') + [
-                    '--check', 'comp_to_path',
-                    '--binary', join_paths(meson.build_root(), 'aument'),
-                    '--file', join_paths(meson.source_root(), import_lib_info[1], 'unix.out'),
-                    '--param', join_paths(meson.build_root(), import_lib_info[0] + '_bin'),
-                ],
-                depends: [aument_exe, import_lib_test])
-        endif
+        test(import_lib_info[0], prog_python,
+            args: files('./build-scripts/check_output.py') + [
+                '--check', 'output',
+                '--binary', join_paths(meson.build_root(), 'aument'),
+                '--path', join_paths(meson.source_root(), import_lib_info[1]),
+            ],
+            depends: [aument_exe, import_lib_test])
+        test(import_lib_info[0] + ' (compiled)',
+            prog_python,
+            args: files('./build-scripts/check_output.py') + [
+                '--check', 'comp_to_path',
+                '--binary', join_paths(meson.build_root(), 'aument'),
+                '--file', join_paths(meson.source_root(), import_lib_info[1], 'unix.out'),
+                '--param', join_paths(meson.build_root(), import_lib_info[0] + '_bin'),
+            ],
+            depends: [aument_exe, import_lib_test])
     endforeach
     endif
 else

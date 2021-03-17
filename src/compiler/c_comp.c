@@ -8,10 +8,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#ifdef AU_FEAT_LIBDL
-#include <dlfcn.h>
-#endif
-
 #include "platform/mmap.h"
 #include "platform/path.h"
 
@@ -826,13 +822,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 break;
             }
             case AU_MODULE_IMPORT_FAIL: {
+                au_module_lib_perror();
                 au_fatal("unable to import %s\n", abspath);
-                break;
-            }
-            case AU_MODULE_IMPORT_FAIL_DLERROR: {
-#ifdef AU_FEAT_LIBDL
-                au_fatal("dlerror: %s\n", dlerror());
-#endif
                 break;
             }
             default: {
