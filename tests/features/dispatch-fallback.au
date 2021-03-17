@@ -1,0 +1,8 @@
+class A{}
+class B{}
+
+def dispatch(self) { print "fallback"; }
+def (self: A) dispatch() { print "A"; }
+
+b = new B;
+dispatch(b);

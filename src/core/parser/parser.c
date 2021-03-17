@@ -673,8 +673,9 @@ static int parser_exec_def_statement(struct au_parser *p,
 
                 struct au_dispatch_func dispatch_func = {0};
                 dispatch_func.num_args = expected_num_args;
-                if ((fallback_fn.type & AU_FN_FLAG_HAS_CLASS) != 0 &&
-                    fallback_fn.type == AU_FN_BC) {
+
+                if ((fallback_fn.flags & AU_FN_FLAG_HAS_CLASS) != 0 &&
+                    (fallback_fn.type == AU_FN_BC)) {
                     dispatch_func.fallback_fn =
                         AU_DISPATCH_FUNC_NO_FALLBACK;
                     struct au_dispatch_func_instance el =
