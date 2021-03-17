@@ -1,0 +1,2 @@
+import "../../build/libdl_module_test.dll" as dl_mod;
+print dl_mod::str();

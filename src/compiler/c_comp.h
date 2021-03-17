@@ -12,6 +12,7 @@
 #include "core/str_array.h"
 
 #include "platform/cc.h"
+#include "platform/platform.h"
 
 struct au_c_comp_state {
     struct au_char_array str;
@@ -19,7 +20,7 @@ struct au_c_comp_state {
 
 /// [func] Deinitializes an au_c_comp_state instance
 /// @param state instance to be initialized
-void au_c_comp_state_del(struct au_c_comp_state *state);
+_Public void au_c_comp_state_del(struct au_c_comp_state *state);
 
 struct au_program;
 
@@ -35,7 +36,7 @@ struct au_c_comp_options {
 /// @param cc An optional pointer to an au_cc_options object.
 ///     This will be used to pass additional arguments required for
 ///     compilation.
-void au_c_comp(struct au_c_comp_state *state,
-               const struct au_program *program,
-               const struct au_c_comp_options *options,
-               struct au_cc_options *cc);
+_Public void au_c_comp(struct au_c_comp_state *state,
+                       const struct au_program *program,
+                       const struct au_c_comp_options *options,
+                       struct au_cc_options *cc);

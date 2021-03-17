@@ -3,9 +3,12 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+#ifdef AU_IS_INTERPRETER
 #pragma once
 
+#include "platform.h"
 #include <stdlib.h>
+#endif
 
 struct au_mmap_info {
     char *bytes;
@@ -20,8 +23,8 @@ struct au_mmap_info {
 /// @param path path of file
 /// @param info info
 /// @return 1 if success, 0 if errored
-int au_mmap_read(const char *path, struct au_mmap_info *info);
+_Public int au_mmap_read(const char *path, struct au_mmap_info *info);
 
 /// [func] Deinitializes an au_mmap_info instance
 /// @param info instance to be deinitialized
-void au_mmap_del(struct au_mmap_info *info);
+_Public void au_mmap_del(struct au_mmap_info *info);

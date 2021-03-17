@@ -7,6 +7,7 @@
 #pragma once
 
 #include "core/rt/extern_fn.h"
+#include "platform/platform.h"
 
 struct au_program_data;
-void au_install_stdlib(struct au_program_data *data);
+_Private void au_install_stdlib(struct au_program_data *data);

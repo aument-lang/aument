@@ -4,9 +4,10 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
+#include <string.h>
+
 #include "au_string.h"
 #include "malloc.h"
-#include <string.h>
 #endif
 
 struct au_string *au_string_from_const(const char *s, size_t len) {

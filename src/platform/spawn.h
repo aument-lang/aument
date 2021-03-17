@@ -5,7 +5,8 @@
 // See LICENSE.txt for license information
 #pragma once
 
-#include "../core/str_array.h"
+#include "core/str_array.h"
+#include "platform.h"
 
 /// [func] Spawns a program with arguments specified
-int au_spawn(struct au_str_array *args);
+_Public int au_spawn(struct au_str_array *args);

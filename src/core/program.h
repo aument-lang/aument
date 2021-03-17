@@ -12,6 +12,7 @@
 #include "bc.h"
 #include "fn/main.h"
 #include "hm_vars.h"
+#include "platform/platform.h"
 #include "rt/au_class.h"
 #include "rt/value.h"
 #include "str_array.h"
@@ -45,7 +46,7 @@ struct au_program_import {
 
 /// [func] Deinitializes an au_program_import instance
 /// @param data instance to be deinitialized
-void au_program_import_del(struct au_program_import *data);
+_Public void au_program_import_del(struct au_program_import *data);
 
 ARRAY_TYPE_STRUCT(struct au_program_import, au_program_import_array, 1)
 
@@ -60,12 +61,12 @@ ARRAY_TYPE_STRUCT(struct au_imported_module, au_imported_module_array, 1)
 
 /// [func] Initializes an au_imported_module instance
 /// @param data instance to be initialized
-void au_imported_module_init(struct au_imported_module *data,
-                             int is_finished);
+_Public void au_imported_module_init(struct au_imported_module *data,
+                                     int is_finished);
 
 /// [func] Deinitializes an au_imported_module instance
 /// @param data instance to be deinitialized
-void au_imported_module_del(struct au_imported_module *data);
+_Public void au_imported_module_del(struct au_imported_module *data);
 
 struct au_program_data {
     struct au_fn_array fns;
@@ -87,11 +88,11 @@ struct au_program_data {
 
 /// [func] Initializes an au_program_data instance
 /// @param data instance to be initialized
-void au_program_data_init(struct au_program_data *data);
+_Public void au_program_data_init(struct au_program_data *data);
 
 /// [func] Deinitializes an au_program_data instance
 /// @param data instance to be deinitialized
-void au_program_data_del(struct au_program_data *data);
+_Public void au_program_data_del(struct au_program_data *data);
 
 /// [func] Adds constant value data into a au_program_data instance
 /// @param p_data au_program_data instance
@@ -99,9 +100,9 @@ void au_program_data_del(struct au_program_data *data);
 /// @param v_data byte array of internal constant data
 /// @param v_len size of `v_data`
 /// @return index of the data
-int au_program_data_add_data(struct au_program_data *p_data,
-                             au_value_t value, uint8_t *v_data,
-                             size_t v_len);
+_Private int au_program_data_add_data(struct au_program_data *p_data,
+                                      au_value_t value, uint8_t *v_data,
+                                      size_t v_len);
 
 struct au_program {
     struct au_bc_storage main;
@@ -109,8 +110,8 @@ struct au_program {
 };
 
 /// [func] Debugs an au_program instance
-void au_program_dbg(const struct au_program *p);
+_Public void au_program_dbg(const struct au_program *p);
 
 /// [func] Initializes an au_program instance
 /// @param p instance to be deinitialized
-void au_program_del(struct au_program *p);
+_Public void au_program_del(struct au_program *p);

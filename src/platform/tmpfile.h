@@ -5,6 +5,7 @@
 // See LICENSE.txt for license information
 #pragma once
 
+#include "platform.h"
 #include <stdio.h>
 
 struct au_tmpfile {
@@ -14,14 +15,14 @@ struct au_tmpfile {
 
 /// [func] Closes an au_tmpfile instance
 /// @param tmp instance to be closed
-void au_tmpfile_close(struct au_tmpfile *tmp);
+_Public void au_tmpfile_close(struct au_tmpfile *tmp);
 
 /// [func] Deinitializes an au_tmpfile instance
 /// @param tmp instance to be deinitialized
-void au_tmpfile_del(struct au_tmpfile *tmp);
+_Public void au_tmpfile_del(struct au_tmpfile *tmp);
 
 /// [func] Creates a new temporary file with the `.c` extension
-int au_tmpfile_new(struct au_tmpfile *tmp);
+_Public int au_tmpfile_new(struct au_tmpfile *tmp);
 
 /// [func] Creates an empty executable file
-int au_tmpfile_exec(struct au_tmpfile *tmp);
+_Public int au_tmpfile_exec(struct au_tmpfile *tmp);

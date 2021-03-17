@@ -8,6 +8,7 @@
 
 #include "array.h"
 #include "hm_vars.h"
+#include "platform/platform.h"
 
 #define AU_REGS 256
 #define AU_MAX_LOCALS 65536
@@ -119,16 +120,16 @@ struct au_bc_storage {
 
 /// [func] Initializes an au_bc_storage instance
 /// @param bc_storage instance to be initialized
-void au_bc_storage_init(struct au_bc_storage *bc_storage);
+_Public void au_bc_storage_init(struct au_bc_storage *bc_storage);
 
 /// [func] Deinitializes an au_bc_storage instance
 /// @param bc_storage instance to be deinitialized
-void au_bc_storage_del(struct au_bc_storage *bc_storage);
+_Public void au_bc_storage_del(struct au_bc_storage *bc_storage);
 
 struct au_program_data;
 
 /// [func] Debugs an bytecode storage container
 /// @param bcs the bytecode storage
 /// @param data program data
-void au_bc_dbg(const struct au_bc_storage *bcs,
-               const struct au_program_data *data);
+_Public void au_bc_dbg(const struct au_bc_storage *bcs,
+                       const struct au_program_data *data);
