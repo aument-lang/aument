@@ -84,32 +84,32 @@ static void link_to_imported(const struct au_program_data *p_data,
     struct au_imported_module *relative_module =
         &p_data->imported_modules.data[relative_module_idx];
     AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
-        assert(p_data->fns.data[entry->idx].type == AU_FN_IMPORTER);
+        assert(p_data->fns.data[entry].type == AU_FN_IMPORTER);
         const struct au_imported_func *imported_func =
-            &p_data->fns.data[entry->idx].as.imported_func;
-        const struct au_hm_var_value *fn_idx =
+            &p_data->fns.data[entry].as.imported_func;
+        const au_hm_var_value_t *fn_idx =
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
         if (fn_idx == 0)
             au_fatal("unknown function %.*s", key_len, key);
-        struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
+        struct au_fn *fn = &loaded_module->fns.data[*fn_idx];
         if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
             au_fatal("this function is not exported");
         if (au_fn_num_args(fn) != imported_func->num_args)
             au_fatal("unexpected number of arguments");
-        au_fn_fill_import_cache_unsafe(&p_data->fns.data[entry->idx], fn,
+        au_fn_fill_import_cache_unsafe(&p_data->fns.data[entry], fn,
                                        loaded_module);
     })
     AU_HM_VARS_FOREACH_PAIR(&relative_module->class_map, key, entry, {
-        assert(p_data->classes.data[entry->idx] == 0);
-        const struct au_hm_var_value *class_idx =
+        assert(p_data->classes.data[entry] == 0);
+        const au_hm_var_value_t *class_idx =
             au_hm_vars_get(&loaded_module->class_map, key, key_len);
         if (class_idx == 0)
             au_fatal("unknown class %.*s", key_len, key);
         struct au_class_interface *class_interface =
-            loaded_module->classes.data[class_idx->idx];
+            loaded_module->classes.data[*class_idx];
         if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0)
             au_fatal("this class is not exported");
-        p_data->classes.data[entry->idx] = class_interface;
+        p_data->classes.data[entry] = class_interface;
         au_class_interface_ref(class_interface);
     })
     if (relative_module->class_map.entries_occ > 0) {

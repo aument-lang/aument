@@ -186,15 +186,15 @@ static void link_to_imported(
     const struct au_c_comp_module *loaded_module) {
     AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
         const struct au_fn *relative_fn =
-            au_fn_array_at_ptr(&p_data->fns, entry->idx);
+            au_fn_array_at_ptr(&p_data->fns, entry);
         assert(relative_fn->type == AU_FN_IMPORTER);
         const struct au_imported_func *imported_func =
             &relative_fn->as.imported_func;
-        const struct au_hm_var_value *fn_idx =
+        const au_hm_var_value_t *fn_idx =
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
         if (fn_idx == 0)
             au_fatal("unknown function %.*s", key_len, key);
-        struct au_fn *fn = &loaded_module->fns.data[fn_idx->idx];
+        struct au_fn *fn = &loaded_module->fns.data[*fn_idx];
         if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
             au_fatal("this function is not exported");
         if (au_fn_num_args(fn) != imported_func->num_args)
@@ -202,36 +202,34 @@ static void link_to_imported(
         if (module_type == AU_MODULE_SOURCE) {
             if (imported_func->num_args == 0) {
                 comp_printf(state, INDENT "extern au_value_t _M%d_f%d();",
-                            (int)imported_module_idx_in_source,
-                            fn_idx->idx);
+                            (int)imported_module_idx_in_source, *fn_idx);
             } else {
                 comp_printf(state,
                             INDENT "extern au_value_t _M%d_f%d"
                                    "(au_value_t *args);",
-                            (int)imported_module_idx_in_source,
-                            fn_idx->idx);
+                            (int)imported_module_idx_in_source, *fn_idx);
             }
         } else {
             comp_printf(state, INDENT);
         }
         comp_printf(state, "_M%d_f%d=&_M%d_f%d;\n", (int)module_idx,
-                    (int)entry->idx, (int)imported_module_idx_in_source,
-                    (int)fn_idx->idx);
+                    (int)entry, (int)imported_module_idx_in_source,
+                    (int)*fn_idx);
     })
 #define X(FMT)                                                            \
     do {                                                                  \
         comp_printf(&g_state->header_file, FMT, (int)module_idx,          \
-                    (int)entry->idx, (int)imported_module_idx_in_source,  \
-                    (int)class_idx->idx);                                 \
+                    (int)entry, (int)imported_module_idx_in_source,       \
+                    (int)*class_idx);                                     \
     } while (0)
     AU_HM_VARS_FOREACH_PAIR(&relative_module->class_map, key, entry, {
-        assert(p_data->classes.data[entry->idx] == 0);
-        const struct au_hm_var_value *class_idx =
+        assert(p_data->classes.data[entry] == 0);
+        const au_hm_var_value_t *class_idx =
             au_hm_vars_get(&loaded_module->class_map, key, key_len);
         if (class_idx == 0)
             au_fatal("unknown class %.*s", key_len, key);
         struct au_class_interface *class_interface =
-            loaded_module->classes.data[class_idx->idx];
+            loaded_module->classes.data[*class_idx];
         if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0)
             au_fatal("this class is not exported");
         X("#define _M%d_%d _M%d_%d\n");
@@ -835,11 +833,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             int has_old_value = 0;
 
             {
-                struct au_hm_var_value *old_value = au_hm_vars_add(
-                    &g_state->modules_map, abspath, strlen(abspath),
-                    AU_HM_VAR_VALUE(imported_module_idx));
+                au_hm_var_value_t *old_value =
+                    au_hm_vars_add(&g_state->modules_map, abspath,
+                                   strlen(abspath), imported_module_idx);
                 if (old_value != 0) {
-                    imported_module_idx = old_value->idx;
+                    imported_module_idx = *old_value;
                     has_old_value = 1;
                 }
             }
@@ -932,12 +930,12 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         &loaded_module->fn_map, name, entry, {
                             const struct au_fn *loaded_fn =
                                 au_fn_array_at_ptr(&loaded_module->fns,
-                                                   entry->idx);
+                                                   entry);
                             comp_printf(&g_state->header_file,
                                         "static au_extern_func_t "
                                         "_M%d_f%d_ext=0;\n",
                                         (int)imported_module_idx_in_source,
-                                        (int)entry->idx);
+                                        (int)entry);
                             if (au_fn_num_args(loaded_fn) == 0) {
                                 comp_printf(
                                     &g_state->header_file,
@@ -946,9 +944,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                     "return _M%d_f%d_ext(0,0);"
                                     "}\n",
                                     (int)imported_module_idx_in_source,
-                                    (int)entry->idx,
+                                    (int)entry,
                                     (int)imported_module_idx_in_source,
-                                    (int)entry->idx);
+                                    (int)entry);
                             } else {
                                 comp_printf(
                                     &g_state->header_file,
@@ -957,9 +955,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                     "return _M%d_f%d_ext(0,a);"
                                     "}\n",
                                     (int)imported_module_idx_in_source,
-                                    (int)entry->idx,
+                                    (int)entry,
                                     (int)imported_module_idx_in_source,
-                                    (int)entry->idx);
+                                    (int)entry);
                             }
                             if ((loaded_fn->flags & AU_FN_FLAG_EXPORTED) !=
                                 0) {
@@ -970,8 +968,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                         .type = AU_FN_NONE,
                                     });
                                 au_hm_vars_add(&comp_module.fn_map, name,
-                                               name_len,
-                                               AU_HM_VAR_VALUE(0));
+                                               name_len, 0);
                             }
                         });
                     au_c_comp_module_array_add(&g_state->modules,
@@ -987,8 +984,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                                "au_module_get_fn"
                                                "(&m,\"%.*s\");\n",
                                         (int)imported_module_idx_in_source,
-                                        (int)entry->idx, (int)name_len,
-                                        name);
+                                        (int)entry, (int)name_len, name);
                             comp_printf(
                                 &g_state->header_file,
                                 INDENT
@@ -996,7 +992,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                 "au_fatal(\"failed to import function "
                                 "'%.*s' from '%s'\");\n",
                                 (int)imported_module_idx_in_source,
-                                (int)entry->idx, (int)name_len, name,
+                                (int)entry, (int)name_len, name,
                                 lib_filename);
                         });
                     comp_printf(&g_state->header_file, "}\n");

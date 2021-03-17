@@ -10,18 +10,14 @@
 #include "hash.h"
 #include "platform/platform.h"
 
-#define AU_HM_VAR_VALUE_NONE ((uint32_t)-1)
-#define AU_HM_VAR_VALUE(x) ((struct au_hm_var_value){.idx = x})
-
-struct au_hm_var_value {
-    uint32_t idx;
-};
+typedef uint32_t au_hm_var_value_t;
+#define AU_HM_VAR_VALUE_NONE ((au_hm_var_value_t)-1)
 
 struct au_hm_var_el {
     size_t key_idx;
     size_t key_len;
-    hash_t key_hash;
-    struct au_hm_var_value value;
+    au_hash_t key_hash;
+    au_hm_var_value_t value;
 };
 
 struct au_hm_bucket {
@@ -52,17 +48,17 @@ _Public void au_hm_vars_del(struct au_hm_vars *vars);
 /// @param len the bytesize length of the key
 /// @param value the value to be added
 /// @return the old value (if it exists), otherwise `NULL`
-_Public struct au_hm_var_value *
-au_hm_vars_add(struct au_hm_vars *vars, const char *key, size_t len,
-               const struct au_hm_var_value value);
+_Public au_hm_var_value_t *au_hm_vars_add(struct au_hm_vars *vars,
+                                          const char *key, size_t len,
+                                          au_hm_var_value_t value);
 
 /// Retrieves a value from an au_hm_vars instance
 /// @param vars the au_hm_vars instance
 /// @param key the key
 /// @param len the bytesize length of the key
 /// @return the value (if it exists), otherwise `NULL`
-const struct au_hm_var_value *au_hm_vars_get(const struct au_hm_vars *vars,
-                                             const char *key, size_t len);
+_Public const au_hm_var_value_t *
+au_hm_vars_get(const struct au_hm_vars *vars, const char *key, size_t len);
 
 #define AU_HM_VARS_FOREACH_PAIR(HM, NAME_VAR, ENTRY_VAR, BLOCK)           \
     for (size_t _i = 0; _i < (HM)->buckets_len; _i++) {                   \
@@ -71,7 +67,7 @@ const struct au_hm_var_value *au_hm_vars_get(const struct au_hm_vars *vars,
             struct au_hm_var_el *_el = &(HM)->buckets[_i].data[_el_idx];  \
             const char *NAME_VAR = &(HM)->var_name[_el->key_idx];         \
             const size_t NAME_VAR##_len = _el->key_len;                   \
-            const struct au_hm_var_value *ENTRY_VAR = &_el->value;        \
+            const au_hm_var_value_t ENTRY_VAR = _el->value;               \
             BLOCK                                                         \
         }                                                                 \
     }

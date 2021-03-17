@@ -28,9 +28,9 @@
 
 static void add_module(struct au_program_data *data, const char *name,
                        struct au_lib_func *funcs, int len) {
-    struct au_hm_var_value *old =
+    au_hm_var_value_t *old =
         au_hm_vars_add(&data->imported_module_map, name, strlen(name),
-                       AU_HM_VAR_VALUE(data->imported_modules.len));
+                       data->imported_modules.len);
     assert(old == 0);
     struct au_imported_module module = {0};
     au_imported_module_init(&module, 1);
@@ -41,7 +41,7 @@ static void add_module(struct au_program_data *data, const char *name,
         const size_t fn_len = data->fns.len;
         au_fn_array_add(&data->fns, fn);
         au_hm_vars_add(&module.fn_map, lib_func.name,
-                       strlen(lib_func.name), AU_HM_VAR_VALUE(fn_len));
+                       strlen(lib_func.name), fn_len);
     }
     au_imported_module_array_add(&data->imported_modules, module);
 }
@@ -70,7 +70,7 @@ void au_install_stdlib(struct au_program_data *data) {
             const size_t fn_len = data->fns.len;
             au_fn_array_add(&data->fns, fn);
             au_hm_vars_add(&data->fn_map, lib_func.name,
-                           strlen(lib_func.name), AU_HM_VAR_VALUE(fn_len));
+                           strlen(lib_func.name), fn_len);
         }
 
         add_module(data, "std", mod_funcs, mod_funcs_len);

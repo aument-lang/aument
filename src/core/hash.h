@@ -7,7 +7,7 @@
 #include "platform/platform.h"
 #include <stdint.h>
 
-typedef uint32_t hash_t;
+typedef uint32_t au_hash_t;
 
 /// [func] Hashes a chunk of memory `str` with length `len`
-_Private hash_t au_hash(const uint8_t *str, const size_t len);
+_Private au_hash_t au_hash(const uint8_t *str, const size_t len);
