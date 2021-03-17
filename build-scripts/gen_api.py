@@ -13,7 +13,7 @@ def cleanup_params(array):
 
 AT_REGEX = re.compile(r'/// @([^ ]*) (.*)')
 CMT_CONT_REGEX = re.compile(r'^///\s+')
-BEGIN_DESC_REGEX = re.compile(r'^/// \[([^\]]+)\]\s+')
+BEGIN_DESC_REGEX = re.compile(r'^/// \[([^\]]+)\]\s*')
 TWO_ARG_REGEX = re.compile(r'([^\s]+)\s+(.*)', re.S)
 FUNC_NAME_REGEX = re.compile(r'([a-zA-Z_$][a-zA-Z_$0-9]*)\(')
 STRUCT_NAME_REGEX = re.compile(r'struct ([a-zA-Z_$][a-zA-Z_$0-9]*)')

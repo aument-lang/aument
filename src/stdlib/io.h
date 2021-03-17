@@ -14,17 +14,17 @@
 /// @return string read from stdin
 AU_EXTERN_FUNC_DECL(au_std_input);
 
-/// [func-au] Opens stdout
+/// [func-au] Opens stdout as a file object
 /// @name io::stdout
 /// @return file object
 AU_EXTERN_FUNC_DECL(au_std_io_stdout);
 
-/// [func-au] Opens stdin
-/// @name io::stdout
+/// [func-au] Opens stdin as a file object
+/// @name io::stdin
 /// @return file object
 AU_EXTERN_FUNC_DECL(au_std_io_stdin);
 
-/// [func-au] Opens stderr
+/// [func-au] Opens stderr as a file object
 /// @name io::stderr
 /// @return file object
 AU_EXTERN_FUNC_DECL(au_std_io_stderr);
