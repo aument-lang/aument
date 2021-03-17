@@ -720,6 +720,8 @@ _AU_OP_JNIF:;
                 int n_regs = au_fn_num_args(call_fn);
                 const au_value_t *args =
                     &frame.arg_stack.data[frame.arg_stack.len - n_regs];
+                
+                FLUSH_BC();
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, args, &is_native);
@@ -754,6 +756,7 @@ _AU_OP_JNIF:;
                 au_value_t arg_reg = frame.regs[ret_reg];
                 au_value_ref(arg_reg);
 
+                FLUSH_BC();
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, &arg_reg, &is_native);
