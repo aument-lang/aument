@@ -1,12 +1,12 @@
 # The Aument Language
 
-The **Aument** language is a work-in-progress dynamically-typed scripting language with
+The **Aument** language\* is a work-in-progress dynamically-typed scripting language with
 
   * **performance first:** this scripting language is designed with performance in mind. ([read more](/docs/design-for-performance.md))
   * **fast development time:** like Python and Javascript, you can write code and run it directly.
   * **fast deployment:** once finished, you can compile your code into a native, lightweight executable. You don't even need any *external* runtime to run it!
 
-(Previously named the aulang language. The current name comes from the Italian word *aumento*, meaning growth, augment. It's pronounced /ˈɔː.mənt/.)
+(\* name comes from the Italian word *aumento*, meaning growth, augment. It's pronounced /ˈɔː.mənt/.)
 
 ## Syntax
 
@@ -81,7 +81,7 @@ If your build machine is Windows, install [Python](https://www.python.org/downlo
 
 **For Cygwin users,** install gcc on Cygwin, open a Cygwin shell in the current directory and follow Linux instructions.
 
-**For MSVC users,** run `build.bat` (for release mode).
+**For MSVC users,** run `build-release.bat` for release mode or `build-debug.bat` for debug mode.
 
 If you're cross-compiling for Windows (64-bit), use the command:
 
