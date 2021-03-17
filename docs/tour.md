@@ -72,7 +72,7 @@ This includes the top-level scope as well. In the example above, the function `l
 
 ### Dynamic types, static names
 
-Identifiers, function names and class names in Aument are static: they are fixed and pre-determined at parsing time. As such, the concept of global variables do not exist in aulang.
+Identifiers, function names and class names in Aument are static: they are resolved at parsing time. As such, the concept of global variables do not exist in Aument.
 
 In order to share states through function calls, you'll have to pass variables directly or wrap them in a class.
 
