@@ -75,10 +75,10 @@ def check_comp(out_path):
 def check_comp_to_path(out_path):
     global out_extension, out_extension_len, args
     program_path = out_path[:-out_extension_len] + '.au'
-    print(f"Checking {program_path}")
+    exe_name = args.param
+    print(f"Checking {program_path} => {exe_name}")
     with open(out_path, "rb") as fout:
         expected_output = fout.read()
-    exe_name = args.param
     subprocess.check_output([
         args.binary,
         'build',
@@ -87,10 +87,6 @@ def check_comp_to_path(out_path):
     ])
     output = subprocess.check_output([ exe_name ])
     assert(output == expected_output)
-    try:
-        os.remove(exe_name)
-    except:
-        pass
 
 def check_errors(out_path):
     program_path = out_path[:-out_extension_len] + '.au'

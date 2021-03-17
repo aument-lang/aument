@@ -87,11 +87,14 @@ static void test_{i}_check(au_value_t value) {{ switch(test_{i}_idx) {{
 """
             for item_idx in range(len(array_contents)):
                 test_src += f"au_value_t _value{item_idx}; assert(au_obj_array_get(array, au_value_int({item_idx}), &_value{item_idx}));\n"
-            for item_idx, item in enumerate(array_contents):
-                val_type, val_contents = item.split(',')
-                item = f"_value{item_idx}"
-                test_src += f"    {gen_check_value(item, val_type, val_contents)}\n"
-            test_src += f"  }}\n"
+            if len(array_contents) == 1 and not array_contents[0]:
+                test_src += f"  }}\n"
+            else:
+                for item_idx, item in enumerate(array_contents):
+                    val_type, val_contents = item.split(',')
+                    item = f"_value{item_idx}"
+                    test_src += f"    {gen_check_value(item, val_type, val_contents)}\n"
+                test_src += f"  }}\n"
             continue
         elif value.startswith("tuple;"):
             array_contents = value.split(';')[1:]
@@ -199,6 +202,9 @@ void run_gcc(const char *source, const size_t source_len) {{
     fflush(c_file.f);
     au_c_comp_state_del(&c_state);
     au_program_del(&program);
+
+    au_tmpfile_close(&c_file);
+    au_tmpfile_close(&c_file_out);
 
 #ifdef AU_SANITIZER
     au_str_array_add(&cc.cflags, "-fsanitize=" AU_SANITIZER);

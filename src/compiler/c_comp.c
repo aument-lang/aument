@@ -982,20 +982,22 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         lib_filename);
                     AU_HM_VARS_FOREACH_PAIR(
                         &loaded_module->fn_map, name, entry, {
-                            (void)name_len;
                             comp_printf(&g_state->header_file,
                                         INDENT "_M%d_f%d_ext="
                                                "au_module_get_fn"
-                                               "(&m,\"%s\");\n",
+                                               "(&m,\"%.*s\");\n",
                                         (int)imported_module_idx_in_source,
-                                        (int)entry->idx, name);
+                                        (int)entry->idx, (int)name_len,
+                                        name);
                             comp_printf(
                                 &g_state->header_file,
-                                INDENT "if(_M%d_f%d_ext==0)"
-                                       "au_fatal(\"failed to function "
-                                       "'%s' from '%s'\");\n",
+                                INDENT
+                                "if(_M%d_f%d_ext==0)"
+                                "au_fatal(\"failed to import function "
+                                "'%.*s' from '%s'\");\n",
                                 (int)imported_module_idx_in_source,
-                                (int)entry->idx, name, lib_filename);
+                                (int)entry->idx, (int)name_len, name,
+                                lib_filename);
                         });
                     comp_printf(&g_state->header_file, "}\n");
                 }
@@ -1041,9 +1043,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             uint8_t value = bc(pos + 1);
             comp_printf(
                 state,
-                "au_value_ref(r%d);"
-                "au_obj_array_push(au_obj_array_coerce(r%d),r%d);\n",
-                value, reg, value);
+                "au_obj_array_push(au_obj_array_coerce(r%d),r%d);\n", reg,
+                value);
             break;
         }
         case AU_OP_IDX_GET: {

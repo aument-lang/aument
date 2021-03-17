@@ -26,6 +26,11 @@ void au_tmpfile_close(struct au_tmpfile *tmp) {
 
 void au_tmpfile_del(struct au_tmpfile *tmp) {
     au_tmpfile_close(tmp);
+#ifdef _WIN32
+    // TODO: unlink for windows
+#else
+    unlink(tmp->path);
+#endif
     au_data_free(tmp->path);
 }
 
@@ -84,13 +89,19 @@ int au_tmpfile_exec(struct au_tmpfile *tmp) {
     return new_tmpfile(tmp, ".exe");
 }
 #else
-#define TMPFILE_TEMPLATE "/tmp/au-XXXXXX.c"
-#define TMPFILE_TEMPLATE_EXEC "/tmp/au-XXXXXX"
+#define TMPFILE_TEMPLATE "/tmp/au-XXXXXX"
 
-int au_tmpfile_new(struct au_tmpfile *tmp) {
-    char c_file[] = TMPFILE_TEMPLATE;
+static int new_tmpfile(struct au_tmpfile *tmp, const char *ext) {
+    const size_t ext_len = strlen(ext);
+
+    const size_t c_file_len = strlen(TMPFILE_TEMPLATE) + ext_len;
+    char c_file[c_file_len + 1];
+    memcpy(c_file, TMPFILE_TEMPLATE, strlen(TMPFILE_TEMPLATE));
+    memcpy(&c_file[strlen(TMPFILE_TEMPLATE)], ext, ext_len);
+    c_file[c_file_len] = 0;
+
     int fd;
-    if ((fd = mkstemps(c_file, 2)) == -1)
+    if ((fd = mkstemps(c_file, ext_len)) == -1)
         return 0;
     *tmp = (struct au_tmpfile){
         .f = fdopen(fd, "w"),
@@ -99,16 +110,11 @@ int au_tmpfile_new(struct au_tmpfile *tmp) {
     return 1;
 }
 
+int au_tmpfile_new(struct au_tmpfile *tmp) {
+    return new_tmpfile(tmp, ".c");
+}
+
 int au_tmpfile_exec(struct au_tmpfile *tmp) {
-    char exe_file[] = TMPFILE_TEMPLATE_EXEC;
-    int fd;
-    if ((fd = mkstemps(exe_file, 0)) == -1)
-        return 0;
-    close(fd);
-    *tmp = (struct au_tmpfile){
-        .f = 0,
-        .path = au_data_strdup(exe_file),
-    };
-    return 1;
+    return new_tmpfile(tmp, "");
 }
 #endif
