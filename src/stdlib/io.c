@@ -12,26 +12,18 @@
 #include "core/rt/value.h"
 #include "core/vm/vm.h"
 
+#include "lib/string_builder.h"
+
 AU_EXTERN_FUNC_DECL(au_std_input) {
     int ch = -1;
-    struct au_string *header =
-        au_obj_malloc(sizeof(struct au_string) + 1, 0);
-    header->rc = 1;
-    header->len = 1;
-    uint32_t pos = 0, cap = 1;
+    struct au_string_builder builder;
+    au_string_builder_init(&builder);
     while ((ch = fgetc(stdin)) != EOF) {
         if (ch == '\n')
             break;
-        if (pos == cap) {
-            cap *= 2;
-            header =
-                au_obj_realloc(header, sizeof(struct au_string) + cap);
-        }
-        header->data[pos] = ch;
-        pos++;
+        au_string_builder_add(&builder, ch);
     }
-    header->len = pos;
-    return au_value_string(header);
+    return au_value_string(au_string_builder_into_string(&builder));
 }
 
 // ** io module functions **
@@ -61,6 +53,8 @@ static void io_vdata_init() {
         io_vdata_inited = 1;
     }
 }
+
+#define MAX_SMALL_PATH 256
 
 AU_EXTERN_FUNC_DECL(au_std_io_open) {
     const au_value_t path_val = _args[0];
@@ -92,10 +86,10 @@ AU_EXTERN_FUNC_DECL(au_std_io_open) {
 #undef CMP_MODE
 
     // Set up path parameter & open the file
-    if (path_str->len < 256) {
+    if (path_str->len < MAX_SMALL_PATH) {
         // Path parameter will usually be smaller than or equal to this
         // size. This is an optimization to reduce heap allocation
-        char path_param[256] = {0};
+        char path_param[MAX_SMALL_PATH] = {0};
         memcpy(path_param, path_str->data, path_str->len);
         path_param[path_str->len] = 0;
         f = fopen(path_param, mode);
@@ -104,7 +98,7 @@ AU_EXTERN_FUNC_DECL(au_std_io_open) {
         memcpy(path_param, path_str->data, path_str->len);
         path_param[path_str->len] = 0;
         f = fopen(path_param, mode);
-        free(path_param);
+        au_data_free(path_param);
     }
 
     if (f == 0)
@@ -135,6 +129,18 @@ fail:
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_close) {
+    const au_value_t io_val = _args[0];
+    struct au_struct *io_struct = au_struct_coerce(io_val);
+    if (io_struct == NULL || io_struct->vdata != &io_vdata) {
+        au_value_deref(io_val);
+        return au_value_op_error();
+    }
+    io_close((struct au_std_io *)io_struct);
+    au_value_deref(io_val);
+    return au_value_none();
+}
+
+AU_EXTERN_FUNC_DECL(au_std_io_read) {
     const au_value_t io_val = _args[0];
     struct au_struct *io_struct = au_struct_coerce(io_val);
     if (io_struct == NULL || io_struct->vdata != &io_vdata) {

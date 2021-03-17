@@ -92,13 +92,13 @@ enum au_module_import_result au_module_import(struct au_module *module,
         module->data.lib.dl_handle =
             dlopen(abspath, RTLD_LAZY | RTLD_LOCAL);
         if (module->data.lib.dl_handle == 0) {
-            return AU_MODULE_IMPORT_FAIL_DLERROR;
+            return AU_MODULE_IMPORT_FAIL;
         }
         module_load_fn_t loader = (module_load_fn_t)dlsym(
             module->data.lib.dl_handle, AU_MODULE_LOAD_FN);
         if (loader == 0) {
             dlclose(module->data.lib.dl_handle);
-            return AU_MODULE_IMPORT_FAIL_DLERROR;
+            return AU_MODULE_IMPORT_FAIL;
         }
         module->data.lib.lib = loader();
         if (module->data.lib.lib == 0) {
