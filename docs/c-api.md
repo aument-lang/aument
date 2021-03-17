@@ -8,8 +8,8 @@ Please don't modify it by hand!
 ### au_bc_dbg
 
 ```c
-void au_bc_dbg(const struct au_bc_storage *bcs,
-               const struct au_program_data *data);
+_Public void au_bc_dbg(const struct au_bc_storage *bcs,
+                       const struct au_program_data *data);
 ```
 
 Defined in *src/core/bc.h*.
@@ -28,7 +28,7 @@ Debugs an bytecode storage container
 ### au_bc_storage_del
 
 ```c
-void au_bc_storage_del(struct au_bc_storage *bc_storage);
+_Public void au_bc_storage_del(struct au_bc_storage *bc_storage);
 ```
 
 Defined in *src/core/bc.h*.
@@ -46,7 +46,7 @@ Deinitializes an au_bc_storage instance
 ### au_bc_storage_init
 
 ```c
-void au_bc_storage_init(struct au_bc_storage *bc_storage);
+_Public void au_bc_storage_init(struct au_bc_storage *bc_storage);
 ```
 
 Defined in *src/core/bc.h*.
@@ -64,10 +64,10 @@ Initializes an au_bc_storage instance
 ### au_c_comp
 
 ```c
-void au_c_comp(struct au_c_comp_state *state,
-               const struct au_program *program,
-               const struct au_c_comp_options *options,
-               struct au_cc_options *cc);
+_Public void au_c_comp(struct au_c_comp_state *state,
+                       const struct au_program *program,
+                       const struct au_c_comp_options *options,
+                       struct au_cc_options *cc);
 ```
 
 Defined in *src/compiler/c_comp.h*.
@@ -88,7 +88,7 @@ Compiles a program into file specified by an au_c_comp_state instance
 ### au_c_comp_state_del
 
 ```c
-void au_c_comp_state_del(struct au_c_comp_state *state);
+_Public void au_c_comp_state_del(struct au_c_comp_state *state);
 ```
 
 Defined in *src/compiler/c_comp.h*.
@@ -98,6 +98,42 @@ Deinitializes an au_c_comp_state instance
 #### Arguments
 
  * **state:** instance to be initialized
+
+#### Return value
+
+*none*
+
+### au_cc_options_default
+
+```c
+_Public void au_cc_options_default(struct au_cc_options *cc);
+```
+
+Defined in *src/platform/cc.h*.
+
+Initializes an au_cc_options instance with default parameters
+
+#### Arguments
+
+ * **cc:** instance to be initialized
+
+#### Return value
+
+*none*
+
+### au_cc_options_del
+
+```c
+_Public void au_cc_options_del(struct au_cc_options *cc);
+```
+
+Defined in *src/platform/cc.h*.
+
+Deinitializes an au_cc_options instance
+
+#### Arguments
+
+ * **cc:** instance to be destroyed
 
 #### Return value
 
@@ -124,7 +160,7 @@ Decreases reference count of an au_class_interface instance. This struct is owne
 ### au_class_interface_ref
 
 ```c
-void au_class_interface_ref(struct au_class_interface *interface);
+_Public void au_class_interface_ref(struct au_class_interface *interface);
 ```
 
 Defined in *src/core/rt/au_class.h*.
@@ -142,7 +178,7 @@ Increases reference count of an au_class_interface instance. This struct is owne
 ### au_dispatch_func_del
 
 ```c
-void au_dispatch_func_del(struct au_dispatch_func *fn);
+_Public void au_dispatch_func_del(struct au_dispatch_func *fn);
 ```
 
 Defined in *src/core/fn/main.h*.
@@ -157,13 +193,13 @@ Deinitializes an au_dispatch_func instance
 
 *none*
 
-### au_fn_call
+### au_fn_call_internal
 
 ```c
-static au_value_t au_fn_call(const struct au_fn *fn,
-                             struct au_vm_thread_local *tl,
-                             const struct au_program_data *p_data,
-                             const au_value_t *args);
+_Unused static _AlwaysInline au_value_t
+au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
+                    const struct au_program_data *p_data,
+                    const au_value_t *args, int *is_native);
 ```
 
 Defined in *src/core/fn/call.h*.
@@ -184,7 +220,7 @@ the return value of the function
 ### au_fn_del
 
 ```c
-void au_fn_del(struct au_fn *fn);
+_Public void au_fn_del(struct au_fn *fn);
 ```
 
 Defined in *src/core/fn/main.h*.
@@ -202,7 +238,7 @@ Deinitializes an au_fn instance
 ### au_fn_fill_class_cache_unsafe
 
 ```c
-void au_fn_fill_class_cache_unsafe(
+_Private void au_fn_fill_class_cache_unsafe(
     const struct au_fn *fn, const struct au_program_data *current_p_data);
 ```
 
@@ -222,7 +258,7 @@ Resolves references to classes imported from external modules. This function is 
 ### au_fn_fill_import_cache_unsafe
 
 ```c
-void au_fn_fill_import_cache_unsafe(
+_Private void au_fn_fill_import_cache_unsafe(
     const struct au_fn *fn, const struct au_fn *fn_cached,
     const struct au_program_data *p_data_cached);
 ```
@@ -242,7 +278,7 @@ Fills a cached reference to a function in an external module, and a reference to
 ### au_fn_num_args
 
 ```c
-static inline int au_fn_num_args(const struct au_fn *fn);
+static inline int32_t au_fn_num_args(const struct au_fn *fn);
 ```
 
 Defined in *src/core/fn/main.h*.
@@ -257,10 +293,28 @@ Returns the number of arguments the function takes.
 
 the number of arguments
 
+### au_get_cc
+
+```c
+_Private char *au_get_cc();
+```
+
+Defined in *src/platform/cc.h*.
+
+Returns the path of the C compiler
+
+#### Arguments
+
+*none*
+
+#### Return value
+
+*none*
+
 ### au_hash
 
 ```c
-hash_t au_hash(const uint8_t *str, const size_t len);
+_Private au_hash_t au_hash(const uint8_t *str, const size_t len);
 ```
 
 Defined in *src/core/hash.h*.
@@ -278,7 +332,7 @@ Hashes a chunk of memory `str` with length `len`
 ### au_imported_func_del
 
 ```c
-void au_imported_func_del(struct au_imported_func *fn);
+_Public void au_imported_func_del(struct au_imported_func *fn);
 ```
 
 Defined in *src/core/fn/main.h*.
@@ -296,7 +350,7 @@ Deinitializes an au_imported_func instance
 ### au_imported_module_del
 
 ```c
-void au_imported_module_del(struct au_imported_module *data);
+_Public void au_imported_module_del(struct au_imported_module *data);
 ```
 
 Defined in *src/core/program.h*.
@@ -314,8 +368,8 @@ Deinitializes an au_imported_module instance
 ### au_imported_module_init
 
 ```c
-void au_imported_module_init(struct au_imported_module *data,
-                             int is_finished);
+_Public void au_imported_module_init(struct au_imported_module *data,
+                                     int is_finished);
 ```
 
 Defined in *src/core/program.h*.
@@ -330,10 +384,85 @@ Initializes an au_imported_module instance
 
 *none*
 
+### au_lexer_del
+
+```c
+_Public void au_lexer_del(struct au_lexer *l);
+```
+
+Defined in *src/core/parser/lexer.h*.
+
+Deinitializes a lexer instance
+
+#### Arguments
+
+ * **l:** instance to be deinitialized
+
+#### Return value
+
+*none*
+
+### au_lexer_init
+
+```c
+_Public void au_lexer_init(struct au_lexer *l, const char *src,
+                           size_t len);
+```
+
+Defined in *src/core/parser/lexer.h*.
+
+Initializes a lexer instance
+
+#### Arguments
+
+ * **l:** instance to be initialized
+ * **src:** pointer to source code to be lexed
+ * **len:** byte-size length of the source code
+
+#### Return value
+
+*none*
+
+### au_lexer_next
+
+```c
+_Public struct au_token au_lexer_next(struct au_lexer *l);
+```
+
+Defined in *src/core/parser/lexer.h*.
+
+Gets the next token in the lexer stream
+
+#### Arguments
+
+*none*
+
+#### Return value
+
+*none*
+
+### au_lexer_peek
+
+```c
+_Public struct au_token au_lexer_peek(struct au_lexer *l, int lh_pos);
+```
+
+Defined in *src/core/parser/lexer.h*.
+
+Look ahead the next token in the lexer stream without consuming it
+
+#### Arguments
+
+*none*
+
+#### Return value
+
+*none*
+
 ### au_mmap_del
 
 ```c
-void au_mmap_del(struct au_mmap_info *info);
+_Public void au_mmap_del(struct au_mmap_info *info);
 ```
 
 Defined in *src/platform/mmap.h*.
@@ -351,7 +480,7 @@ Deinitializes an au_mmap_info instance
 ### au_mmap_read
 
 ```c
-int au_mmap_read(const char *path, struct au_mmap_info *info);
+_Public int au_mmap_read(const char *path, struct au_mmap_info *info);
 ```
 
 Defined in *src/platform/mmap.h*.
@@ -373,8 +502,7 @@ Loads a file into memory and stores a reference into a au_mmap_info instance
 static _Unused inline int au_module_add_fn(struct au_program_data *p_data,
                                            const char *name,
                                            au_extern_func_t func,
-                                           int num_args) {
-    struct au_fn fn;
+                                           int num_args);
 ```
 
 Defined in *src/lib/module.h*.
@@ -395,9 +523,7 @@ Declares an external function in the external module
 ### au_module_new
 
 ```c
-static _Unused inline struct au_program_data *au_module_new() {
-    return (struct au_program_data *)au_data_calloc(
-        sizeof(struct au_program_data));
+static _Unused inline struct au_program_data *au_module_new();
 ```
 
 Defined in *src/lib/module.h*.
@@ -415,8 +541,8 @@ a reference to the module
 ### au_parse
 
 ```c
-struct au_parser_result au_parse(const char *src, size_t len,
-                                 struct au_program *program);
+_Public struct au_parser_result au_parse(const char *src, size_t len,
+                                         struct au_program *program);
 ```
 
 Defined in *src/core/parser/parser.h*.
@@ -436,8 +562,8 @@ Parses source code into an au_program instance
 ### au_print_interpreter_error
 
 ```c
-void au_print_interpreter_error(struct au_interpreter_result type,
-                                struct au_error_location loc);
+_Public void au_print_interpreter_error(struct au_interpreter_result type,
+                                        struct au_error_location loc);
 ```
 
 Defined in *src/core/int_error/error_printer.h*.
@@ -455,8 +581,8 @@ Prints an interpreter error
 ### au_print_parser_error
 
 ```c
-void au_print_parser_error(struct au_parser_result res,
-                           struct au_error_location loc);
+_Public void au_print_parser_error(struct au_parser_result res,
+                                   struct au_error_location loc);
 ```
 
 Defined in *src/core/int_error/error_printer.h*.
@@ -474,9 +600,9 @@ Prints a parser error
 ### au_program_data_add_data
 
 ```c
-int au_program_data_add_data(struct au_program_data *p_data,
-                             au_value_t value, uint8_t *v_data,
-                             size_t v_len);
+_Private int au_program_data_add_data(struct au_program_data *p_data,
+                                      au_value_t value, uint8_t *v_data,
+                                      size_t v_len);
 ```
 
 Defined in *src/core/program.h*.
@@ -497,7 +623,7 @@ index of the data
 ### au_program_data_del
 
 ```c
-void au_program_data_del(struct au_program_data *data);
+_Public void au_program_data_del(struct au_program_data *data);
 ```
 
 Defined in *src/core/program.h*.
@@ -515,7 +641,7 @@ Deinitializes an au_program_data instance
 ### au_program_data_init
 
 ```c
-void au_program_data_init(struct au_program_data *data);
+_Public void au_program_data_init(struct au_program_data *data);
 ```
 
 Defined in *src/core/program.h*.
@@ -533,7 +659,7 @@ Initializes an au_program_data instance
 ### au_program_dbg
 
 ```c
-void au_program_dbg(const struct au_program *p);
+_Public void au_program_dbg(const struct au_program *p);
 ```
 
 Defined in *src/core/program.h*.
@@ -551,7 +677,7 @@ Debugs an au_program instance
 ### au_program_del
 
 ```c
-void au_program_del(struct au_program *p);
+_Public void au_program_del(struct au_program *p);
 ```
 
 Defined in *src/core/program.h*.
@@ -569,7 +695,7 @@ Initializes an au_program instance
 ### au_program_import_del
 
 ```c
-void au_program_import_del(struct au_program_import *data);
+_Public void au_program_import_del(struct au_program_import *data);
 ```
 
 Defined in *src/core/program.h*.
@@ -587,7 +713,7 @@ Deinitializes an au_program_import instance
 ### au_spawn
 
 ```c
-int au_spawn(struct au_str_array *args);
+_Public int au_spawn(struct au_str_array *args);
 ```
 
 Defined in *src/platform/spawn.h*.
@@ -605,7 +731,7 @@ Spawns a program with arguments specified
 ### au_split_path
 
 ```c
-int au_split_path(const char *path, char **file, char **wd);
+_Private int au_split_path(const char *path, char **file, char **wd);
 ```
 
 Defined in *src/platform/path.h*.
@@ -620,10 +746,86 @@ Splits a path into file and directory components
 
 *none*
 
+### au_string_add
+
+```c
+_Public struct au_string *au_string_add(struct au_string *left,
+                                        struct au_string *right);
+```
+
+Defined in *src/core/rt/au_string.h*.
+
+Creates an au_string from concatenating 2 au_string(s)
+
+#### Arguments
+
+ * **left:** First string
+ * **right:** Second string
+
+#### Return value
+
+Concatenation of `left` and `right`
+
+### au_string_cmp
+
+```c
+_Public int au_string_cmp(struct au_string *left, struct au_string *right);
+```
+
+Defined in *src/core/rt/au_string.h*.
+
+Compares 2 au_string instances
+
+#### Arguments
+
+ * **left:** First string
+ * **right:** Second string
+
+#### Return value
+
+Comparison of `left` and `right`
+
+### au_string_from_const
+
+```c
+_Public struct au_string *au_string_from_const(const char *s, size_t len);
+```
+
+Defined in *src/core/rt/au_string.h*.
+
+Creates an au_string from a constant array of chars
+
+#### Arguments
+
+ * **s:** Pointer to the array of chars
+ * **len:** Byte size of the string
+
+#### Return value
+
+*none*
+
+### au_tmpfile_close
+
+```c
+_Public void au_tmpfile_close(struct au_tmpfile *tmp);
+```
+
+Defined in *src/platform/tmpfile.h*.
+
+Closes an au_tmpfile instance
+
+#### Arguments
+
+ * **tmp:** instance to be closed
+
+#### Return value
+
+*none*
+
 ### au_tmpfile_del
 
 ```c
-void au_tmpfile_del(struct au_tmpfile *tmp);
+_Public void au_tmpfile_del(struct au_tmpfile *tmp);
 ```
 
 Defined in *src/platform/tmpfile.h*.
@@ -641,7 +843,7 @@ Deinitializes an au_tmpfile instance
 ### au_tmpfile_exec
 
 ```c
-int au_tmpfile_exec(struct au_tmpfile *tmp);
+_Public int au_tmpfile_exec(struct au_tmpfile *tmp);
 ```
 
 Defined in *src/platform/tmpfile.h*.
@@ -659,7 +861,7 @@ Creates an empty executable file
 ### au_tmpfile_new
 
 ```c
-int au_tmpfile_new(struct au_tmpfile *tmp);
+_Public int au_tmpfile_new(struct au_tmpfile *tmp);
 ```
 
 Defined in *src/platform/tmpfile.h*.
@@ -695,9 +897,9 @@ Creates a value from a pointer to a structure. The pointer must be allocated usi
 ### au_vm_error
 
 ```c
-void au_vm_error(struct au_interpreter_result res,
-                 const struct au_program_data *p_data,
-                 struct au_vm_frame *frame);
+_Public void au_vm_error(struct au_interpreter_result res,
+                         const struct au_program_data *p_data,
+                         struct au_vm_frame *frame);
 ```
 
 Defined in *src/core/vm/exception.h*.
@@ -764,7 +966,7 @@ return value
 ### au_vm_thread_local_del
 
 ```c
-void au_vm_thread_local_del(struct au_vm_thread_local *tl);
+_Public void au_vm_thread_local_del(struct au_vm_thread_local *tl);
 ```
 
 Defined in *src/core/vm/tl.h*.
@@ -782,7 +984,7 @@ Deinitializes an au_vm_thread_local instance
 ### au_vm_thread_local_get
 
 ```c
-struct au_vm_thread_local *au_vm_thread_local_get();
+_Public struct au_vm_thread_local *au_vm_thread_local_get();
 ```
 
 Defined in *src/core/vm/tl.h*.
@@ -800,8 +1002,8 @@ the current thread's au_vm_thread_local instance
 ### au_vm_thread_local_init
 
 ```c
-void au_vm_thread_local_init(struct au_vm_thread_local *tl,
-                             const struct au_program_data *p_data);
+_Public void au_vm_thread_local_init(struct au_vm_thread_local *tl,
+                                     const struct au_program_data *p_data);
 ```
 
 Defined in *src/core/vm/tl.h*.
@@ -820,7 +1022,7 @@ Initializes an au_vm_thread_local instance
 ### au_vm_thread_local_set
 
 ```c
-void au_vm_thread_local_set(struct au_vm_thread_local *tl);
+_Public void au_vm_thread_local_set(struct au_vm_thread_local *tl);
 ```
 
 Defined in *src/core/vm/tl.h*.
@@ -843,7 +1045,7 @@ A dispatch method
 
 ```c
 struct au_dispatch_func {
-    int num_args;
+    int32_t num_args;
     struct au_dispatch_func_instance_array data;
     size_t fallback_fn;
 };
@@ -874,9 +1076,9 @@ struct au_fn {
     enum au_fn_type type;
     uint32_t flags;
     union {
-        struct au_lib_func native_func;
+        struct au_lib_func lib_func;
         struct au_bc_storage bc_func;
-        struct au_imported_func import_func;
+        struct au_imported_func imported_func;
         struct au_none_func none_func;
         struct au_dispatch_func dispatch_func;
     } as;
@@ -891,8 +1093,8 @@ An imported function. This object stores information about a possibly unresolved
 
 ```c
 struct au_imported_func {
-    int num_args;
-    int module_idx;
+    int32_t num_args;
+    int32_t module_idx;
     char *name;
     size_t name_len;
     const struct au_fn *fn_cached;
@@ -909,7 +1111,7 @@ A forward declared function. This object must only appear while parsing, and mus
 ```c
 struct au_none_func {
     /// Expected number of arguments this function has
-    int num_args;
+    int32_t num_args;
     /// Expected name of the function
     struct au_token name_token;
 };
