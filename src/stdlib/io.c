@@ -31,11 +31,14 @@ AU_EXTERN_FUNC_DECL(au_std_input) {
 struct au_std_io {
     struct au_struct header;
     FILE *f;
+    int can_close;
 };
 
 static void io_close(struct au_std_io *io) {
     if (io->f != NULL) {
-        fclose(io->f);
+        if (io->can_close) {
+            fclose(io->f);
+        }
         io->f = NULL;
     }
 }
@@ -56,11 +59,50 @@ static void io_vdata_init() {
 
 #define MAX_SMALL_PATH 256
 
+AU_EXTERN_FUNC_DECL(au_std_io_stdout) {
+    struct au_std_io *io = 
+        au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
+    io_vdata_init();
+    io->header = (struct au_struct){
+        .rc = 1,
+        .vdata = &io_vdata,
+    };
+    io->f = stdout;
+    io->can_close = 0;
+    return au_value_struct((struct au_struct *)io);
+}
+
+AU_EXTERN_FUNC_DECL(au_std_io_stdin) {
+    struct au_std_io *io = 
+        au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
+    io_vdata_init();
+    io->header = (struct au_struct){
+        .rc = 1,
+        .vdata = &io_vdata,
+    };
+    io->f = stdin;
+    io->can_close = 0;
+    return au_value_struct((struct au_struct *)io);
+}
+
+AU_EXTERN_FUNC_DECL(au_std_io_stderr) {
+    struct au_std_io *io = 
+        au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
+    io_vdata_init();
+    io->header = (struct au_struct){
+        .rc = 1,
+        .vdata = &io_vdata,
+    };
+    io->f = stderr;
+    io->can_close = 0;
+    return au_value_struct((struct au_struct *)io);
+}
+
 AU_EXTERN_FUNC_DECL(au_std_io_open) {
     const au_value_t path_val = _args[0];
     if (au_value_get_type(path_val) != AU_VALUE_STR)
         return au_value_op_error();
-    const au_value_t mode_val = _args[0];
+    const au_value_t mode_val = _args[1];
     if (au_value_get_type(mode_val) != AU_VALUE_STR)
         return au_value_op_error();
 
@@ -81,6 +123,8 @@ AU_EXTERN_FUNC_DECL(au_std_io_open) {
         mode = "rb";
     else if (CMP_MODE("w"))
         mode = "wb";
+    else if (CMP_MODE("a"))
+        mode = "ab";
     else
         goto fail;
 #undef CMP_MODE
@@ -113,6 +157,7 @@ AU_EXTERN_FUNC_DECL(au_std_io_open) {
     };
     io->f = f;
     f = 0;
+    io->can_close = 1;
 
     au_value_deref(path_val);
     au_value_deref(mode_val);
@@ -147,7 +192,47 @@ AU_EXTERN_FUNC_DECL(au_std_io_read) {
         au_value_deref(io_val);
         return au_value_op_error();
     }
-    io_close((struct au_std_io *)io_struct);
+    struct au_std_io *io = (struct au_std_io *)io_struct;
+
+    int ch = -1;
+    struct au_string_builder builder;
+    au_string_builder_init(&builder);
+    while ((ch = fgetc(io->f)) != EOF) {
+        au_string_builder_add(&builder, ch);
+    }
+    au_value_deref(io_val);
+    return au_value_string(au_string_builder_into_string(&builder));
+}
+
+AU_EXTERN_FUNC_DECL(au_std_io_write) {
+    const au_value_t io_val = _args[0];
+    struct au_struct *io_struct = au_struct_coerce(io_val);
+    if (io_struct == NULL || io_struct->vdata != &io_vdata) {
+        au_value_deref(io_val);
+        return au_value_op_error();
+    }
+    struct au_std_io *io = (struct au_std_io *)io_struct;
+
+    const au_value_t out_val = _args[1];
+    if (au_value_get_type(out_val) != AU_VALUE_STR)
+        return au_value_op_error();
+    const struct au_string *out = au_value_get_string(out_val);
+
+    int32_t retval = (int32_t)fwrite(out->data, 1, out->len, io->f);
+    au_value_deref(io_val);
+    au_value_deref(out_val);
+    return au_value_int(retval);
+}
+
+AU_EXTERN_FUNC_DECL(au_std_io_flush) {
+    const au_value_t io_val = _args[0];
+    struct au_struct *io_struct = au_struct_coerce(io_val);
+    if (io_struct == NULL || io_struct->vdata != &io_vdata) {
+        au_value_deref(io_val);
+        return au_value_op_error();
+    }
+    struct au_std_io *io = (struct au_std_io *)io_struct;
+    fflush(io->f);
     au_value_deref(io_val);
     return au_value_none();
 }

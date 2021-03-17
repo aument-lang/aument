@@ -87,8 +87,14 @@ void au_install_stdlib(struct au_program_data *data) {
     {
         struct au_lib_func mod_funcs[] = {
             // *io.c*
+            MODULE_FUNC(io_stdout, "stdout", 0),
+            MODULE_FUNC(io_stdin, "stdin", 0),
+            MODULE_FUNC(io_stderr, "stderr", 0),
             MODULE_FUNC(io_open, "open", 2),
             MODULE_FUNC(io_close, "close", 1),
+            MODULE_FUNC(io_read, "read", 1),
+            MODULE_FUNC(io_write, "write", 2),
+            MODULE_FUNC(io_flush, "flush", 1),
         };
         const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
         add_module(data, "io", mod_funcs, mod_funcs_len);
