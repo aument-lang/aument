@@ -3,7 +3,7 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
-#include "core/vm/tl.h"
+#include "core/rt/value/ref.h"
 #include "core/vm/vm.h"
 #include "malloc.h"
 #include "platform/platform.h"
@@ -12,11 +12,6 @@
 #include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
-// #include <stdio.h>
-
-struct au_obj_rc {
-    uint32_t rc;
-};
 
 #define PTR_TO_OBJ_HEADER(PTR)                                            \
     (struct au_obj_malloc_header *)((uintptr_t)PTR -                      \

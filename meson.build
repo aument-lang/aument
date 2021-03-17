@@ -174,7 +174,6 @@ if has_compile_feature
         'src/core/rt/struct/vdata.h',
         'src/core/rt/struct/coerce.h',
         'src/core/rt/struct/helper.h',
-        'src/core/rt/fn_value/ref.h',
         'src/core/rt/value/ref.h',
         'src/core/rt/au_array.h',
         'src/core/rt/au_tuple.h',

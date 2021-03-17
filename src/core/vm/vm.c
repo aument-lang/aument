@@ -788,7 +788,7 @@ _AU_OP_JNIF:;
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[reg] = au_value_fn(fn_value);
                 // INVARIANT(GC): from au_fn_value_new
-                au_fn_value_deref(fn_value);
+                au_value_deref(frame.regs[reg]);
 #else
                 MOVE_VALUE(
                     frame.regs[reg],
