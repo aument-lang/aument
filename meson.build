@@ -288,6 +288,7 @@ endif
 
 add_project_arguments('-DAU_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"', language : ['c'])
 add_project_arguments('-DAU_INCLUDEDIR="' + join_paths(get_option('prefix'), get_option('includedir')) + '"', language : ['c'])
+add_project_arguments('-DAU_LIBDIR="' + join_paths(get_option('prefix'), get_option('libdir')) + '"', language : ['c'])
 
 # Build types
 add_project_arguments('-DAU_IS_INTERPRETER', language : ['c'])
@@ -306,6 +307,8 @@ incs = include_directories('src')
 
 # These header files must be ordered by hand
 aument_header_files = [
+'src/lib/begin.h',
+
 # Platform-specific
 'src/platform/platform.h',
 'src/core/rt/exception.h',
