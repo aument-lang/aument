@@ -68,8 +68,6 @@ static _AlwaysInline void au_value_deref(const au_value_t v) {
         abort();
     obj_rc->rc--;
 
-#ifndef AU_FEAT_DELAYED_RC
     if (obj_rc->rc == 0)
         au_obj_free(obj_rc);
-#endif
 }
