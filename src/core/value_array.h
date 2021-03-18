@@ -9,4 +9,4 @@
 #include "rt/value.h"
 #endif
 
-ARRAY_TYPE_COPY(au_value_t, au_value_array, 1)
+AU_ARRAY_COPY(au_value_t, au_value_array, 1)

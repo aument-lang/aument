@@ -23,7 +23,7 @@ struct au_program_data_val {
     uint32_t buf_len;
 };
 
-ARRAY_TYPE_COPY(struct au_program_data_val, au_program_data_vals, 1)
+AU_ARRAY_COPY(struct au_program_data_val, au_program_data_vals, 1)
 
 #define AU_SM_FUNC_ID_MAIN ((size_t)-1)
 
@@ -34,8 +34,8 @@ struct au_program_source_map {
     size_t func_idx;
 };
 
-ARRAY_TYPE_STRUCT(struct au_program_source_map,
-                  au_program_source_map_array, 1)
+AU_ARRAY_STRUCT(struct au_program_source_map, au_program_source_map_array,
+                1)
 
 #define AU_PROGRAM_IMPORT_NO_MODULE ((size_t)-1)
 
@@ -48,7 +48,7 @@ struct au_program_import {
 /// @param data instance to be deinitialized
 _Public void au_program_import_del(struct au_program_import *data);
 
-ARRAY_TYPE_STRUCT(struct au_program_import, au_program_import_array, 1)
+AU_ARRAY_STRUCT(struct au_program_import, au_program_import_array, 1)
 
 struct au_program_data;
 struct au_imported_module {
@@ -57,7 +57,7 @@ struct au_imported_module {
     int is_finished;
 };
 
-ARRAY_TYPE_STRUCT(struct au_imported_module, au_imported_module_array, 1)
+AU_ARRAY_STRUCT(struct au_imported_module, au_imported_module_array, 1)
 
 /// [func] Initializes an au_imported_module instance
 /// @param data instance to be initialized

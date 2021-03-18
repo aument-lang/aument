@@ -14,7 +14,7 @@
 #include "rt/exception.h"
 #endif
 
-#define ARRAY_TYPE_COPY(INNER, NAME, IN_CAP)                              \
+#define AU_ARRAY_COPY(INNER, NAME, IN_CAP)                                \
     struct NAME {                                                         \
         INNER *data;                                                      \
         size_t len;                                                       \
@@ -45,8 +45,8 @@
         array->data[idx] = thing;                                         \
     }
 
-#define ARRAY_TYPE_STRUCT(INNER, NAME, IN_CAP)                            \
-    ARRAY_TYPE_COPY(INNER, NAME, IN_CAP)                                  \
+#define AU_ARRAY_STRUCT(INNER, NAME, IN_CAP)                              \
+    AU_ARRAY_COPY(INNER, NAME, IN_CAP)                                    \
     static _Unused _AlwaysInline const INNER *NAME##_at_ptr(              \
         const struct NAME *array, size_t idx) {                           \
         if (_Unlikely(idx >= array->len))                                 \

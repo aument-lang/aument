@@ -15,7 +15,7 @@
 
 typedef void (*au_vm_print_fn_t)(au_value_t);
 struct au_program_data;
-ARRAY_TYPE_COPY(struct au_program_data *, au_program_data_array, 1)
+AU_ARRAY_COPY(struct au_program_data *, au_program_data_array, 1)
 
 struct au_vm_thread_local {
     au_vm_print_fn_t print_fn;
