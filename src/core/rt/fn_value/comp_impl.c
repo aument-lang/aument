@@ -62,13 +62,9 @@ int au_fn_value_add_arg_rt(au_value_t fn_value_, au_value_t arg_value) {
     return 1;
 }
 
-au_value_t au_fn_value_call_rt(au_value_t fn_value_,
-                               au_value_t *unbound_args,
-                               int32_t num_unbound_args) {
-    struct au_fn_value *fn_value = au_fn_value_coerce(fn_value_);
-    if (fn_value == 0)
-        return au_value_op_error();
-
+static au_value_t direct_call_fn_value(const struct au_fn_value *fn_value,
+                                       au_value_t *unbound_args,
+                                       int num_unbound_args) {
     const int32_t num_bound_args = fn_value->bound_args.len;
     const int32_t total_args = num_bound_args + num_unbound_args;
     if (total_args != fn_value->num_args) {
@@ -97,6 +93,24 @@ au_value_t au_fn_value_call_rt(au_value_t fn_value_,
     }
     au_data_free(args);
     return retval;
+}
+
+au_value_t au_fn_value_call_rt(au_value_t fn_value_,
+                               au_value_t *unbound_args,
+                               int32_t num_unbound_args) {
+    struct au_fn_value *fn_value = au_fn_value_coerce(fn_value_);
+    if (fn_value == 0)
+        return au_value_op_error();
+    return direct_call_fn_value(fn_value, unbound_args, num_unbound_args);
+}
+
+au_value_t au_fn_value_call_vm(const struct au_fn_value *fn_value,
+                               struct au_vm_thread_local *tl,
+                               au_value_t *unbound_args,
+                               int num_unbound_args, int *is_native_out) {
+    (void)tl;
+    (void)is_native_out;
+    return direct_call_fn_value(fn_value, unbound_args, num_unbound_args);
 }
 
 void au_fn_value_ref(struct au_fn_value *header) { header->rc++; }

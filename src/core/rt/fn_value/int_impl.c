@@ -30,8 +30,9 @@ void au_fn_value_add_arg(struct au_fn_value *fn_value, au_value_t value) {
     au_value_array_add(&fn_value->bound_args, value);
 }
 
-struct au_fn_value *au_fn_value_new(const struct au_fn *fn,
-                                    const struct au_program_data *p_data) {
+struct au_fn_value *
+au_fn_value_from_vm(const struct au_fn *fn,
+                    const struct au_program_data *p_data) {
     struct au_fn_value *fn_value = au_obj_malloc(
         sizeof(struct au_fn_value), (au_obj_del_fn_t)au_fn_value_del);
     fn_value->rc = 1;
@@ -41,11 +42,11 @@ struct au_fn_value *au_fn_value_new(const struct au_fn *fn,
     return fn_value;
 }
 
-au_value_t au_fn_value_call(const struct au_fn_value *fn_value,
-                            struct au_vm_thread_local *tl,
-                            const struct au_program_data *p_data,
-                            au_value_t *unbound_args,
-                            int32_t num_unbound_args, int *is_native_out) {
+au_value_t au_fn_value_call_vm(const struct au_fn_value *fn_value,
+                               struct au_vm_thread_local *tl,
+                               au_value_t *unbound_args,
+                               int32_t num_unbound_args,
+                               int *is_native_out) {
     const int32_t num_bound_args = fn_value->bound_args.len;
     const int32_t total_args = num_bound_args + num_unbound_args;
     if (total_args != au_fn_num_args(fn_value->fn)) {
@@ -62,8 +63,8 @@ au_value_t au_fn_value_call(const struct au_fn_value *fn_value,
         args[num_bound_args + i] = unbound_args[i];
         unbound_args[i] = au_value_none();
     }
-    au_value_t retval =
-        au_fn_call_internal(fn_value->fn, tl, p_data, args, is_native_out);
+    au_value_t retval = au_fn_call_internal(
+        fn_value->fn, tl, fn_value->p_data, args, is_native_out);
     for (int32_t i = 0; i < total_args; i++) {
         au_value_deref(args[i]);
     }

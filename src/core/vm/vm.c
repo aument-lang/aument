@@ -783,10 +783,10 @@ _AU_OP_JNIF:;
                 const uint8_t reg = bc[1];
                 const uint16_t func_id = *((uint16_t *)(&bc[2]));
                 const struct au_fn *fn = &p_data->fns.data[func_id];
-                struct au_fn_value *fn_value = au_fn_value_new(fn, p_data);
+                struct au_fn_value *fn_value = au_fn_value_from_vm(fn, p_data);
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[reg] = au_value_fn(fn_value);
-                // INVARIANT(GC): from au_fn_value_new
+                // INVARIANT(GC): from au_fn_value_from_vm
                 au_value_deref(frame.regs[reg]);
 #else
                 MOVE_VALUE(
@@ -819,8 +819,8 @@ _AU_OP_JNIF:;
                         &frame.arg_stack
                              .data[frame.arg_stack.len - num_args];
                     int is_native = 0;
-                    const au_value_t callee_retval = au_fn_value_call(
-                        fn_value, tl, p_data, args, num_args, &is_native);
+                    const au_value_t callee_retval = au_fn_value_call_vm(
+                        fn_value, tl, args, num_args, &is_native);
                     if (_Unlikely(au_value_is_op_error(callee_retval))) {
                         FLUSH_BC();
                         call_error(p_data, &frame);
