@@ -20,8 +20,10 @@
 #include "parser.h"
 
 #define CLASS_ID_NONE ((size_t)-1)
+#define CACHED_REG_NONE ((uint8_t)-1)
 
 AU_ARRAY_COPY(size_t, size_t_array, 1)
+AU_ARRAY_COPY(uint8_t, reg_array, 1)
 
 struct au_parser {
     /// Bytecode buffer that the parser is outputting to
@@ -34,9 +36,13 @@ struct au_parser {
 
     /// Bitmap of used registers
     char used_regs[AU_BA_LEN(AU_REGS)];
+    char pinned_regs[AU_BA_LEN(AU_REGS)];
 
     /// Hash table of local variables
     struct au_hm_vars vars;
+    /// Local => reg mapping
+    struct reg_array local_to_reg;
+
     /// Hash table of constant variables
     struct au_hm_vars consts;
 
@@ -86,13 +92,16 @@ static void parser_flush_free_regs(struct au_parser *p) {
     p->rstack_len = 0;
     for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
         p->used_regs[i] = 0;
+        p->pinned_regs[i] = 0;
+    }
+    for (size_t i = 0; i < p->local_to_reg.len; i++) {
+        p->local_to_reg.data[i] = CACHED_REG_NONE;
     }
 }
 
 static void parser_init(struct au_parser *p,
                         struct au_program_data *p_data) {
     p->bc = (struct au_bc_buf){0};
-    parser_flush_free_regs(p);
     au_hm_vars_init(&p->vars);
     au_hm_vars_init(&p->consts);
     p->p_data = p_data;
@@ -100,6 +109,8 @@ static void parser_init(struct au_parser *p,
     p->num_locals = 0;
     p->max_register = -1;
     p->block_level = 0;
+
+    p->local_to_reg = (struct reg_array){0};
 
     p->self_name = 0;
     p->self_len = 0;
@@ -110,6 +121,8 @@ static void parser_init(struct au_parser *p,
     p->class_interface = 0;
     p->self_keyword = 0;
     p->self_keyword_len = 0;
+
+    parser_flush_free_regs(p);
 }
 
 static void parser_del(struct au_parser *p) {
@@ -159,9 +172,7 @@ static void parser_swap_top_regs(struct au_parser *p) {
 }
 
 static void parser_push_reg(struct au_parser *p, uint8_t reg) {
-    assert(!AU_BA_GET_BIT(p->used_regs, reg));
     AU_BA_SET_BIT(p->used_regs, reg);
-
     assert(p->rstack_len + 1 <= AU_REGS);
     p->rstack[p->rstack_len++] = reg;
     if (reg > p->max_register)
@@ -171,7 +182,9 @@ static void parser_push_reg(struct au_parser *p, uint8_t reg) {
 static uint8_t parser_pop_reg(struct au_parser *p) {
     assert(p->rstack_len != 0);
     uint8_t reg = p->rstack[--p->rstack_len];
-    AU_BA_RESET_BIT(p->used_regs, reg);
+    if (!AU_BA_GET_BIT(p->pinned_regs, reg)) {
+        AU_BA_RESET_BIT(p->used_regs, reg);
+    }
     return reg;
 }
 
@@ -205,7 +218,7 @@ static void parser_emit_pad8(struct au_parser *p) {
 
 #define EXPECT_TOKEN(CONDITION, TOKEN, EXPECTED)                          \
     do {                                                                  \
-        if (!(CONDITION)) {                                               \
+        if (_Unlikely(!(CONDITION))) {                                    \
             p->res = (struct au_parser_result){                           \
                 .type = AU_PARSER_RES_UNEXPECTED_TOKEN,                   \
                 .data.unexpected_token.got_token = TOKEN,                 \
@@ -217,7 +230,7 @@ static void parser_emit_pad8(struct au_parser *p) {
 
 #define EXPECT_GLOBAL_SCOPE(TOKEN)                                        \
     do {                                                                  \
-        if (p->block_level != 0) {                                        \
+        if (_Unlikely(p->block_level != 0)) {                             \
             p->res = (struct au_parser_result){                           \
                 .type = AU_PARSER_RES_EXPECT_GLOBAL_SCOPE,                \
                 .data.expect_global.at_token = TOKEN,                     \
@@ -228,7 +241,7 @@ static void parser_emit_pad8(struct au_parser *p) {
 
 #define EXPECT_BYTECODE(CONDITION)                                        \
     do {                                                                  \
-        if (!(CONDITION)) {                                               \
+        if (_Unlikely(!(CONDITION))) {                                    \
             p->res = (struct au_parser_result){                           \
                 .type = AU_PARSER_RES_BYTECODE_GEN,                       \
             };                                                            \
@@ -1952,11 +1965,29 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
                     parser_emit_bc_u16(p, *const_val);
                 }
             } else {
-                uint8_t reg;
-                EXPECT_BYTECODE(parser_new_reg(p, &reg));
-                parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
-                parser_emit_bc_u8(p, reg);
-                parser_emit_bc_u16(p, *val);
+                const uint16_t local = *val;
+                uint8_t cached_reg;
+                if (local < p->local_to_reg.len) {
+                    cached_reg = p->local_to_reg.data[local];
+                } else {
+                    for (size_t i = p->local_to_reg.len;
+                         i < (size_t)local + 1; i++) {
+                        reg_array_add(&p->local_to_reg, CACHED_REG_NONE);
+                    }
+                    cached_reg = CACHED_REG_NONE;
+                }
+                if (cached_reg == CACHED_REG_NONE) {
+                    uint8_t reg;
+                    EXPECT_BYTECODE(parser_new_reg(p, &reg));
+                    parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
+                    parser_emit_bc_u8(p, reg);
+                    parser_emit_bc_u16(p, local);
+                    reg_array_set(&p->local_to_reg, local, reg);
+                    AU_BA_SET_BIT(p->pinned_regs, reg);
+                } else {
+                    parser_push_reg(p, cached_reg);
+                    AU_BA_SET_BIT(p->pinned_regs, cached_reg);
+                }
             }
         }
         break;
