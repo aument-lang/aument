@@ -239,6 +239,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #endif
 
 #ifndef AU_USE_DISPATCH_JMP
+#define PREFETCH_INSN
 #define CASE(x) case x
 #define DISPATCH                                                          \
     DISPATCH_DEBUG;                                                       \
@@ -249,7 +250,16 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     continue
         switch (bc[0]) {
 #else
-#define CASE(x) CB_##x
+
+#ifdef AU_FEAT_PREFETCH_INSN
+#define PREFETCH_INSN register void *_next_insn = cb[bc[4]];
+#define DISPATCH                                                          \
+    do {                                                                  \
+        DISPATCH_DEBUG;                                                   \
+        bc += 4;                                                          \
+        goto *_next_insn;                                             \
+    } while (0)
+#else
 #define DISPATCH                                                          \
     do {                                                                  \
         DISPATCH_DEBUG;                                                   \
@@ -257,12 +267,16 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         uint8_t op = bc[0];                                               \
         goto *cb[op];                                                     \
     } while (0)
+#endif
+
 #define DISPATCH_JMP                                                      \
     do {                                                                  \
         DISPATCH_DEBUG;                                                   \
         uint8_t op = bc[0];                                               \
         goto *cb[op];                                                     \
     } while (0)
+
+#define CASE(x) CB_##x
         static void *cb[] = {
             &&CASE(AU_OP_LOAD_SELF),
             &&CASE(AU_OP_MOV_U16),
@@ -338,6 +352,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_LEQ_DOUBLE),
             &&CASE(AU_OP_GEQ_DOUBLE),
         };
+
         goto *cb[bc[0]];
 #endif
 
@@ -366,6 +381,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #endif
 
             CASE(AU_OP_LOAD_SELF) : {
+                PREFETCH_INSN;
+
                 frame.self = (struct au_obj_class *)au_value_get_struct(
                     frame.locals[0]);
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -373,41 +390,59 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #else
                 frame.self->header.rc++;
 #endif // clang-format on
+
                 DISPATCH;
             }
             // Register/local move operations
             CASE(AU_OP_MOV_U16) : {
                 const uint8_t reg = bc[1];
                 const uint16_t n = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 COPY_VALUE(frame.regs[reg], au_value_int(n));
+
                 DISPATCH;
             }
             CASE(AU_OP_MOV_REG_LOCAL) : {
                 const uint8_t reg = bc[1];
                 const uint16_t local = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 COPY_VALUE(frame.locals[local], frame.regs[reg]);
+
                 DISPATCH;
             }
             CASE(AU_OP_MOV_LOCAL_REG) : {
                 const uint8_t reg = bc[1];
                 const uint16_t local = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 COPY_VALUE(frame.regs[reg], frame.locals[local]);
+
                 DISPATCH;
             }
             CASE(AU_OP_MOV_BOOL) : {
                 const uint8_t n = bc[1];
                 const uint8_t reg = bc[2];
+                PREFETCH_INSN;
+
                 COPY_VALUE(frame.regs[reg], au_value_bool(n));
+
                 DISPATCH;
             }
             CASE(AU_OP_LOAD_NIL) : {
                 const uint8_t reg = bc[1];
+                PREFETCH_INSN;
+
                 COPY_VALUE(frame.regs[reg], au_value_none());
+
                 DISPATCH;
             }
             CASE(AU_OP_LOAD_CONST) : {
                 const uint8_t reg = bc[1];
                 const uint16_t rel_c = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 const size_t abs_c = rel_c + p_data->tl_constant_start;
                 au_value_t v;
                 if (au_value_get_type(tl->const_cache[abs_c]) !=
@@ -431,21 +466,27 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                     }
                 }
                 COPY_VALUE(frame.regs[reg], v);
+
                 DISPATCH;
             }
             CASE(AU_OP_SET_CONST) : {
                 const uint8_t reg = bc[1];
                 const uint16_t rel_c = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 const size_t abs_c = rel_c + p_data->tl_constant_start;
                 if (au_value_get_type(tl->const_cache[abs_c]) ==
                     AU_VALUE_NONE)
                     tl->const_cache[abs_c] = frame.regs[reg];
+
                 DISPATCH;
             }
             // Unary operations
             CASE(AU_OP_NOT) : {
                 const uint8_t reg = bc[1];
                 const uint8_t ret = bc[2];
+                PREFETCH_INSN;
+
                 if (_Likely(au_value_get_type(frame.regs[reg]) ==
                             AU_VALUE_BOOL)) {
                     COPY_VALUE(frame.regs[ret],
@@ -456,6 +497,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                au_value_bool(
                                    !au_value_is_truthy(frame.regs[reg])));
                 }
+
                 DISPATCH;
             }
             // Binary operations
@@ -481,6 +523,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t lhs = frame.regs[bc[1]];                         \
         const au_value_t rhs = frame.regs[bc[2]];                         \
         const uint8_t res = bc[3];                                        \
+        PREFETCH_INSN;                                                    \
+                                                                          \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
         if (_Unlikely(au_value_is_op_error(result))) {                    \
@@ -491,6 +535,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         /* INVARIANT(GC): value operations always return an RC'd result   \
          */                                                               \
         au_value_deref(result);                                           \
+                                                                          \
         DISPATCH;                                                         \
     }
 #else
@@ -500,6 +545,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t lhs = frame.regs[bc[1]];                         \
         const au_value_t rhs = frame.regs[bc[2]];                         \
         const uint8_t res = bc[3];                                        \
+        PREFETCH_INSN;                                                    \
+                                                                          \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
         if (_Unlikely(au_value_is_op_error(result))) {                    \
@@ -507,6 +554,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         MOVE_VALUE(frame.regs[res], result);                              \
+                                                                          \
         DISPATCH;                                                         \
     }
 #endif
@@ -536,6 +584,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t lhs = frame.regs[bc[1]];                         \
         const au_value_t rhs = frame.regs[bc[2]];                         \
         const uint8_t res = bc[3];                                        \
+        PREFETCH_INSN;                                                    \
+                                                                          \
         if (_Unlikely((au_value_get_type(lhs) != AU_VALUE_INT) ||         \
                       (au_value_get_type(rhs) != AU_VALUE_INT))) {        \
             bc[0] = NAME;                                                 \
@@ -544,6 +594,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t result =                                         \
             TYPE(au_value_get_int(lhs) OP au_value_get_int(rhs));         \
         FAST_MOVE_VALUE(frame.regs[res], result);                         \
+                                                                          \
         DISPATCH;                                                         \
     }
             BIN_OP(AU_OP_MUL, *, au_value_int)
@@ -571,6 +622,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t lhs = frame.regs[bc[1]];                         \
         const au_value_t rhs = frame.regs[bc[2]];                         \
         const uint8_t res = bc[3];                                        \
+        PREFETCH_INSN;                                                    \
+                                                                          \
         if (_Unlikely((au_value_get_type(lhs) != AU_VALUE_DOUBLE) ||      \
                       (au_value_get_type(rhs) != AU_VALUE_DOUBLE))) {     \
             bc[0] = NAME;                                                 \
@@ -579,6 +632,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const au_value_t result =                                         \
             TYPE(au_value_get_double(lhs) OP au_value_get_double(rhs));   \
         FAST_MOVE_VALUE(frame.regs[res], result);                         \
+                                                                          \
         DISPATCH;                                                         \
     }
             BIN_OP(AU_OP_MUL, *, au_value_double)
@@ -598,6 +652,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 _AU_OP_JIF:;
                 const au_value_t cmp = frame.regs[bc[1]];
                 const uint16_t n = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 const size_t offset = ((size_t)n) * 4;
                 if (au_value_get_type(cmp) == AU_VALUE_BOOL) {
                     bc[0] = AU_OP_JIF_BOOL;
@@ -613,6 +669,8 @@ _AU_OP_JIF:;
 _AU_OP_JNIF:;
                 const au_value_t cmp = frame.regs[bc[1]];
                 const uint16_t n = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 const size_t offset = ((size_t)n) * 4;
                 if (au_value_get_type(cmp) == AU_VALUE_BOOL) {
                     bc[0] = AU_OP_JNIF_BOOL;
@@ -625,8 +683,8 @@ _AU_OP_JNIF:;
                 }
             }
             CASE(AU_OP_JREL) : {
-                const uint16_t *ptr = (uint16_t *)(&bc[2]);
-                const size_t offset = ((size_t)ptr[0]) * 4;
+                const uint16_t n = *(uint16_t *)(&bc[2]);
+                const size_t offset = ((size_t)n) * 4;
                 bc += offset;
                 DISPATCH_JMP;
             }
@@ -640,6 +698,8 @@ _AU_OP_JNIF:;
             CASE(AU_OP_JIF_BOOL) : {
                 const au_value_t cmp = frame.regs[bc[1]];
                 const uint16_t n = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 const size_t offset = ((size_t)n) * 4;
                 if (_Unlikely(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
                     bc[0] = AU_OP_JIF;
@@ -655,6 +715,8 @@ _AU_OP_JNIF:;
             CASE(AU_OP_JNIF_BOOL) : {
                 const au_value_t cmp = frame.regs[bc[1]];
                 const uint16_t n = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 const size_t offset = ((size_t)n) * 4;
                 if (_Unlikely(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
                     bc[0] = AU_OP_JNIF;
@@ -673,6 +735,8 @@ _AU_OP_JNIF:;
     CASE(NAME) : {                                                        \
         const uint8_t reg = bc[1];                                        \
         const uint8_t local = bc[2];                                      \
+        PREFETCH_INSN;                                                    \
+                                                                          \
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
@@ -684,6 +748,7 @@ _AU_OP_JNIF:;
         au_value_deref(result);                                           \
         /* INVARIANT(GC): value operations always return an RC'd result   \
          */                                                               \
+                                                                          \
         DISPATCH;                                                         \
     }
 #else
@@ -691,6 +756,8 @@ _AU_OP_JNIF:;
     CASE(NAME) : {                                                        \
         const uint8_t reg = bc[1];                                        \
         const uint8_t local = bc[2];                                      \
+        PREFETCH_INSN;                                                    \
+                                                                          \
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
@@ -699,6 +766,7 @@ _AU_OP_JNIF:;
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
         MOVE_VALUE(frame.locals[local], result);                          \
+                                                                          \
         DISPATCH;                                                         \
     }
 #endif
@@ -711,13 +779,18 @@ _AU_OP_JNIF:;
             // Call instructions
             CASE(AU_OP_PUSH_ARG) : {
                 const uint8_t reg = bc[1];
+                PREFETCH_INSN;
+
                 au_value_array_add(&frame.arg_stack, frame.regs[reg]);
                 au_value_ref(frame.regs[reg]);
+
                 DISPATCH;
             }
             CASE(AU_OP_CALL) : {
                 const uint8_t ret_reg = bc[1];
                 const uint16_t func_id = *((uint16_t *)(&bc[2]));
+                PREFETCH_INSN;
+
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
                 int n_regs = au_fn_num_args(call_fn);
                 const au_value_t *args =
@@ -748,11 +821,14 @@ _AU_OP_JNIF:;
                     }
                 }
                 frame.arg_stack.len -= n_regs;
+
                 DISPATCH;
             }
             CASE(AU_OP_CALL1) : {
                 const uint8_t ret_reg = bc[1];
                 const uint16_t func_id = *((uint16_t *)(&bc[2]));
+                PREFETCH_INSN;
+
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
 
                 au_value_t arg_reg = frame.regs[ret_reg];
@@ -778,12 +854,15 @@ _AU_OP_JNIF:;
 #endif // clang-format on                                                 
                 // Since the argument value was replaced by the return value, there is
                 // no need to clean up the argument stack
+
                 DISPATCH;
             }
             // Function values
             CASE(AU_OP_LOAD_FUNC): {
                 const uint8_t reg = bc[1];
                 const uint16_t func_id = *((uint16_t *)(&bc[2]));
+                PREFETCH_INSN;
+
                 const struct au_fn *fn = &p_data->fns.data[func_id];
                 struct au_fn_value *fn_value = au_fn_value_from_vm(fn, p_data);
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -796,11 +875,14 @@ _AU_OP_JNIF:;
                     au_value_fn(fn_value)
                 );
 #endif // clang-format on
+
                 DISPATCH;
             }
             CASE(AU_OP_BIND_ARG_TO_FUNC) : {
                 const uint8_t func_reg = bc[1];
                 const uint8_t arg_reg = bc[2];
+                PREFETCH_INSN;
+
                 struct au_fn_value *fn_value =
                     au_fn_value_coerce(frame.regs[func_reg]);
                 if (_Likely(fn_value != 0)) {
@@ -808,12 +890,15 @@ _AU_OP_JNIF:;
                 } else {
                     assert(0);
                 }
+
                 DISPATCH;
             }
             CASE(AU_OP_CALL_FUNC_VALUE) : {
                 const uint8_t func_reg = bc[1];
                 const uint8_t num_args = bc[2];
                 const uint8_t ret_reg = bc[3];
+                PREFETCH_INSN;
+
                 struct au_fn_value *fn_value =
                     au_fn_value_coerce(frame.regs[func_reg]);
                 if (_Likely(fn_value != 0)) {
@@ -848,6 +933,7 @@ _AU_OP_JNIF:;
                 } else {
                     assert(0);
                 }
+
                 DISPATCH;
             }
             // Return instructions
@@ -872,6 +958,8 @@ _AU_OP_JNIF:;
             CASE(AU_OP_ARRAY_NEW) : {
                 const uint8_t reg = bc[1];
                 const uint16_t capacity = *((uint16_t *)(&bc[2]));
+                PREFETCH_INSN;
+
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 struct au_struct *s =
                     (struct au_struct *)au_obj_array_new(capacity);
@@ -886,21 +974,27 @@ _AU_OP_JNIF:;
                     )
                 );
 #endif // clang-format on
+
                 DISPATCH;
             }
             CASE(AU_OP_ARRAY_PUSH) : {
                 const au_value_t array_val = frame.regs[bc[1]];
                 const au_value_t value_val = frame.regs[bc[2]];
+                PREFETCH_INSN;
+
                 struct au_obj_array *obj_array =
                     au_obj_array_coerce(array_val);
                 if (_Likely(obj_array != 0)) {
                     au_obj_array_push(obj_array, value_val);
                 }
+
                 DISPATCH;
             }
             CASE(AU_OP_IDX_GET) : {
                 const au_value_t col_val = frame.regs[bc[1]];
                 const au_value_t idx_val = frame.regs[bc[2]];
+                PREFETCH_INSN;
+
                 const uint8_t ret_reg = bc[3];
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
@@ -916,12 +1010,15 @@ _AU_OP_JNIF:;
                     FLUSH_BC();
                     indexing_non_collection_error(col_val, p_data, &frame);
                 }
+
                 DISPATCH;
             }
             CASE(AU_OP_IDX_SET) : {
                 const au_value_t col_val = frame.regs[bc[1]];
                 const au_value_t idx_val = frame.regs[bc[2]];
                 const au_value_t value_val = frame.regs[bc[3]];
+                PREFETCH_INSN;
+
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
                     if (_Unlikely(collection->vdata->idx_set_fn(
@@ -935,12 +1032,15 @@ _AU_OP_JNIF:;
                     FLUSH_BC();
                     indexing_non_collection_error(col_val, p_data, &frame);
                 }
+
                 DISPATCH;
             }
             // Tuple instructions
             CASE(AU_OP_TUPLE_NEW) : {
                 const uint8_t reg = bc[1];
                 const uint16_t length = *((uint16_t *)(&bc[2]));
+                PREFETCH_INSN;
+
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 struct au_struct *s =
                     (struct au_struct *)au_obj_tuple_new(length);
@@ -955,12 +1055,15 @@ _AU_OP_JNIF:;
                     )
                 );
 #endif // clang-format on
+
                 DISPATCH;
             }
             CASE(AU_OP_IDX_SET_STATIC) : {
                 const au_value_t col_val = frame.regs[bc[1]];
                 const au_value_t idx_val = au_value_int(bc[2]);
                 const au_value_t value_val = frame.regs[bc[3]];
+                PREFETCH_INSN;
+
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (_Likely(collection != 0)) {
                     if (_Unlikely(collection->vdata->idx_set_fn(
@@ -974,12 +1077,15 @@ _AU_OP_JNIF:;
                     FLUSH_BC();
                     indexing_non_collection_error(col_val, p_data, &frame);
                 }
+
                 DISPATCH;
             }
             // Class instructions
             CASE(AU_OP_CLASS_NEW) : {
                 const uint8_t reg = bc[1];
                 const uint16_t class_id = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 struct au_struct *obj_class =
                     (struct au_struct *)au_obj_class_new(
                         p_data->classes.data[class_id]);
@@ -991,23 +1097,32 @@ _AU_OP_JNIF:;
 #else
                 MOVE_VALUE(frame.regs[reg], new_value);
 #endif // clang-format on
+
                 DISPATCH;
             }
             CASE(AU_OP_CLASS_GET_INNER) : {
                 const uint8_t reg = bc[1];
                 const uint16_t inner = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 COPY_VALUE(frame.regs[reg], frame.self->data[inner]);
+
                 DISPATCH;
             }
             CASE(AU_OP_CLASS_SET_INNER) : {
                 const uint8_t reg = bc[1];
                 const uint16_t inner = *(uint16_t *)(&bc[2]);
+                PREFETCH_INSN;
+
                 COPY_VALUE(frame.self->data[inner], frame.regs[reg]);
+
                 DISPATCH;
             }
             // Module instructions
             CASE(AU_OP_IMPORT) : {
                 const uint16_t idx = *((uint16_t *)(&bc[2]));
+                PREFETCH_INSN;
+
                 const size_t relative_module_idx =
                     p_data->imports.data[idx].module_idx;
                 const char *relpath = p_data->imports.data[idx].path;
@@ -1131,10 +1246,16 @@ _import_dispatch:;
             // Other
             CASE(AU_OP_PRINT) : {
                 const au_value_t reg = frame.regs[bc[1]];
+                PREFETCH_INSN;
+
                 tl->print_fn(reg);
+
                 DISPATCH;
             }
-            CASE(AU_OP_NOP) : { DISPATCH; }
+            CASE(AU_OP_NOP) : {
+                PREFETCH_INSN;
+                DISPATCH;
+            }
 #undef COPY_VALUE
 #ifndef AU_USE_DISPATCH_JMP
         }

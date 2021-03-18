@@ -10,11 +10,16 @@ project(
 
 is_testing = get_option('tests')
 is_coverage = get_option('b_coverage')
+
 has_sanitizer = get_option('b_sanitize') != 'none'
 has_compile_feature = get_option('compiler')
+
 has_delayed_rc_feature = get_option('delayed_rc')
 has_leak_mem_feature = get_option('leak_mem')
+has_prefetch_insn_feature = get_option('prefetch_insn')
+
 is_static_exe = get_option('static_exe')
+
 has_math_library = get_option('math_library')
 has_io_library = get_option('io_library')
 
@@ -241,6 +246,10 @@ endif
 
 if has_leak_mem_feature
     add_project_arguments('-DAU_FEAT_LEAK_MEM', language : ['c'])
+endif
+
+if has_prefetch_insn_feature
+    add_project_arguments('-DAU_FEAT_PREFETCH_INSN', language : ['c'])
 endif
 
 if is_coverage
