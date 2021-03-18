@@ -445,12 +445,14 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             // Unary operations
             CASE(AU_OP_NOT) : {
                 const uint8_t reg = bc[1];
+                const uint8_t ret = bc[2];
                 if (_Likely(au_value_get_type(frame.regs[reg]) ==
                             AU_VALUE_BOOL)) {
-                    frame.regs[reg] =
-                        au_value_bool(!au_value_get_bool(frame.regs[reg]));
+                    COPY_VALUE(frame.regs[ret],
+                               au_value_bool(
+                                   !au_value_get_bool(frame.regs[reg])));
                 } else {
-                    COPY_VALUE(frame.regs[reg],
+                    COPY_VALUE(frame.regs[ret],
                                au_value_bool(
                                    !au_value_is_truthy(frame.regs[reg])));
                 }

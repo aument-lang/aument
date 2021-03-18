@@ -592,10 +592,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         // Unary instructions
         case AU_OP_NOT: {
             uint8_t reg = bc(pos);
+            uint8_t ret = bc(pos + 1);
             comp_printf(
                 state,
                 "COPY_VALUE(r%d,au_value_bool(!au_value_is_truthy(r%d)));",
-                reg, reg);
+                ret, reg);
             break;
         }
         // Jump instructions

@@ -128,6 +128,7 @@ static void parser_init(struct au_parser *p,
 static void parser_del(struct au_parser *p) {
     au_data_free(p->bc.data);
     au_hm_vars_del(&p->vars);
+    au_data_free(p->local_to_reg.data);
     au_hm_vars_del(&p->consts);
     au_data_free(p->self_fill_call.data);
     memset(p, 0, sizeof(struct au_parser));
@@ -159,6 +160,8 @@ static int parser_new_reg(struct au_parser *p, uint8_t *out) {
     return 1;
 }
 
+/// The caller must NOT call any opcode that changes the result in the last
+/// register
 static uint8_t parser_last_reg(struct au_parser *p) {
     assert(p->rstack_len != 0);
     return p->rstack[p->rstack_len - 1];
@@ -1493,10 +1496,12 @@ static int parser_exec_unary_expr(struct au_parser *p,
         if (!parser_exec_expr(p, l))
             return 0;
 
-        const uint8_t reg = parser_last_reg(p);
+        const uint8_t reg = parser_pop_reg(p);
         parser_emit_bc_u8(p, AU_OP_NOT);
         parser_emit_bc_u8(p, reg);
-        parser_emit_pad8(p);
+        uint8_t result_reg;
+        EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+        parser_emit_bc_u8(p, result_reg);
         parser_emit_pad8(p);
 
         return 1;
