@@ -90,6 +90,10 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
     uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));
 
         switch (opcode) {
+        case AU_OP_LOAD_SELF: {
+            break;
+        }
+        // Move instructions
         case AU_OP_MOV_U16: {
             uint8_t reg = bc(pos);
             DEF_BC16(n, 1)
@@ -97,12 +101,48 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             pos += 3;
             break;
         }
-        case AU_OP_MOV_BOOL: {
-            uint8_t n = bc(pos++), reg = bc(pos++);
-            printf(" %s -> r%d\n", n ? "true" : "false", reg);
-            pos++; // padding
+        case AU_OP_MOV_REG_LOCAL: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1);
+            printf(" r%d -> [%d]\n", reg, local);
+            pos += 3;
             break;
         }
+        case AU_OP_MOV_LOCAL_REG: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1);
+            printf(" [%d] -> r%d\n", local, reg);
+            pos += 3;
+            break;
+        }
+        case AU_OP_MOV_BOOL: {
+            uint8_t n = bc(pos), reg = bc(pos + 1);
+            printf(" %s -> r%d\n", n ? "true" : "false", reg);
+            pos += 3;
+            break;
+        }
+        case AU_OP_LOAD_NIL: {
+            uint8_t reg = bc(pos);
+            printf(" r%d\n", reg);
+            pos += 3;
+            break;
+        }
+        // Load/store constants
+        case AU_OP_LOAD_CONST: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(c, 1)
+            printf(" c%d -> r%d\n", c, reg);
+            pos += 3;
+            break;
+        }
+        case AU_OP_SET_CONST: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(c, 1)
+            printf(" r%d -> c%d\n", reg, c);
+            pos += 3;
+            break;
+        }
+        // Binary operations
         case AU_OP_MUL:
         case AU_OP_DIV:
         case AU_OP_MOD:
@@ -121,26 +161,27 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             pos += 3;
             break;
         }
-        case AU_OP_MOV_REG_LOCAL: {
+        // Binary operations on local variables
+        case AU_OP_MUL_ASG:
+        case AU_OP_DIV_ASG:
+        case AU_OP_MOD_ASG:
+        case AU_OP_ADD_ASG:
+        case AU_OP_SUB_ASG: {
             uint8_t reg = bc(pos);
             DEF_BC16(local, 1);
             printf(" r%d -> [%d]\n", reg, local);
             pos += 3;
             break;
         }
-        case AU_OP_MOV_LOCAL_REG: {
+        // Unary instructions
+        case AU_OP_NOT: {
             uint8_t reg = bc(pos);
-            DEF_BC16(local, 1);
-            printf(" [%d] -> r%d\n", local, reg);
+            uint8_t ret = bc(pos + 1);
+            printf(" r%d <- r%d\n", ret, reg);
             pos += 3;
             break;
         }
-        case AU_OP_PRINT: {
-            uint8_t reg = bc(pos);
-            printf(" r%d\n", reg);
-            pos += 3;
-            break;
-        }
+        // Jump instructions
         case AU_OP_JIF:
         case AU_OP_JNIF: {
             uint8_t reg = bc(pos);
@@ -167,29 +208,10 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             pos += 3;
             break;
         }
-        case AU_OP_LOAD_CONST: {
-            uint8_t reg = bc(pos);
-            DEF_BC16(c, 1)
-            printf(" c%d -> r%d\n", c, reg);
-            pos += 3;
-            break;
-        }
-        case AU_OP_SET_CONST: {
-            uint8_t reg = bc(pos);
-            DEF_BC16(c, 1)
-            printf(" r%d -> c%d\n", reg, c);
-            pos += 3;
-            break;
-        }
-        case AU_OP_RET: {
+        // Call instructions
+        case AU_OP_PUSH_ARG: {
             uint8_t reg = bc(pos);
             printf(" r%d\n", reg);
-            pos += 3;
-            break;
-        }
-        case AU_OP_RET_LOCAL: {
-            DEF_BC16(local, 1);
-            printf(" [%d]\n", local);
             pos += 3;
             break;
         }
@@ -207,23 +229,20 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             pos += 3;
             break;
         }
-        case AU_OP_MUL_ASG:
-        case AU_OP_DIV_ASG:
-        case AU_OP_MOD_ASG:
-        case AU_OP_ADD_ASG:
-        case AU_OP_SUB_ASG: {
-            uint8_t reg = bc(pos);
-            DEF_BC16(local, 1);
-            printf(" r%d -> [%d]\n", reg, local);
-            pos += 3;
-            break;
-        }
-        case AU_OP_PUSH_ARG: {
+        // Return instructions
+        case AU_OP_RET: {
             uint8_t reg = bc(pos);
             printf(" r%d\n", reg);
             pos += 3;
             break;
         }
+        case AU_OP_RET_LOCAL: {
+            DEF_BC16(local, 1);
+            printf(" [%d]\n", local);
+            pos += 3;
+            break;
+        }
+        // Modules
         case AU_OP_IMPORT: {
             DEF_BC16(idx, 1)
             assert(idx < data->imports.len);
@@ -233,6 +252,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             pos += 3;
             break;
         }
+        // Array instructions
         case AU_OP_ARRAY_NEW: {
             uint8_t reg = bc(pos);
             DEF_BC16(capacity, 1)
@@ -263,12 +283,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             pos += 3;
             break;
         }
-        case AU_OP_NOT: {
-            uint8_t reg = bc(pos);
-            printf(" r%d\n", reg);
-            pos += 3;
-            break;
-        }
+        // Tuple instructions
         case AU_OP_TUPLE_NEW: {
             uint8_t reg = bc(pos);
             DEF_BC16(len, 1)
@@ -284,10 +299,11 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             pos += 3;
             break;
         }
-        case AU_OP_CLASS_SET_INNER: {
+        // Class instructions
+        case AU_OP_CLASS_NEW: {
             uint8_t reg = bc(pos);
-            DEF_BC16(local, 1);
-            printf(" r%d -> @%d\n", reg, local);
+            DEF_BC16(class_idx, 1);
+            printf(" (id %d) -> r%d\n", class_idx, reg);
             pos += 3;
             break;
         }
@@ -298,10 +314,17 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             pos += 3;
             break;
         }
-        case AU_OP_CLASS_NEW: {
+        case AU_OP_CLASS_SET_INNER: {
             uint8_t reg = bc(pos);
-            DEF_BC16(class_idx, 1);
-            printf(" (id %d) -> r%d\n", class_idx, reg);
+            DEF_BC16(local, 1);
+            printf(" r%d -> @%d\n", reg, local);
+            pos += 3;
+            break;
+        }
+        // Other
+        case AU_OP_PRINT: {
+            uint8_t reg = bc(pos);
+            printf(" r%d\n", reg);
             pos += 3;
             break;
         }
