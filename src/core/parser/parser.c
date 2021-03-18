@@ -1837,6 +1837,36 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
             return parser_exec_array_or_tuple(p, l, 0);
         } else if (t.len == 2 && t.src[0] == '#' && t.src[1] == '[') {
             return parser_exec_array_or_tuple(p, l, 1);
+        } else if (t.len == 1 && t.src[0] == '.') {
+            t = au_lexer_next(l);
+            EXPECT_TOKEN(t.type == AU_TOK_IDENTIFIER, t, "identifier");
+
+            struct au_token peek = au_lexer_peek(l, 0);
+            struct au_token module_tok =
+                (struct au_token){.type = AU_TOK_EOF};
+
+            if (peek.type == AU_TOK_OPERATOR && peek.len == 2 &&
+                peek.src[0] == ':' && peek.src[1] == ':') {
+                module_tok = t;
+                au_lexer_next(l);
+                t = au_lexer_next(l);
+                EXPECT_TOKEN(t.type == AU_TOK_IDENTIFIER, t, "identifier");
+            }
+
+            size_t func_idx = 0;
+            int execute_self = 0;
+
+            if (!parser_resolve_fn(p, module_tok, t, 1, &func_idx,
+                                   &execute_self))
+                return 0;
+
+            EXPECT_BYTECODE(func_idx < AU_MAX_FUNC_ID);
+
+            parser_emit_bc_u8(p, AU_OP_LOAD_FUNC);
+            uint8_t func_reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &func_reg));
+            parser_emit_bc_u8(p, func_reg);
+            parser_emit_bc_u16(p, func_idx);
         } else {
             p->res = (struct au_parser_result){
                 .type = AU_PARSER_RES_UNEXPECTED_TOKEN,

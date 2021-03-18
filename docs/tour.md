@@ -250,6 +250,14 @@ Outputs:
 15
 ```
 
+You can create an unbounded function value:
+
+```
+def double(x) { return x * 2; }
+op = .double;
+print op.(10);
+```
+
 ## Modules
 
 You can import files using the `import` statement. Note that all files are executed separately and you cannot directly use an imported file's variables/functions (unless exported).

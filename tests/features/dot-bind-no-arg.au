@@ -1,0 +1,3 @@
+def f(x) { print x; }
+y = .f;
+y.(10);
