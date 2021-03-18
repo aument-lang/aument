@@ -15,9 +15,10 @@ struct au_fn;
 struct au_program_data;
 struct au_fn_value;
 
-void au_fn_value_del(struct au_fn_value *fn_value);
+_Public void au_fn_value_del(struct au_fn_value *fn_value);
 
-void au_fn_value_add_arg(struct au_fn_value *fn_value, au_value_t value);
+_Public void au_fn_value_add_arg(struct au_fn_value *fn_value,
+                                 au_value_t value);
 
 #ifdef AU_IS_STDLIB
 au_value_t au_fn_value_from_compiled(au_compiled_func_t fn_ptr,
@@ -32,16 +33,16 @@ au_value_t au_fn_value_call_rt(au_value_t func_value,
                                au_value_t *unbound_args,
                                int32_t num_unbound_args);
 #else
-struct au_fn_value *au_fn_value_new(const struct au_fn *fn,
-                                    const struct au_program_data *p_data);
+struct au_fn_value *
+au_fn_value_from_vm(const struct au_fn *fn,
+                    const struct au_program_data *p_data);
+#endif
 
 struct au_vm_thread_local;
-au_value_t au_fn_value_call(const struct au_fn_value *fn_value,
-                            struct au_vm_thread_local *tl,
-                            const struct au_program_data *p_data,
-                            au_value_t *unbound_args, int num_unbound_args,
-                            int *is_native_out);
-#endif
+au_value_t au_fn_value_call_vm(const struct au_fn_value *fn_value,
+                               struct au_vm_thread_local *tl,
+                               au_value_t *unbound_args,
+                               int num_unbound_args, int *is_native_out);
 
 static inline struct au_fn_value *au_fn_value_coerce(au_value_t value) {
     if (au_value_get_type(value) != AU_VALUE_FN)

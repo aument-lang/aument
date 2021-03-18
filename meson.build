@@ -341,6 +341,7 @@ aument_header_files = [
 'src/core/rt/extern_fn.h',
 'src/core/fn.h',
 'src/core/fn/main.h',
+'src/core/rt/au_fn_value.h',
 'src/core/rt/struct/helper.h',
 
 # Everything else
@@ -365,6 +366,7 @@ aument_header_files = [
 # Libraries
 'src/lib/module.h',
 'src/lib/string_builder.h',
+'src/lib/fn_value.h',
     ]
 aument_header = custom_target(
     'aument.h',
