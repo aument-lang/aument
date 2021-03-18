@@ -75,12 +75,15 @@ int main(int argc, char **argv) {
                 if (strcmp(full_opt, "no-opt") == 0) {
                     flags |= FLAG_NO_OPT;
                 }
-#if defined(AU_BINDIR) && defined(AU_INCLUDEDIR)
+#if defined(AU_INCLUDEDIR)
                 else if (strcmp(full_opt, "cflags") == 0) {
                     fputs("-I" AU_INCLUDEDIR, stdout);
                     return 0;
-                } else if (strcmp(full_opt, "libs") == 0) {
-                    fputs(AU_BINDIR "/libau_runtime.a", stdout);
+                }
+#endif
+#if defined(AU_LIBDIR)
+                else if (strcmp(full_opt, "libs") == 0) {
+                    fputs(AU_LIBDIR "/libaument.exe.a", stdout);
                     return 0;
                 }
 #endif
