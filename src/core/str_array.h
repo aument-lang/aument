@@ -7,4 +7,4 @@
 
 #include "array.h"
 
-ARRAY_TYPE_COPY(char *, au_str_array, 1)
+AU_ARRAY_COPY(char *, au_str_array, 1)

@@ -59,8 +59,8 @@ struct au_dispatch_func_instance {
     size_t class_idx;
 };
 
-ARRAY_TYPE_COPY(struct au_dispatch_func_instance,
-                au_dispatch_func_instance_array, 1)
+AU_ARRAY_COPY(struct au_dispatch_func_instance,
+              au_dispatch_func_instance_array, 1)
 
 #define AU_DISPATCH_FUNC_NO_FALLBACK ((size_t)-1)
 
@@ -144,4 +144,4 @@ _Private void au_fn_fill_import_cache_unsafe(
 _Private void au_fn_fill_class_cache_unsafe(
     const struct au_fn *fn, const struct au_program_data *current_p_data);
 
-ARRAY_TYPE_STRUCT(struct au_fn, au_fn_array, 1)
+AU_ARRAY_STRUCT(struct au_fn, au_fn_array, 1)

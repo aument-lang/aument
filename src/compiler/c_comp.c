@@ -30,7 +30,7 @@ struct line_info {
     int line;
 };
 
-ARRAY_TYPE_STRUCT(struct line_info, line_info_array, 1)
+AU_ARRAY_STRUCT(struct line_info, line_info_array, 1)
 
 static void create_line_info_array(struct line_info_array *array,
                                    const char *source, size_t source_len) {
@@ -58,7 +58,7 @@ struct au_c_comp_module {
     struct au_char_array c_source;
 };
 
-ARRAY_TYPE_STRUCT(struct au_c_comp_module, au_c_comp_module_array, 1)
+AU_ARRAY_STRUCT(struct au_c_comp_module, au_c_comp_module_array, 1)
 
 struct au_c_comp_global_state {
     struct au_hm_vars modules_map;

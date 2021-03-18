@@ -21,7 +21,7 @@
 
 #define CLASS_ID_NONE ((size_t)-1)
 
-ARRAY_TYPE_COPY(size_t, size_t_array, 1)
+AU_ARRAY_COPY(size_t, size_t_array, 1)
 
 struct au_parser {
     /// Bytecode buffer that the parser is outputting to

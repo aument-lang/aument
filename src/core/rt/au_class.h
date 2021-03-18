@@ -29,8 +29,7 @@ struct au_obj_class {
     au_value_t data[];
 };
 
-ARRAY_TYPE_COPY(struct au_class_interface *, au_class_interface_ptr_array,
-                1)
+AU_ARRAY_COPY(struct au_class_interface *, au_class_interface_ptr_array, 1)
 
 _Public void au_class_interface_init(struct au_class_interface *interface,
                                      char *name);
