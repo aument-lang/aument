@@ -257,7 +257,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     do {                                                                  \
         DISPATCH_DEBUG;                                                   \
         bc += 4;                                                          \
-        goto *_next_insn;                                             \
+        goto *_next_insn;                                                 \
     } while (0)
 #else
 #define DISPATCH                                                          \
