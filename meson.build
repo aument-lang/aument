@@ -191,6 +191,8 @@ if has_compile_feature
         'src/core/vm/frame_link.h',
         'src/platform/mmap.h',
         'src/core/vm/module.h',
+        'src/core/rt/struct/helper.c',
+        'src/core/rt/value/print.c',
     )
     stdlib_begin_hdr = files('src/core/rt/includes/stdlib_begin.h')
     rt_hdr_src = custom_target(
@@ -207,23 +209,6 @@ if has_compile_feature
             '--files'] + rt_hdr_depends + ['--cpp', 'DAU_IS_STDLIB'] + au_hdr_cflags,
     )
 
-    rt_code_depends = files(
-        'src/core/rt/struct/helper.c',
-        'src/core/rt/value/print.c',
-    )
-    rt_code_src = custom_target(
-        'comp_code.c',
-        output : 'comp_code.c',
-        input : './build-scripts/gen_rt.py',
-        depend_files : rt_code_depends,
-        command : [
-            prog_python, '@INPUT@',
-            '--output', '@OUTPUT@',
-            '--ident', 'AU_RT_CODE',
-            '--files'
-        ] + rt_code_depends + ['--cpp', 'DAU_IS_STDLIB'] + au_hdr_cflags,
-    )
-
     sources += [
         'src/platform/cc.c',
         'src/platform/cc.h',
@@ -234,7 +219,6 @@ if has_compile_feature
         'src/compiler/c_comp.c',
         'src/compiler/c_comp.h',
         rt_hdr_src,
-        rt_code_src,
     ]
     add_project_arguments('-DAU_FEAT_COMPILER', language : ['c'])
 endif

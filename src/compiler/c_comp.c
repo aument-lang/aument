@@ -66,6 +66,7 @@ struct au_c_comp_global_state {
     struct line_info_array main_line_info;
     struct au_c_comp_options options;
     struct au_c_comp_state header_file;
+    struct au_hm_vars declared_externs;
     int loads_dl;
 };
 
@@ -1189,8 +1190,13 @@ void au_c_comp_module(struct au_c_comp_state *state,
             break;
         }
         case AU_FN_LIB: {
-            comp_printf(state, "extern AU_EXTERN_FUNC_DECL(%s);\n",
-                        fn->as.lib_func.symbol);
+            const au_hm_var_value_t *old = au_hm_vars_add(
+                &g_state->declared_externs, fn->as.lib_func.symbol,
+                strlen(fn->as.lib_func.symbol), 0);
+            if (old == 0) {
+                comp_printf(state, "extern AU_EXTERN_FUNC_DECL(%s);\n",
+                            fn->as.lib_func.symbol);
+            }
             break;
         }
         case AU_FN_IMPORTER: {
@@ -1361,9 +1367,6 @@ void au_c_comp_module(struct au_c_comp_state *state,
 extern const char AU_RT_HDR[];
 extern const size_t AU_RT_HDR_LEN;
 
-extern const char AU_RT_CODE[];
-extern const size_t AU_RT_CODE_LEN;
-
 #ifdef AU_TEST_RT_CODE
 char *TEST_RT_CODE;
 size_t TEST_RT_CODE_LEN;
@@ -1373,15 +1376,16 @@ void au_c_comp(struct au_c_comp_state *state,
                const struct au_program *program,
                const struct au_c_comp_options *options,
                struct au_cc_options *cc) {
+    comp_printf(
+        state,
+        "/* Code for Aument's core library. Do not edit this. */\n");
+
     comp_write(state, AU_RT_HDR, AU_RT_HDR_LEN);
     comp_putc(state, '\n');
 
-    comp_write(state, AU_C_COMP_EXTERN_FUNC_DECL,
-               strlen(AU_C_COMP_EXTERN_FUNC_DECL));
-    comp_putc(state, '\n');
-
 #ifdef AU_TEST_RT_CODE
-    comp_printf(state, "void __au_value_print(au_value_t v);\n");
+    comp_write(state, TEST_RT_CODE, TEST_RT_CODE_LEN);
+    comp_putc(state, '\n');
 #endif
 
     struct au_c_comp_global_state g_state =
@@ -1403,6 +1407,8 @@ void au_c_comp(struct au_c_comp_state *state,
     };
     au_c_comp_module(&main_mod_state, program, 0, &g_state);
 
+    comp_printf(state, "/* Code generated from source file */\n");
+
     comp_printf(state, "%.*s\n", (int)g_state.header_file.str.len,
                 g_state.header_file.str.data);
     comp_printf(state, "%.*s\n", (int)main_mod_state.str.len,
@@ -1416,12 +1422,6 @@ void au_c_comp(struct au_c_comp_state *state,
                     (int)g_state.modules.data[i].c_source.len,
                     g_state.modules.data[i].c_source.data);
     }
-
-    comp_write(state, AU_RT_CODE, AU_RT_CODE_LEN);
-#ifdef AU_TEST_RT_CODE
-    comp_putc(state, '\n');
-    comp_write(state, TEST_RT_CODE, TEST_RT_CODE_LEN);
-#endif
 
     if (cc) {
         cc->loads_dl = g_state.loads_dl;
@@ -1442,4 +1442,5 @@ void au_c_comp(struct au_c_comp_state *state,
     au_hm_vars_del(&g_state.modules_map);
     au_data_free(g_state.main_line_info.data);
     au_c_comp_state_del(&g_state.header_file);
+    au_hm_vars_del(&g_state.declared_externs);
 }
