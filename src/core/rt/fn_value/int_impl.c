@@ -53,13 +53,13 @@ au_value_t au_fn_value_call_vm(const struct au_fn_value *fn_value,
         return au_value_op_error();
     }
     au_value_t *args = au_value_calloc(total_args);
-    for (int32_t i = 0; i < (int32_t)fn_value->bound_args.len; i++) {
+    for (int i = 0; i < (int)fn_value->bound_args.len; i++) {
         if (i == num_bound_args)
             break;
         au_value_ref(fn_value->bound_args.data[i]);
         args[i] = fn_value->bound_args.data[i];
     }
-    for (int32_t i = 0; i < num_unbound_args; i++) {
+    for (int i = 0; i < num_unbound_args; i++) {
         args[num_bound_args + i] = unbound_args[i];
         unbound_args[i] = au_value_none();
     }

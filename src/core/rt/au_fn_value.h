@@ -39,7 +39,7 @@ au_fn_value_from_vm(const struct au_fn *fn,
 #endif
 
 struct au_vm_thread_local;
-au_value_t au_fn_value_call_vm(const struct au_fn_value *fn_value,
+_Public au_value_t au_fn_value_call_vm(const struct au_fn_value *fn_value,
                                struct au_vm_thread_local *tl,
                                au_value_t *unbound_args,
                                int num_unbound_args, int *is_native_out);

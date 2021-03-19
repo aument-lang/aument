@@ -252,7 +252,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #else
 
 #ifdef AU_FEAT_PREFETCH_INSN
-#define PREFETCH_INSN register void *_next_insn = cb[bc[4]];
+#define PREFETCH_INSN register const void *_next_insn = cb[bc[4]];
 #define DISPATCH                                                          \
     do {                                                                  \
         DISPATCH_DEBUG;                                                   \
