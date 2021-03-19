@@ -29,8 +29,17 @@ struct au_module {
     } data;
 };
 
-_Public char *au_module_resolve(const char *relpath,
-                                const char *parent_dir);
+struct au_module_resolve_result {
+    char *abspath;
+    char *subpath;
+};
+
+_Public void
+au_module_resolve_result_del(struct au_module_resolve_result *result);
+
+_Public int au_module_resolve(struct au_module_resolve_result *result,
+                              const char *import_path,
+                              const char *parent_dir);
 
 enum au_module_import_result {
     AU_MODULE_IMPORT_SUCCESS = 0,
@@ -42,7 +51,12 @@ enum au_module_import_result {
 _Private void au_module_lib_perror();
 
 _Public enum au_module_import_result
-au_module_import(struct au_module *module, const char *abspath);
+au_module_import(struct au_module *module,
+                 struct au_module_resolve_result *resolved);
+
+struct au_extern_module_options {
+    const char *subpath;
+};
 
 #ifdef AU_IS_STDLIB
 #ifdef AU_IS_INTERPRETER

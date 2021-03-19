@@ -20,8 +20,8 @@
 #include "core/rt/malloc.h"
 
 #include "cc.h"
-#include "spawn.h"
 #include "path.h"
+#include "spawn.h"
 
 void au_cc_options_default(struct au_cc_options *cc) {
     *cc = (struct au_cc_options){0};
@@ -61,13 +61,15 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
     if (cc->use_stdlib) {
         if (!cc->_stdlib_cache) {
             struct au_char_array bin_path_array = au_binary_path();
-            if(bin_path_array.len == 0)
+            if (bin_path_array.len == 0)
                 goto fail;
 
             char *stdlib_cache = bin_path_array.data;
-            const size_t stdlib_cache_len = bin_path_array.len + strlen(au_lib_file);
+            const size_t stdlib_cache_len =
+                bin_path_array.len + strlen(au_lib_file);
             stdlib_cache = realloc(stdlib_cache, stdlib_cache_len);
-            memcpy(&stdlib_cache[bin_path_array.len], au_lib_file, strlen(au_lib_file));
+            memcpy(&stdlib_cache[bin_path_array.len], au_lib_file,
+                   strlen(au_lib_file));
             stdlib_cache[stdlib_cache_len] = 0;
 
             cc->_stdlib_cache = stdlib_cache;
