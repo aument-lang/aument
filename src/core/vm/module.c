@@ -41,10 +41,25 @@ au_extern_func_t au_module_get_fn(struct au_module *module,
 }
 #endif
 
+void au_module_resolve_result_del(
+    struct au_module_resolve_result *result) {
+    if (result->abspath != 0)
+        au_data_free(result->abspath);
+    result->abspath = 0;
+
+    if (result->subpath != 0)
+        au_data_free(result->subpath);
+    result->subpath = 0;
+}
+
 void au_module_lib_del(struct au_module_lib *lib) {
     (void)lib;
+#ifdef _WIN32
+    FreeLibrary((HMODULE)lib->dl_handle);
+#else
 #ifdef AU_FEAT_LIBDL
     dlclose(lib->dl_handle);
+#endif
 #endif
 }
 
@@ -58,53 +73,94 @@ void au_module_lib_perror() {
 #endif
 }
 
-char *au_module_resolve(const char *relpath, const char *parent_dir) {
-    const char *relpath_canon = 0;
-    if (relpath[0] == '.' && relpath[1] == '/') {
-        relpath_canon = &relpath[2];
-    } else if (relpath[0] == '.' && relpath[1] == '.' &&
-               relpath[2] == '/') {
-        relpath_canon = relpath;
+int au_module_resolve(struct au_module_resolve_result *result,
+                      const char *import_path, const char *parent_dir) {
+    const char *canon_path = 0;
+    if (import_path[0] == '.' && import_path[1] == '/') {
+        canon_path = &import_path[2];
+    } else if (import_path[0] == '.' && import_path[1] == '.' &&
+               import_path[2] == '/') {
+        canon_path = import_path;
+    } else {
+        *result = (struct au_module_resolve_result){0};
+        return 0;
     }
-    if (relpath_canon != 0) {
-        const size_t relpath_canon_len = strlen(relpath_canon);
-        const size_t abspath_len =
-            strlen(parent_dir) + relpath_canon_len + 2;
-        char *abspath = au_data_malloc(abspath_len);
-        snprintf(abspath, abspath_len, "%s/%s", parent_dir, relpath_canon);
-        return abspath;
+
+    int canon_path_len = 0;
+    int subpath_pos = 0, subpath_len = 0;
+    for (; canon_path[canon_path_len] != 0; canon_path_len++) {
+        if (canon_path[canon_path_len] == ':') {
+            subpath_pos = canon_path_len + 1;
+            break;
+        }
     }
-    return 0;
+
+    const size_t abspath_len = strlen(parent_dir) + canon_path_len + 2;
+
+    char *abspath = au_data_malloc(abspath_len);
+    snprintf(abspath, abspath_len, "%s/%.*s", parent_dir, canon_path_len,
+             canon_path);
+    abspath[abspath_len] = 0;
+
+    char *subpath = 0;
+    if (subpath_len != 0) {
+        subpath = au_data_malloc(subpath_len + 1);
+        memcpy(subpath, &canon_path[subpath_pos], subpath_len);
+        subpath[subpath_len] = 0;
+    }
+
+    *result = (struct au_module_resolve_result){
+        .abspath = abspath,
+        .subpath = subpath,
+    };
+    return 1;
 }
 
 typedef struct au_program_data *module_load_fn_ret_t;
 
 #ifdef _WIN32
-typedef module_load_fn_ret_t(__stdcall *module_load_fn_t)();
+#define MODULE_LOAD_CALLCONV __stdcall
 #else
-typedef module_load_fn_ret_t (*module_load_fn_t)();
+#define MODULE_LOAD_CALLCONV
 #endif
 
-enum au_module_import_result au_module_import(struct au_module *module,
-                                              const char *abspath) {
+typedef module_load_fn_ret_t(MODULE_LOAD_CALLCONV *module_load_fn_t)(
+    struct au_extern_module_options *);
+
+static int endswith(const char *str, size_t len, const char *needle) {
+    const size_t needle_len = strlen(needle);
+    return len >= needle_len &&
+           memcmp(&str[len - needle_len], needle, needle_len) == 0;
+}
+
+enum au_module_import_result
+au_module_import(struct au_module *module,
+                 struct au_module_resolve_result *resolved) {
     (void)module;
-    const size_t abspath_len = strlen(abspath);
-    if (abspath_len > strlen(AU_MODULE_LIB_EXT) &&
-        memcmp(&abspath[abspath_len - strlen(AU_MODULE_LIB_EXT)],
-               AU_MODULE_LIB_EXT, strlen(AU_MODULE_LIB_EXT)) == 0) {
+    const size_t abspath_len = strlen(resolved->abspath);
+    if (endswith(resolved->abspath, abspath_len, AU_MODULE_LIB_EXT)) {
 #ifdef _WIN32
         module->type = AU_MODULE_LIB;
-        HMODULE handle = LoadLibraryA(abspath);
+
+        HMODULE handle = LoadLibraryA(resolved->abspath);
         if (handle == 0) {
             return AU_MODULE_IMPORT_FAIL_DL;
         }
         module->data.lib.dl_handle = (void *)handle;
+
         module_load_fn_t loader = (module_load_fn_t)(
             (void *)GetProcAddress(handle, AU_MODULE_LOAD_FN));
         if (loader == 0) {
+            FreeLibrary(handle);
+            module->data.lib.dl_handle = 0;
+            module->data.lib.lib = 0;
             return AU_MODULE_IMPORT_FAIL_DL;
         }
-        module->data.lib.lib = loader();
+
+        struct au_extern_module_options options = {0};
+        options.subpath = resolved->subpath;
+        module->data.lib.lib = loader(&options);
+
         if (module->data.lib.lib == 0) {
             FreeLibrary(handle);
             module->data.lib.dl_handle = 0;
@@ -116,7 +172,7 @@ enum au_module_import_result au_module_import(struct au_module *module,
 #ifdef AU_FEAT_LIBDL
         module->type = AU_MODULE_LIB;
         module->data.lib.dl_handle =
-            dlopen(abspath, RTLD_LAZY | RTLD_LOCAL);
+            dlopen(resolved->abspath, RTLD_LAZY | RTLD_LOCAL);
         if (module->data.lib.dl_handle == 0) {
             return AU_MODULE_IMPORT_FAIL_DL;
         }
@@ -142,7 +198,7 @@ enum au_module_import_result au_module_import(struct au_module *module,
     else {
         module->type = AU_MODULE_SOURCE;
         struct au_mmap_info mmap;
-        if (!au_mmap_read(abspath, &mmap)) {
+        if (!au_mmap_read(resolved->abspath, &mmap)) {
             return AU_MODULE_IMPORT_FAIL;
         }
         module->data.source = mmap;

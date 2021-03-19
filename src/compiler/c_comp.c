@@ -245,7 +245,8 @@ static void link_to_imported(
 static void
 write_imported_module_main_start(size_t imported_module_idx_in_source,
                                  struct au_c_comp_global_state *g_state,
-                                 const char *lib_filename) {
+                                 const char *abspath,
+                                 const char *subpath) {
     comp_printf(&g_state->header_file, "static int _M%d_main_init=0;\n",
                 (int)imported_module_idx_in_source);
     comp_printf(&g_state->header_file, "static void _M%d_main() {\n",
@@ -255,28 +256,40 @@ write_imported_module_main_start(size_t imported_module_idx_in_source,
                 (int)imported_module_idx_in_source);
     comp_printf(&g_state->header_file, INDENT "_M%d_main_init=1;\n",
                 (int)imported_module_idx_in_source);
-    comp_printf(&g_state->header_file, INDENT "struct au_module m;\n");
     comp_printf(&g_state->header_file,
-                INDENT "switch(au_module_import(&m,\"%s\")){\n"
+                INDENT "struct au_module m;\n"
+
+                INDENT "struct au_module_resolve_result r="
+                       "(struct au_module_resolve_result){0};"
+                       "r.abspath=\"%s\";\n",
+                abspath);
+    if(subpath != 0) {
+        comp_printf(&g_state->header_file,
+                    INDENT "r.subpath=\"%s\";\n",
+                    subpath);
+    }
+    comp_printf(&g_state->header_file,
+                INDENT "switch(au_module_import(&m,&r)){\n"
 
                 INDENT "case AU_MODULE_IMPORT_SUCCESS:"
-                       "break;\n"
+                       " break;\n"
 
                 INDENT "case AU_MODULE_IMPORT_SUCCESS_NO_MODULE:"
                        " return;\n"
 
                 INDENT "default:{"
-                       "au_module_lib_perror();"
-                       "au_fatal(\"failed to import '%s'\");}}\n",
-                lib_filename, lib_filename);
+                       " au_module_lib_perror();"
+                       " au_fatal(\"failed to import '%s'\");}}\n",
+                abspath);
 }
 
 static void
 write_imported_module_main(size_t imported_module_idx_in_source,
                            struct au_c_comp_global_state *g_state,
-                           const char *lib_filename) {
+                           const char *abspath,
+                           const char *subpath) {
     write_imported_module_main_start(imported_module_idx_in_source,
-                                     g_state, lib_filename);
+                                     g_state, abspath, subpath);
     comp_printf(&g_state->header_file, "}\n");
 }
 
@@ -812,21 +825,23 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             const size_t relative_module_idx = import->module_idx;
             const char *relpath = import->path;
 
-            char *abspath = 0;
-            if ((abspath = au_module_resolve(relpath, p_data->cwd)) == 0)
-                au_fatal("abspath is null\n");
+            struct au_module_resolve_result resolve_res = {0};
+            if (!au_module_resolve(&resolve_res, relpath, p_data->cwd))
+                au_fatal("unable to resolve path '%s'\n", relpath);
 
             struct au_module module;
-            switch (au_module_import(&module, abspath)) {
-            case AU_MODULE_IMPORT_SUCCESS: {
+            switch (au_module_import(&module, &resolve_res)) {
+            case AU_MODULE_IMPORT_SUCCESS:
+            case AU_MODULE_IMPORT_SUCCESS_NO_MODULE: {
                 break;
             }
             case AU_MODULE_IMPORT_FAIL: {
-                au_module_lib_perror();
-                au_fatal("unable to import %s\n", abspath);
+                au_fatal("unable to import '%s'\n", resolve_res.abspath);
                 break;
             }
-            default: {
+            case AU_MODULE_IMPORT_FAIL_DL: {
+                au_module_lib_perror();
+                au_fatal("unable to import '%s'\n", resolve_res.abspath);
                 break;
             }
             }
@@ -835,9 +850,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             int has_old_value = 0;
 
             {
-                au_hm_var_value_t *old_value =
-                    au_hm_vars_add(&g_state->modules_map, abspath,
-                                   strlen(abspath), imported_module_idx);
+                au_hm_var_value_t *old_value = au_hm_vars_add(
+                    &g_state->modules_map, resolve_res.abspath,
+                    strlen(resolve_res.abspath), imported_module_idx);
                 if (old_value != 0) {
                     imported_module_idx = *old_value;
                     has_old_value = 1;
@@ -851,7 +866,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             switch (module.type) {
             case AU_MODULE_SOURCE: {
                 struct au_mmap_info mmap;
-                if (!au_mmap_read(abspath, &mmap))
+                if (!au_mmap_read(resolve_res.abspath, &mmap))
                     au_perror("mmap");
 
                 struct line_info_array line_info_array = {0};
@@ -876,9 +891,10 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 
                     program.data.file = 0;
                     program.data.cwd = 0;
-                    au_split_path(abspath, &program.data.file,
+                    au_split_path(resolve_res.abspath, &program.data.file,
                                   &program.data.cwd);
-                    au_data_free(abspath);
+
+                    au_module_resolve_result_del(&resolve_res);
 
                     struct au_c_comp_state mod_state = {0};
                     au_c_comp_module(&mod_state, &program,
@@ -916,12 +932,12 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                     module.data.lib.lib;
                 module.data.lib.lib = 0;
 
-                char *lib_filename = basename(abspath);
+                char *lib_filename = basename(resolve_res.abspath);
 
                 if (loaded_module == 0) {
                     write_imported_module_main(
                         imported_module_idx_in_source, g_state,
-                        lib_filename);
+                        lib_filename, resolve_res.subpath);
                     break;
                 }
 
@@ -978,7 +994,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 
                     write_imported_module_main_start(
                         imported_module_idx_in_source, g_state,
-                        lib_filename);
+                        lib_filename, resolve_res.subpath);
                     AU_HM_VARS_FOREACH_PAIR(
                         &loaded_module->fn_map, name, entry, {
                             comp_printf(&g_state->header_file,
@@ -1003,7 +1019,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 au_program_data_del(loaded_module);
                 au_data_free(loaded_module);
                 au_module_lib_del(&module.data.lib);
-                au_data_free(abspath);
+                au_module_resolve_result_del(&resolve_res);
                 break;
             }
             }

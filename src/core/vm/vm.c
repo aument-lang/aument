@@ -1127,15 +1127,27 @@ _AU_OP_JNIF:;
                     p_data->imports.data[idx].module_idx;
                 const char *relpath = p_data->imports.data[idx].path;
 
-                char *abspath = 0;
-                if ((abspath = au_module_resolve(relpath, p_data->cwd)) ==
-                    0)
-                    au_fatal("abspath is null\n");
+                struct au_module_resolve_result resolve_res;
+                if (!au_module_resolve(&resolve_res, relpath, p_data->cwd))
+                    au_fatal("unable to resolve path '%s'\n", relpath);
+
+                const char *module_path = resolve_res.abspath;
+
+                char *module_path_with_subpath = 0;
+                if(resolve_res.subpath != 0) {
+                    const size_t len = strlen(resolve_res.abspath) + strlen(resolve_res.subpath) + 1;
+                    module_path_with_subpath = au_data_malloc(len);
+                    snprintf(module_path_with_subpath, len, "%s:%s", resolve_res.abspath, resolve_res.subpath);
+                    module_path_with_subpath[len] = 0;
+                    module_path = module_path_with_subpath;
+                }
 
                 struct au_program_data *loaded_module =
-                    au_vm_thread_local_get_module(tl, abspath);
+                    au_vm_thread_local_get_module(tl, module_path);
                 if (loaded_module != 0) {
-                    au_data_free(abspath);
+                    if(module_path_with_subpath != 0)
+                        au_data_free(module_path_with_subpath);
+                    au_module_resolve_result_del(&resolve_res);
                     link_to_imported(p_data, relative_module_idx,
                                      loaded_module);
                     DISPATCH;
@@ -1146,23 +1158,27 @@ _AU_OP_JNIF:;
                     AU_TL_RESMOD_RETVAL_FAIL;
                 if (relative_module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
                     rmod_retval = au_vm_thread_local_reserve_import_only(
-                        tl, abspath);
+                        tl, module_path);
                     if (rmod_retval ==
                         AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
-                        au_data_free(abspath);
+                        au_module_resolve_result_del(&resolve_res);
                         DISPATCH;
                     }
                 } else {
                     rmod_retval = au_vm_thread_local_reserve_module(
-                        tl, abspath, &tl_module_idx);
+                        tl, module_path, &tl_module_idx);
                 }
+
+                if(module_path_with_subpath != 0)
+                    au_data_free(module_path_with_subpath);
+                module_path = 0;
 
                 if (rmod_retval == AU_TL_RESMOD_RETVAL_FAIL) {
                     au_fatal("circular import detected\n");
                 }
 
                 struct au_module module;
-                switch (au_module_import(&module, abspath)) {
+                switch (au_module_import(&module, &resolve_res)) {
                 case AU_MODULE_IMPORT_SUCCESS: {
                     break;
                 }
@@ -1170,12 +1186,14 @@ _AU_OP_JNIF:;
                     goto _import_dispatch;
                 }
                 case AU_MODULE_IMPORT_FAIL: {
-                    au_fatal("unable to import %s\n", abspath);
+                    au_fatal("unable to import '%s'\n",
+                             resolve_res.abspath);
                     break;
                 }
                 case AU_MODULE_IMPORT_FAIL_DL: {
                     au_module_lib_perror();
-                    au_fatal("unable to import %s\n", abspath);
+                    au_fatal("unable to import '%s'\n",
+                             resolve_res.abspath);
                     break;
                 }
                 }
@@ -1188,12 +1206,12 @@ _AU_OP_JNIF:;
                     struct au_parser_result parse_res =
                         au_parse(mmap.bytes, mmap.size, &program);
                     if (parse_res.type != AU_PARSER_RES_OK) {
-                        au_print_parser_error(parse_res,
-                                              (struct au_error_location){
-                                                  .src = mmap.bytes,
-                                                  .len = mmap.size,
-                                                  .path = abspath,
-                                              });
+                        au_print_parser_error(
+                            parse_res, (struct au_error_location){
+                                           .src = mmap.bytes,
+                                           .len = mmap.size,
+                                           .path = resolve_res.abspath,
+                                       });
                         abort();
                     }
 
@@ -1201,10 +1219,12 @@ _AU_OP_JNIF:;
                     au_vm_thread_local_add_const_cache(
                         tl, program.data.data_val.len);
 
-                    if (!au_split_path(abspath, &program.data.file,
+                    if (!au_split_path(resolve_res.abspath,
+                                       &program.data.file,
                                        &program.data.cwd))
                         au_perror("au_split_path");
-                    au_data_free(abspath);
+
+                    au_module_resolve_result_del(&resolve_res);
 
                     if (rmod_retval !=
                         AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
