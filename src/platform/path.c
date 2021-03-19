@@ -58,3 +58,46 @@ fail:
     *wd = 0;
     return 0;
 }
+
+struct au_char_array au_binary_path() {
+#ifdef _WIN32
+    char buffer[PATH_MAX];
+    if (GetModuleFileNameA(0, buffer, PATH_MAX) == 0) {
+        goto fail;
+    }
+    char my_path[PATH_MAX];
+    size_t size = GetFullPathNameA(buffer, PATH_MAX, my_path, 0);
+    if (size == 0) {
+        goto fail;
+    }
+    char my_drive[16] = {0};
+    if (_splitpath_s(my_path, my_drive, sizeof(my_drive), my_path,
+                     PATH_MAX, 0, 0, 0, 0) != 0) {
+        goto fail;
+    }
+    const size_t my_path_len = strlen(my_path);
+    const size_t my_drive_len = strlen(my_drive);
+    if (my_path_len + my_drive_len > PATH_MAX) {
+        goto fail;
+    }
+    memmove(&my_path[my_drive_len], my_path, my_path_len);
+    memcpy(my_path, my_drive, strlen(my_drive));
+    my_path[my_path_len + my_drive_len] = 0;
+#else
+    char buffer[BUFSIZ];
+    if (readlink("/proc/self/exe", buffer, BUFSIZ) < 0)
+        goto fail;
+    char *my_path = dirname(buffer);
+#endif
+    const size_t ret_path_len = strlen(my_path);
+    char *ret_path = au_data_malloc(ret_path_len + 1);
+    memcpy(ret_path, my_path, ret_path_len);
+    ret_path[ret_path_len] = 0;
+    return (struct au_char_array){
+        .data = ret_path,
+        .cap = ret_path_len,
+        .len = ret_path_len,
+    };
+fail:
+    return (struct au_char_array){0};
+}

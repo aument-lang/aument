@@ -17,9 +17,11 @@
 #include <unistd.h>
 #endif
 
-#include "cc.h"
 #include "core/rt/malloc.h"
+
+#include "cc.h"
 #include "spawn.h"
+#include "path.h"
 
 void au_cc_options_default(struct au_cc_options *cc) {
     *cc = (struct au_cc_options){0};
@@ -58,41 +60,17 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
 
     if (cc->use_stdlib) {
         if (!cc->_stdlib_cache) {
-#ifdef _WIN32
-            char buffer[PATH_MAX];
-            if (GetModuleFileNameA(0, buffer, PATH_MAX) == 0) {
+            struct au_char_array bin_path_array = au_binary_path();
+            if(bin_path_array.len == 0)
                 goto fail;
-            }
-            char my_path[PATH_MAX];
-            size_t size = GetFullPathNameA(buffer, PATH_MAX, my_path, 0);
-            if (size == 0) {
-                goto fail;
-            }
-            char my_drive[16] = {0};
-            if (_splitpath_s(my_path, my_drive, sizeof(my_drive), my_path,
-                             PATH_MAX, 0, 0, 0, 0) != 0) {
-                goto fail;
-            }
-            const size_t my_path_len = strlen(my_path);
-            const size_t my_drive_len = strlen(my_drive);
-            if (my_path_len + my_drive_len > PATH_MAX) {
-                goto fail;
-            }
-            memmove(&my_path[my_drive_len], my_path, my_path_len);
-            memcpy(my_path, my_drive, strlen(my_drive));
-            my_path[my_path_len + my_drive_len] = 0;
-#else
-            char buffer[BUFSIZ];
-            if (readlink("/proc/self/exe", buffer, BUFSIZ) < 0)
-                goto fail;
-            char *my_path = dirname(buffer);
-#endif
-            size_t my_len = strlen(my_path);
-            size_t stdlib_cache_len = my_len + sizeof(au_lib_file);
-            cc->_stdlib_cache = au_data_malloc(stdlib_cache_len + 1);
-            snprintf(cc->_stdlib_cache, stdlib_cache_len, "%s%s", my_path,
-                     au_lib_file);
-            cc->_stdlib_cache[stdlib_cache_len] = 0;
+
+            char *stdlib_cache = bin_path_array.data;
+            const size_t stdlib_cache_len = bin_path_array.len + strlen(au_lib_file);
+            stdlib_cache = realloc(stdlib_cache, stdlib_cache_len);
+            memcpy(&stdlib_cache[bin_path_array.len], au_lib_file, strlen(au_lib_file));
+            stdlib_cache[stdlib_cache_len] = 0;
+
+            cc->_stdlib_cache = stdlib_cache;
         }
         if (cc->loads_dl) {
 #ifdef _WIN32
