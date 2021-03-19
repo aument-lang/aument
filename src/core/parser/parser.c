@@ -1259,10 +1259,18 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                 parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
             }
 
-            parser_emit_bc_u8(p, parser_last_reg(p));
-            au_hm_var_value_t *old_value =
+            const uint8_t new_reg = parser_last_reg(p);
+            parser_emit_bc_u8(p, new_reg);
+
+            const au_hm_var_value_t *old_value =
                 au_hm_vars_add(&p->vars, t.src, t.len, var_value);
             if (old_value) {
+                if(*old_value < p->local_to_reg.len) {
+                    const uint8_t old_reg = p->local_to_reg.data[*old_value];
+                    AU_BA_RESET_BIT(p->pinned_regs, old_reg);
+                    p->local_to_reg.data[*old_value] = new_reg;
+                    AU_BA_SET_BIT(p->pinned_regs, new_reg);
+                }
                 parser_emit_bc_u16(p, *old_value);
             } else {
                 p->num_locals++;
