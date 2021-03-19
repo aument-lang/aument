@@ -21,7 +21,7 @@
 #include "core/rt/malloc.h"
 #include "module.h"
 
-#define AU_MODULE_LOAD_FN "au_module_load"
+#define AU_MODULE_LOAD_FN "au_extern_module_load"
 
 #ifdef AU_IS_STDLIB
 #include "core/fn/main.h"
