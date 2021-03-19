@@ -40,9 +40,10 @@ au_fn_value_from_vm(const struct au_fn *fn,
 
 struct au_vm_thread_local;
 _Public au_value_t au_fn_value_call_vm(const struct au_fn_value *fn_value,
-                               struct au_vm_thread_local *tl,
-                               au_value_t *unbound_args,
-                               int num_unbound_args, int *is_native_out);
+                                       struct au_vm_thread_local *tl,
+                                       au_value_t *unbound_args,
+                                       int num_unbound_args,
+                                       int *is_native_out);
 
 static inline struct au_fn_value *au_fn_value_coerce(au_value_t value) {
     if (au_value_get_type(value) != AU_VALUE_FN)
