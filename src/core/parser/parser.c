@@ -219,16 +219,16 @@ static _Unused void parser_flush_cached_regs(struct au_parser *p) {
     for (size_t i = 0; i < p->local_to_reg.len; i++) {
         p->local_to_reg.data[i] = CACHED_REG_NONE;
     }
-    for(int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
+    for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
         p->pinned_regs[i] = 0;
     }
 }
 
 static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
-    if(AU_BA_GET_BIT(p->pinned_regs, reg)) {
+    if (AU_BA_GET_BIT(p->pinned_regs, reg)) {
         AU_BA_RESET_BIT(p->pinned_regs, reg);
         for (size_t i = 0; i < p->local_to_reg.len; i++) {
-            if(p->local_to_reg.data[i] == reg) {
+            if (p->local_to_reg.data[i] == reg) {
                 p->local_to_reg.data[i] = CACHED_REG_NONE;
                 break;
             }
