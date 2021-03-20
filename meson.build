@@ -347,12 +347,12 @@ aument_header_files = [
 'src/core/vm/frame_link.h',
 'src/core/vm/tl.h',
 'src/core/vm/vm.h',
-'src/core/vm/module.h',
 'src/platform/cc.h',
 'src/platform/mmap.h',
 'src/platform/path.h',
 'src/platform/spawn.h',
 'src/platform/tmpfile.h',
+'src/core/vm/module.h',
 'src/stdlib/au_stdlib.h',
 'src/version.h',
 
