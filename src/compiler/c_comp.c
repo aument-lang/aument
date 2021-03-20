@@ -953,7 +953,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         (struct au_c_comp_module){0};
                     au_c_comp_module_array_add(&g_state->modules,
                                                comp_module);
-                    // TODO: check for imported functions and error if they exist
+                    // TODO: check for imported functions and error if they
+                    // exist
                     break;
                 }
 
