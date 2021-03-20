@@ -31,11 +31,38 @@ _Public struct au_string *au_string_from_const(const char *s, size_t len);
 /// @param left First string
 /// @param right Second string
 /// @return Concatenation of `left` and `right`
-_Public struct au_string *au_string_add(struct au_string *left,
-                                        struct au_string *right);
+_Public struct au_string *au_string_add(const struct au_string *left,
+                                        const struct au_string *right);
 
 /// [func] Compares 2 au_string instances
 /// @param left First string
 /// @param right Second string
 /// @return Comparison of `left` and `right`
-_Public int au_string_cmp(struct au_string *left, struct au_string *right);
+static _Unused inline int au_string_cmp(const struct au_string *left, const struct au_string *right);
+
+int au_string_cmp(const struct au_string *left, const struct au_string *right) {
+    if (left->len > right->len) {
+        return 1;
+    } else if (left->len < right->len) {
+        return -1;
+    } else {
+        return memcmp(left->data, right->data, left->len);
+    }
+}
+
+/// [func] Compares an au_string instance with a zero-terminated string
+/// @param str au_string instance
+/// @param cstr C string
+/// @return Comparison of `left` and `right`
+static _Unused inline int au_string_cmp_cstr(const struct au_string *str, const char *cstr);
+
+int au_string_cmp_cstr(const struct au_string *str, const char *cstr) {
+    const size_t clen = strlen(cstr);
+    if(str->len > clen) {
+        return 1;
+    } else if (str->len < clen) {
+        return -1;
+    } else {
+        return memcmp(str->data, cstr, clen);
+    }
+}

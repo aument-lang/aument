@@ -66,11 +66,11 @@ int au_spawn_cc(struct au_cc_options *cc, char *output_file,
 
             char *stdlib_cache = bin_path_array.data;
             const size_t stdlib_cache_len =
-                bin_path_array.len + strlen(au_lib_file);
-            stdlib_cache = realloc(stdlib_cache, stdlib_cache_len);
+                bin_path_array.len + strlen(au_lib_file) + 1;
+            stdlib_cache = au_data_realloc(stdlib_cache, stdlib_cache_len);
             memcpy(&stdlib_cache[bin_path_array.len], au_lib_file,
                    strlen(au_lib_file));
-            stdlib_cache[stdlib_cache_len] = 0;
+            stdlib_cache[stdlib_cache_len - 1] = 0;
 
             cc->_stdlib_cache = stdlib_cache;
         }

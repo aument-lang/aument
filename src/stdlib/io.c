@@ -102,32 +102,26 @@ AU_EXTERN_FUNC_DECL(au_std_io_open) {
     const au_value_t path_val = _args[0];
     if (au_value_get_type(path_val) != AU_VALUE_STR)
         return au_value_op_error();
+    const struct au_string *path_str = au_value_get_string(path_val);
+
     const au_value_t mode_val = _args[1];
     if (au_value_get_type(mode_val) != AU_VALUE_STR)
         return au_value_op_error();
-
-    struct au_std_io *io = 0;
-
-    const struct au_string *path_str = au_value_get_string(path_val);
     const struct au_string *mode_str = au_value_get_string(mode_val);
 
+    struct au_std_io *io = 0;
     FILE *f = 0;
 
     // Set up mode parameter
     const char *mode = 0;
-#define CMP_MODE(EXPECT_MODE_STR)                                         \
-    (mode_str->len == strlen(EXPECT_MODE_STR) &&                          \
-     memcmp(mode_str->data, EXPECT_MODE_STR, strlen(EXPECT_MODE_STR)) ==  \
-         0)
-    if (CMP_MODE("r"))
+    if (au_string_cmp_cstr(mode_str, "r") == 0)
         mode = "rb";
-    else if (CMP_MODE("w"))
+    else if (au_string_cmp_cstr(mode_str, "w") == 0)
         mode = "wb";
-    else if (CMP_MODE("a"))
+    else if (au_string_cmp_cstr(mode_str, "a") == 0)
         mode = "ab";
     else
         goto fail;
-#undef CMP_MODE
 
     // Set up path parameter & open the file
     if (path_str->len < MAX_SMALL_PATH) {
