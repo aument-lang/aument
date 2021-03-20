@@ -449,6 +449,7 @@ if is_testing
     foreach import_lib_info : [
         ['dl_import_test', 'tests/dl-import'],
         ['dl_module_test', 'tests/dl-module'],
+        ['dl_subpath_test', 'tests/dl-subpath'],
     ]
         import_lib_test = shared_module(import_lib_info[0],
             files(import_lib_info[1] + '/lib.c'),

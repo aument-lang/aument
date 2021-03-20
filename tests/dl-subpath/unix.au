@@ -1,0 +1,1 @@
+import "../../build/libdl_subpath_test.so:subpath";
