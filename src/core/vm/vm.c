@@ -1134,10 +1134,12 @@ _AU_OP_JNIF:;
                 const char *module_path = resolve_res.abspath;
 
                 char *module_path_with_subpath = 0;
-                if(resolve_res.subpath != 0) {
-                    const size_t len = strlen(resolve_res.abspath) + strlen(resolve_res.subpath) + 1;
+                if (resolve_res.subpath != 0) {
+                    const size_t len = strlen(resolve_res.abspath) +
+                                       strlen(resolve_res.subpath) + 1;
                     module_path_with_subpath = au_data_malloc(len + 1);
-                    snprintf(module_path_with_subpath, len, "%s:%s", resolve_res.abspath, resolve_res.subpath);
+                    snprintf(module_path_with_subpath, len, "%s:%s",
+                             resolve_res.abspath, resolve_res.subpath);
                     module_path_with_subpath[len] = 0;
                     module_path = module_path_with_subpath;
                 }
@@ -1145,7 +1147,7 @@ _AU_OP_JNIF:;
                 struct au_program_data *loaded_module =
                     au_vm_thread_local_get_module(tl, module_path);
                 if (loaded_module != 0) {
-                    if(module_path_with_subpath != 0)
+                    if (module_path_with_subpath != 0)
                         au_data_free(module_path_with_subpath);
                     au_module_resolve_result_del(&resolve_res);
                     link_to_imported(p_data, relative_module_idx,
@@ -1169,7 +1171,7 @@ _AU_OP_JNIF:;
                         tl, module_path, &tl_module_idx);
                 }
 
-                if(module_path_with_subpath != 0)
+                if (module_path_with_subpath != 0)
                     au_data_free(module_path_with_subpath);
                 module_path = 0;
 
