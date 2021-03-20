@@ -15,7 +15,7 @@ struct au_obj_tuple {
     au_value_t data[];
 };
 
-struct _Thread_local au_struct_vdata au_obj_tuple_vdata;
+_Thread_local struct au_struct_vdata au_obj_tuple_vdata;
 static _Thread_local int au_obj_tuple_vdata_inited = 0;
 static void au_obj_tuple_vdata_init() {
     if (!au_obj_tuple_vdata_inited) {

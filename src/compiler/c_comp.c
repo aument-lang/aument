@@ -263,9 +263,8 @@ write_imported_module_main_start(size_t imported_module_idx_in_source,
                        "(struct au_module_resolve_result){0};"
                        "r.abspath=\"%s\";\n",
                 abspath);
-    if(subpath != 0) {
-        comp_printf(&g_state->header_file,
-                    INDENT "r.subpath=\"%s\";\n",
+    if (subpath != 0) {
+        comp_printf(&g_state->header_file, INDENT "r.subpath=\"%s\";\n",
                     subpath);
     }
     comp_printf(&g_state->header_file,
@@ -286,8 +285,7 @@ write_imported_module_main_start(size_t imported_module_idx_in_source,
 static void
 write_imported_module_main(size_t imported_module_idx_in_source,
                            struct au_c_comp_global_state *g_state,
-                           const char *abspath,
-                           const char *subpath) {
+                           const char *abspath, const char *subpath) {
     write_imported_module_main_start(imported_module_idx_in_source,
                                      g_state, abspath, subpath);
     comp_printf(&g_state->header_file, "}\n");
