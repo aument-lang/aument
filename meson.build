@@ -173,6 +173,7 @@ endif
 if has_compile_feature
     rt_hdr_depends = files(
         'src/platform/platform.h',
+        'src/platform/arithmetic.h',
         'src/core/rt/malloc.h',
         'src/core/array.h',
         'src/core/rt/exception.h',
@@ -304,6 +305,7 @@ aument_header_files = [
 
 # Platform-specific
 'src/platform/platform.h',
+'src/platform/arithmetic.h',
 'src/core/rt/exception.h',
 'src/core/rt/malloc.h',
 
