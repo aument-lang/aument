@@ -16,8 +16,8 @@ struct au_obj_array {
     struct au_value_array array;
 };
 
-struct au_struct_vdata au_obj_array_vdata;
-static int au_obj_array_vdata_inited = 0;
+struct _Thread_local au_struct_vdata au_obj_array_vdata;
+static _Thread_local int au_obj_array_vdata_inited = 0;
 static void au_obj_array_vdata_init() {
     if (!au_obj_array_vdata_inited) {
         au_obj_array_vdata = (struct au_struct_vdata){
