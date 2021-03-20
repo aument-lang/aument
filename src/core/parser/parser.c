@@ -91,11 +91,7 @@ static inline int is_return_op(uint8_t op) {
 static void parser_flush_free_regs(struct au_parser *p) {
     p->rstack_len = 0;
     for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
-        p->used_regs[i] = 0;
-        p->pinned_regs[i] = 0;
-    }
-    for (size_t i = 0; i < p->local_to_reg.len; i++) {
-        p->local_to_reg.data[i] = CACHED_REG_NONE;
+        p->used_regs[i] = p->pinned_regs[i];
     }
 }
 
@@ -217,6 +213,27 @@ static void parser_emit_bc_u16(struct au_parser *p, uint16_t val) {
 
 static void parser_emit_pad8(struct au_parser *p) {
     parser_emit_bc_u8(p, 0);
+}
+
+static _Unused void parser_flush_cached_regs(struct au_parser *p) {
+    for (size_t i = 0; i < p->local_to_reg.len; i++) {
+        p->local_to_reg.data[i] = CACHED_REG_NONE;
+    }
+    for(int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
+        p->pinned_regs[i] = 0;
+    }
+}
+
+static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
+    if(AU_BA_GET_BIT(p->pinned_regs, reg)) {
+        AU_BA_RESET_BIT(p->pinned_regs, reg);
+        for (size_t i = 0; i < p->local_to_reg.len; i++) {
+            if(p->local_to_reg.data[i] == reg) {
+                p->local_to_reg.data[i] = CACHED_REG_NONE;
+                break;
+            }
+        }
+    }
 }
 
 #define EXPECT_TOKEN(CONDITION, TOKEN, EXPECTED)                          \
@@ -926,11 +943,16 @@ static int parser_exec_const_statement(struct au_parser *p,
 
 static int parser_exec_if_statement(struct au_parser *p,
                                     struct au_lexer *l) {
+    parser_flush_cached_regs(p);
+
     // condition
     int has_else_part = 0;
     if (!parser_exec_expr(p, l))
         return 0;
+
     const size_t c_len = p->bc.len;
+    parser_flush_cached_regs(p);
+
     parser_emit_bc_u8(p, AU_OP_JNIF);
     parser_emit_bc_u8(p, parser_pop_reg(p));
     const size_t c_replace_idx = p->bc.len;
@@ -939,10 +961,14 @@ static int parser_exec_if_statement(struct au_parser *p,
     // body
     size_t body_len;
     size_t body_replace_idx = (size_t)-1;
+
     if (!parser_exec_block(p, l))
         return 0;
+    parser_flush_cached_regs(p);
+
     if (!is_return_op(p->bc.data[p->bc.len - 4])) {
         body_len = p->bc.len;
+
         parser_emit_bc_u8(p, AU_OP_JREL);
         parser_emit_pad8(p);
         body_replace_idx = p->bc.len;
@@ -967,9 +993,12 @@ static int parser_exec_if_statement(struct au_parser *p,
                         return 0;
                 }
             }
+            parser_flush_cached_regs(p);
             has_else_part = 1;
 
             const size_t else_len = p->bc.len;
+            parser_flush_cached_regs(p);
+
             size_t else_replace_idx = (size_t)-1;
             if (!is_return_op(p->bc.data[p->bc.len - 4])) {
                 parser_emit_bc_u8(p, AU_OP_JREL);
@@ -1015,14 +1044,18 @@ static int parser_exec_if_statement(struct au_parser *p,
     }
 
     // The resulting bytecode should look like this:
+    //       (flush locals)
     //   condition:
     //       ...
+    //       (flush locals)
     //       jnif [cond], else
     //   body:
     //       ...
+    //       (flush locals)
     //       jmp if_end
     //   else:
     //       ...
+    //       (flush locals)
     //       jmp if_end
     //   if_end:
     //       ...
@@ -1031,29 +1064,34 @@ static int parser_exec_if_statement(struct au_parser *p,
 
 static int parser_exec_while_statement(struct au_parser *p,
                                        struct au_lexer *l) {
+    parser_flush_cached_regs(p);
+
     // condition
     const size_t cond_part = p->bc.len;
     if (!parser_exec_expr(p, l))
         return 0;
+
+    parser_flush_cached_regs(p);
+
     const size_t c_len = p->bc.len;
     parser_emit_bc_u8(p, AU_OP_JNIF);
     parser_emit_bc_u8(p, parser_pop_reg(p));
     const size_t c_replace_idx = p->bc.len;
     parser_emit_pad8(p);
     parser_emit_pad8(p);
+
     // body
     if (!parser_exec_block(p, l))
         return 0;
-    size_t body_len;
+    parser_flush_cached_regs(p);
+
+    size_t body_len = p->bc.len;
     size_t body_replace_idx = (size_t)-1;
-    if (!is_return_op(p->bc.data[p->bc.len - 4])) {
-        body_len = p->bc.len;
-        parser_emit_bc_u8(p, AU_OP_JRELB);
-        parser_emit_pad8(p);
-        body_replace_idx = p->bc.len;
-        parser_emit_pad8(p);
-        parser_emit_pad8(p);
-    }
+    parser_emit_bc_u8(p, AU_OP_JRELB);
+    parser_emit_pad8(p);
+    body_replace_idx = p->bc.len;
+    parser_emit_pad8(p);
+    parser_emit_pad8(p);
 
     const size_t end_len = p->bc.len;
 
@@ -1072,12 +1110,16 @@ static int parser_exec_while_statement(struct au_parser *p,
     }
 
     // The resulting bytecode should look like this:
+    //       (flush locals)
     //   condition:
-    //       ...
+    //       [cond] = ...
+    //       (flush locals)
     //       jnif [cond], end
     //   block:
+    //       ...
+    //       (flush locals)
     //       jrelb condition
-    //   end
+    //   end:
     return 1;
 }
 
@@ -1241,7 +1283,10 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
 
             au_hm_var_value_t var_value = p->num_locals;
 
+            int is_modify_asg = 0;
+
             if (!(op.len == 1 && op.src[0] == '=')) {
+                is_modify_asg = 1;
                 switch (op.src[0]) {
 #define BIN_OP_ASG(OP, OPCODE)                                            \
     case OP: {                                                            \
@@ -1268,9 +1313,14 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                 if (*old_value < p->local_to_reg.len) {
                     const uint8_t old_reg =
                         p->local_to_reg.data[*old_value];
-                    AU_BA_RESET_BIT(p->pinned_regs, old_reg);
-                    p->local_to_reg.data[*old_value] = new_reg;
-                    AU_BA_SET_BIT(p->pinned_regs, new_reg);
+                    if (is_modify_asg) {
+                        AU_BA_RESET_BIT(p->pinned_regs, old_reg);
+                        p->local_to_reg.data[*old_value] = CACHED_REG_NONE;
+                    } else {
+                        AU_BA_RESET_BIT(p->pinned_regs, old_reg);
+                        p->local_to_reg.data[*old_value] = new_reg;
+                        AU_BA_SET_BIT(p->pinned_regs, new_reg);
+                    }
                 }
                 parser_emit_bc_u16(p, *old_value);
             } else {
@@ -1292,10 +1342,12 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
     const struct au_token t = au_lexer_next(l);
     if (t.type == AU_TOK_OPERATOR && t.len == 2) {
         if (t.src[0] == '&' && t.src[1] == '&') {
+            parser_flush_cached_regs(p);
+
             uint8_t reg;
             EXPECT_BYTECODE(parser_new_reg(p, &reg));
-
             parser_swap_top_regs(p);
+
             parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
             parser_emit_bc_u8(p, 0);
             parser_emit_bc_u8(p, reg);
@@ -1310,6 +1362,9 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
 
             if (!parser_exec_expr(p, l))
                 return 0;
+
+            parser_flush_cached_regs(p);
+
             const size_t right_len = p->bc.len;
             parser_emit_bc_u8(p, AU_OP_JNIF);
             parser_emit_bc_u8(p, parser_pop_reg(p));
@@ -1329,16 +1384,22 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
                                   (end_label - right_len) / 4);
 
             // The resulting bytecode should look like this:
-            //   register = 0
-            //   (eval left)
-            //   jnif end
-            //   (eval right)
-            //   jnif end
+            //      register = 0
+            //   left:
+            //      (eval left)
+            //      (flush locals)
+            //      jnif end
+            //   right:
+            //      (eval right)
+            //      (flush locals)
+            //      jnif end
             //   body:
             //       register = 1
             //   end:
             //       ...
         } else if (t.src[0] == '|' && t.src[1] == '|') {
+            parser_flush_cached_regs(p);
+
             uint8_t reg;
             EXPECT_BYTECODE(parser_new_reg(p, &reg));
             parser_swap_top_regs(p);
@@ -1352,6 +1413,8 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
 
             if (!parser_exec_expr(p, l))
                 return 0;
+            parser_flush_cached_regs(p);
+
             const size_t right_len = p->bc.len;
             parser_emit_bc_u8(p, AU_OP_JIF);
             parser_emit_bc_u8(p, parser_pop_reg(p));
@@ -1385,10 +1448,15 @@ static int parser_exec_logical(struct au_parser *p, struct au_lexer *l) {
                                   (truth_len - right_len) / 4);
 
             // The resulting bytecode should look like this:
-            //   (eval left)
-            //   jif end
-            //   (eval right)
-            //   jif end
+            //       (flush locals)
+            //   left:
+            //       (eval left)
+            //       (flush locals)
+            //       jif end
+            //   right:
+            //       (eval right)
+            //       (flush locals)
+            //       jif end
             //   body:
             //       register = 0
             //       jmp end1
@@ -1784,6 +1852,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
         // 1 argument
         p->bc.data[p->bc.len - 4] = AU_OP_CALL1;
         parser_push_reg(p, p->bc.data[p->bc.len - 3]);
+        parser_invalidate_reg(p, p->bc.data[p->bc.len - 3]);
         call_fn_offset = p->bc.len - 2;
     } else {
         uint8_t result_reg;
