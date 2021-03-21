@@ -1,0 +1,2 @@
+file = io::open("text.txt", "w");
+print file.io::write("Hello World"),'\n';

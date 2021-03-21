@@ -26,6 +26,54 @@ AU_EXTERN_FUNC_DECL(au_std_input) {
     return au_value_string(au_string_builder_into_string(&builder));
 }
 
+// ** mock testing **
+#ifdef AU_TEST
+static FILE *_test_fopen(const char *path, const char *mode) {
+    fprintf(stderr, "fopen %s, %s\n", path, mode);
+    return (FILE *)((uintptr_t)1);
+}
+
+static int _test_fclose(FILE *ptr) {
+    (void)ptr;
+    fprintf(stderr, "fclose\n");
+    return 0;
+}
+
+static size_t _test_fwrite(const void *ptr, size_t size, size_t count,
+                           FILE *stream) {
+    const char *bytes = (const char *)ptr;
+    const size_t num_bytes = size * count;
+    (void)stream;
+    fprintf(stderr, "fwrite [%.*s]\n", (int)num_bytes, bytes);
+    return num_bytes;
+}
+
+static _Thread_local int nread = 0;
+#define TEST_NREAD_MAX 10
+static int _test_fgetc(FILE *stream) {
+    (void)stream;
+    fprintf(stderr, "getc\n");
+    if (nread < TEST_NREAD_MAX) {
+        nread++;
+        return 'a';
+    }
+    return EOF;
+}
+
+static int _test_fflush(FILE *stream) {
+    (void)stream;
+    fprintf(stderr, "fflush\n");
+    return 0;
+}
+
+#define fopen _test_fopen
+#define fclose _test_fclose
+#define fgetc _test_fgetc
+#define fread _test_fread
+#define fwrite _test_fwrite
+#define fflush _test_fflush
+#endif
+
 // ** io module functions **
 
 struct au_std_io {

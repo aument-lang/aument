@@ -1,3 +1,2 @@
-print int(2);
 print int("3");
 print int("4ab");

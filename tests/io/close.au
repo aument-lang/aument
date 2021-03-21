@@ -1,0 +1,2 @@
+file = io::open("text.txt", "r");
+io::close(file);

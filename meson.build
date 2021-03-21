@@ -35,6 +35,11 @@ if compiler.has_argument('-Wno-unused-command-line-argument')
     add_project_arguments('-Wno-unused-command-line-argument', language : ['c'])
 endif
 
+if is_testing
+    add_project_arguments('-DAU_TEST', language : ['c'])
+    au_hdr_cflags += ['DAU_TEST']
+endif
+
 # Flag configs
 
 if target_machine.system() != 'windows'
@@ -272,6 +277,9 @@ endif
 if has_math_library
     au_runtime_sources += ['src/stdlib/math.c']
 endif
+if is_testing
+    au_runtime_sources += ['src/stdlib/test_fns.c']
+endif
 
 au_runtime_c_args = ['-DAU_IS_STDLIB']
 if compiler.has_link_argument('-Wl,--export-all-symbols')
@@ -484,6 +492,14 @@ if is_testing
             depends: [aument_exe, import_lib_test])
     endforeach
     endif
+
+    test('io module', prog_python,
+        args: files('./build-scripts/check_output.py') + [
+            '--check', 'output_stderr',
+            '--binary', join_paths(meson.build_root(), 'aument'),
+            '--path', join_paths(meson.source_root(), 'tests/io'),
+        ],
+        depends: [aument_exe])
 else
     if has_compile_feature
         static_library('au_runtime',

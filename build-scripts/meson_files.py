@@ -29,6 +29,7 @@ exclude = set(glob.glob('src/compiler/*') +
     'src/core/rt/struct/helper.c',
     'src/core/stdlib/io.c',
     'src/core/stdlib/math.c',
+    'src/core/stdlib/test_fns.c',
 ])
 all_files = filter(lambda x: x not in exclude, all_files)
 print('\n'.join(all_files), end='')
