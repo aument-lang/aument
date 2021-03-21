@@ -91,8 +91,8 @@ int au_module_resolve(struct au_module_resolve_result *result,
     for (; canon_path[canon_path_len] != 0; canon_path_len++) {
         if (canon_path[canon_path_len] == ':') {
             subpath_pos = canon_path_len + 1;
-            subpath_len = subpath_pos;
-            while (canon_path[subpath_len] != 0) {
+            subpath_len = 0;
+            for (size_t i = subpath_pos; canon_path[i] != 0; i++) {
                 subpath_len++;
             }
             break;
