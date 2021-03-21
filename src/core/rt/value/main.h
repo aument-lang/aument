@@ -457,6 +457,10 @@ static _AlwaysInline au_value_t au_value_mod(au_value_t lhs,
             return au_value_bool(au_value_get_int(lhs)                    \
                                      OP au_value_get_int(rhs));           \
         }                                                                 \
+        case AU_VALUE_DOUBLE: {                                           \
+            return au_value_bool(au_value_get_double(lhs)                 \
+                                     OP au_value_get_double(rhs));        \
+        }                                                                 \
         case AU_VALUE_STR: {                                              \
             return au_value_bool(au_string_cmp(au_value_get_string(lhs),  \
                                                au_value_get_string(rhs))  \
