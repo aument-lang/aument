@@ -1138,7 +1138,7 @@ _AU_OP_JNIF:;
                 char *module_path_with_subpath = 0;
                 if (resolve_res.subpath != 0) {
                     const size_t len = strlen(resolve_res.abspath) +
-                                       strlen(resolve_res.subpath) + 1;
+                                       strlen(resolve_res.subpath) + 2;
                     module_path_with_subpath = au_data_malloc(len + 1);
                     snprintf(module_path_with_subpath, len, "%s:%s",
                              resolve_res.abspath, resolve_res.subpath);
