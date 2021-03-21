@@ -32,7 +32,7 @@ You can define arrays by using the literal syntax:
 a = [1,2,3];
 ```
 
-Tuples are like statically sized arrays:
+Tuples are statically sized arrays, you cannot remove items from it:
 
 ```
 a = #[1,2,3];
@@ -55,7 +55,7 @@ pi = 3.14;
 greeting = "Hello World!";
 ```
 
-Note that all variables are local to the function they belong in. You cannot use variables outside of that function:
+All variables are local to the function they belong in. You cannot use variables outside of that function:
 
 ```
 y = 1;
@@ -96,7 +96,7 @@ if "string" {
 }
 ```
 
-See the [`bool` function documentation](./au-stdlib.md#bool) for boolean conversion.
+See the [`bool` function documentation](./au-stdlib.md#bool) for more details on boolean conversion.
 
 Aument also has while loops:
 
@@ -131,9 +131,9 @@ def y(x) {
 print y(1); // 3
 ```
 
-Aument's standard library provides some useful built-in functions. See the [stdlib reference manual](./au-stdlib.md) for more details.
+Aument's standard library provides some useful built-in functions. See its [reference manual](./au-stdlib.md) for more details.
 
-Functions have names that are fixed at parse time, and the number of arguments they take is always constant. If you're trying to call or define a function, and Aument can't find it,
+Functions have names that are fixed at parse time, and the number of arguments they take is always constant. If you're trying to call or define a function, and Aument can't find it:
 
 ```
 def mistype() {}
@@ -156,7 +156,7 @@ def a(){}
 
 ## Classes
 
-You can define a compound data-type, a *class* using the `class` keyword:
+You can define a compound data type, a *class* using the `class` keyword:
 
 ```
 class Human {
@@ -180,7 +180,7 @@ alice = new Human;
 
 Just like functions, if you try to use a undeclared class, it will error out after parsing.
 
-### Methods
+### Methods and private variables
 
 To modify or access a private variable in a class instance, you'll need to declare a *method*, a function that can only be called if the first argument's type matches that of the class:
 
@@ -190,15 +190,17 @@ def (self: Human) init(name) {
 }
 ```
 
-Note that you can't access private variables of imported classes.
-
 Here, we declare the function `init`, that takes 2 arguments, `self` (a `Human` class instance), and `name` (any dynamically typed variable). You can call `init` like any other function:
 
 ```
 init(alice, "Alice");
 ```
 
-Class functions can also be dynamically dispatched:
+You cannot access private variables of imported classes.
+
+#### Dynamic dispatch
+
+Methods can also be dynamically dispatched:
 
 ```
 def (self: Human) say() {
@@ -213,10 +215,15 @@ say(alice);
 say(cat);
 ```
 
-Prints out:
+Based on the type of the first argument, an Aument program will choose which function to call at runtime. When we call `say(alice);`, since the program sees that we've passed a `Human` type, it chooses to forward the call to the first `say` function, which prints out:
 
 ```
 I'm Alice
+```
+
+Likewise, when we call `say(cat);`, it dispatches the call to the second `say` function, giving us:
+
+```
 meow!
 ```
 
@@ -236,7 +243,7 @@ say(alice);
 
 ### Dot binding
 
-You can also use the dot operator to bind an argument to a function. Note that bound functions must be called using the `.(` operator:
+You can also use the dot operator to bind an argument to a function. Bound functions must be called using the `.(` operator:
 
 ```
 def add(x,y){ return x + y; }
@@ -250,7 +257,7 @@ Outputs:
 15
 ```
 
-You can create an unbounded function value:
+By omitting the left-hand side in a dot binding expression, you can create an unbounded function value:
 
 ```
 def double(x) { return x * 2; }
@@ -260,7 +267,7 @@ print op.(10);
 
 ## Modules
 
-You can import files using the `import` statement. Note that all files are executed separately and you cannot directly use an imported file's variables/functions (unless exported).
+You can import files using the `import` statement.
 
 ```
 // importee.au
@@ -272,7 +279,7 @@ print "Hello World\n";
 import "./importee.au"; // prints out Hello World
 ```
 
-To export a function, use the `export` statement:
+All files are executed separately and you cannot directly use an imported file's variables/functions (unless exported). To export a function, use the `export` statement:
 
 ```
 // importee.au
@@ -296,4 +303,14 @@ import "importee.au" as module;
 print module::random(); // => 4
 ```
 
+### Importing native dynamically-linked library (DLLs)
+
 You can also import a dynamically linked library. On Unix systems, these files end with `.so`. On Windows, these files end with `.dll`. See [`tests/dl-module`](/tests/dl-module) for an example of importing a C library from Aument.
+
+If a DLL supports subpath imports, the importer can specify which subpath they want to import:
+
+```
+import "./libmodule.dll:subpath";
+```
+
+The example above imports the module in the library `./libmodule.dll` specified by the subpath `subpath`.
