@@ -27,7 +27,7 @@ void au_tmpfile_close(struct au_tmpfile *tmp) {
 void au_tmpfile_del(struct au_tmpfile *tmp) {
     au_tmpfile_close(tmp);
 #ifdef _WIN32
-    // TODO: unlink for windows
+    DeleteFileA(tmp->path);
 #else
     unlink(tmp->path);
 #endif
