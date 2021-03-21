@@ -539,11 +539,41 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             comp_printf(state, "COPY_VALUE(r%d,au_value_none());\n", reg);
             break;
         }
+        // Constants
         case AU_OP_LOAD_CONST: {
             uint8_t reg = bc(pos);
             DEF_BC16(c, 1)
             comp_printf(state, "MOVE_VALUE(r%d,_M%d_c%d());\n", reg,
                         (int)module_idx, c);
+            break;
+        }
+        case AU_OP_SET_CONST: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(c, 1)
+
+            comp_printf(&g_state->header_file,
+                        "static au_value_t _M%d_c%d_val;\n",
+                        (int)module_idx, c);
+            comp_printf(&g_state->header_file,
+                        "static int _M%d_c%d_val_init=0;\n",
+                        (int)module_idx, c);
+            comp_printf(&g_state->header_file,
+                        "static inline au_value_t _M%d_c%d() {\n",
+                        (int)module_idx, c);
+            comp_printf(&g_state->header_file,
+                        INDENT "if(!_M%d_c%d_val_init)abort();\n",
+                        (int)module_idx, c);
+            comp_printf(
+                &g_state->header_file,
+                INDENT
+                "au_value_ref(_M%d_c%d_val); return _M%d_c%d_val;\n",
+                (int)module_idx, c, (int)module_idx, c);
+            comp_printf(&g_state->header_file, "}");
+
+            comp_printf(state, "MOVE_VALUE(_M%d_c%d_val,r%d);",
+                        (int)module_idx, c, reg);
+            comp_printf(state, "_M%d_c%d_val_init=1;\n", (int)module_idx,
+                        c);
             break;
         }
         // Binary operations
@@ -1175,9 +1205,13 @@ void au_c_comp_module(struct au_c_comp_state *state,
     for (size_t i = 0; i < program->data.data_val.len; i++) {
         const struct au_program_data_val *val =
             &program->data.data_val.data[i];
+        const enum au_vtype vtype = au_value_get_type(val->real_value);
+        if (vtype == AU_VALUE_NONE) {
+            continue;
+        }
         comp_printf(state, "static inline au_value_t _M%d_c%d() {\n",
                     (int)module_idx, (int)i);
-        switch (au_value_get_type(val->real_value)) {
+        switch (vtype) {
         case AU_VALUE_STR: {
             comp_printf(
                 state, INDENT
