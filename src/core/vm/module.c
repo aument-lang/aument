@@ -91,13 +91,17 @@ int au_module_resolve(struct au_module_resolve_result *result,
     for (; canon_path[canon_path_len] != 0; canon_path_len++) {
         if (canon_path[canon_path_len] == ':') {
             subpath_pos = canon_path_len + 1;
+            subpath_len = subpath_pos;
+            while (canon_path[subpath_len] != 0) {
+                subpath_len++;
+            }
             break;
         }
     }
 
     const size_t abspath_len = strlen(parent_dir) + canon_path_len + 2;
 
-    char *abspath = au_data_malloc(abspath_len);
+    char *abspath = au_data_malloc(abspath_len + 1);
     snprintf(abspath, abspath_len, "%s/%.*s", parent_dir, canon_path_len,
              canon_path);
     abspath[abspath_len] = 0;
@@ -176,13 +180,18 @@ au_module_import(struct au_module *module,
         if (module->data.lib.dl_handle == 0) {
             return AU_MODULE_IMPORT_FAIL_DL;
         }
+
         module_load_fn_t loader = (module_load_fn_t)dlsym(
             module->data.lib.dl_handle, AU_MODULE_LOAD_FN);
         if (loader == 0) {
             dlclose(module->data.lib.dl_handle);
             return AU_MODULE_IMPORT_FAIL_DL;
         }
-        module->data.lib.lib = loader();
+
+        struct au_extern_module_options options = {0};
+        options.subpath = resolved->subpath;
+        module->data.lib.lib = loader(&options);
+
         if (module->data.lib.lib == 0) {
             dlclose(module->data.lib.dl_handle);
             module->data.lib.dl_handle = 0;

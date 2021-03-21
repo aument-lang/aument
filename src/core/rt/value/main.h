@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "core/rt/malloc.h"
+#include "platform/arithmetic.h"
 #include "platform/platform.h"
 
 #include "../au_string.h"
@@ -300,8 +301,8 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
     case AU_VALUE_INT: {
         switch (au_value_get_type(rhs)) {
         case AU_VALUE_INT:
-            return au_value_int(au_value_get_int(lhs) +
-                                au_value_get_int(rhs));
+            return au_value_int(au_platform_iadd_wrap(
+                au_value_get_int(lhs), au_value_get_int(rhs)));
         case AU_VALUE_DOUBLE:
             return au_value_double((double)au_value_get_int(lhs) +
                                    au_value_get_double(rhs));
@@ -333,42 +334,104 @@ static _AlwaysInline au_value_t au_value_add(au_value_t lhs,
     return au_value_op_error();
 }
 
-#define _BIN_OP_GENERIC_NUMBER(NAME, OP)                                  \
-    static _AlwaysInline au_value_t NAME(au_value_t lhs,                  \
-                                         au_value_t rhs) {                \
-        switch (au_value_get_type(lhs)) {                                 \
-        case AU_VALUE_INT: {                                              \
-            switch (au_value_get_type(rhs)) {                             \
-            case AU_VALUE_INT:                                            \
-                return au_value_int(au_value_get_int(lhs)                 \
-                                        OP au_value_get_int(rhs));        \
-            case AU_VALUE_DOUBLE:                                         \
-                return au_value_double((double)au_value_get_int(lhs)      \
-                                           OP au_value_get_double(rhs));  \
-            default:                                                      \
-                return au_value_op_error();                               \
-            }                                                             \
-        }                                                                 \
-        case AU_VALUE_DOUBLE: {                                           \
-            switch (au_value_get_type(rhs)) {                             \
-            case AU_VALUE_INT:                                            \
-                return au_value_double(au_value_get_double(lhs) OP(       \
-                    double) au_value_get_int(rhs));                       \
-            case AU_VALUE_DOUBLE:                                         \
-                return au_value_double(au_value_get_double(lhs)           \
-                                           OP au_value_get_double(rhs));  \
-            default:                                                      \
-                return au_value_op_error();                               \
-            }                                                             \
-        }                                                                 \
-        default:                                                          \
-            break;                                                        \
-        }                                                                 \
-        return au_value_op_error();                                       \
+static _AlwaysInline au_value_t au_value_sub(au_value_t lhs,
+                                             au_value_t rhs) {
+    switch (au_value_get_type(lhs)) {
+    case AU_VALUE_INT: {
+        switch (au_value_get_type(rhs)) {
+        case AU_VALUE_INT:
+            return au_value_int(au_platform_isub_wrap(
+                au_value_get_int(lhs), au_value_get_int(rhs)));
+        case AU_VALUE_DOUBLE:
+            return au_value_double((double)au_value_get_int(lhs) -
+                                   au_value_get_double(rhs));
+        default:
+            return au_value_op_error();
+        }
     }
-_BIN_OP_GENERIC_NUMBER(au_value_sub, -)
-_BIN_OP_GENERIC_NUMBER(au_value_mul, *)
-_BIN_OP_GENERIC_NUMBER(au_value_div, /)
+    case AU_VALUE_DOUBLE: {
+        switch (au_value_get_type(rhs)) {
+        case AU_VALUE_INT:
+            return au_value_double(au_value_get_double(lhs) -
+                                   (double)au_value_get_int(rhs));
+        case AU_VALUE_DOUBLE:
+            return au_value_double(au_value_get_double(lhs) -
+                                   au_value_get_double(rhs));
+        default:
+            return au_value_op_error();
+        }
+    }
+    default:
+        break;
+    }
+    return au_value_op_error();
+}
+
+static _AlwaysInline au_value_t au_value_mul(au_value_t lhs,
+                                             au_value_t rhs) {
+    switch (au_value_get_type(lhs)) {
+    case AU_VALUE_INT: {
+        switch (au_value_get_type(rhs)) {
+        case AU_VALUE_INT:
+            return au_value_int(au_platform_imul_wrap(
+                au_value_get_int(lhs), au_value_get_int(rhs)));
+        case AU_VALUE_DOUBLE:
+            return au_value_double((double)au_value_get_int(lhs) *
+                                   au_value_get_double(rhs));
+        default:
+            return au_value_op_error();
+        }
+    }
+    case AU_VALUE_DOUBLE: {
+        switch (au_value_get_type(rhs)) {
+        case AU_VALUE_INT:
+            return au_value_double(au_value_get_double(lhs) *
+                                   (double)au_value_get_int(rhs));
+        case AU_VALUE_DOUBLE:
+            return au_value_double(au_value_get_double(lhs) *
+                                   au_value_get_double(rhs));
+        default:
+            return au_value_op_error();
+        }
+    }
+    default:
+        break;
+    }
+    return au_value_op_error();
+}
+
+static _AlwaysInline au_value_t au_value_div(au_value_t lhs,
+                                             au_value_t rhs) {
+    switch (au_value_get_type(lhs)) {
+    case AU_VALUE_INT: {
+        switch (au_value_get_type(rhs)) {
+        case AU_VALUE_INT:
+            return au_value_double((double)au_value_get_int(lhs) /
+                                   (double)au_value_get_int(rhs));
+        case AU_VALUE_DOUBLE:
+            return au_value_double((double)au_value_get_int(lhs) /
+                                   au_value_get_double(rhs));
+        default:
+            return au_value_op_error();
+        }
+    }
+    case AU_VALUE_DOUBLE: {
+        switch (au_value_get_type(rhs)) {
+        case AU_VALUE_INT:
+            return au_value_double(au_value_get_double(lhs) /
+                                   (double)au_value_get_int(rhs));
+        case AU_VALUE_DOUBLE:
+            return au_value_double(au_value_get_double(lhs) /
+                                   au_value_get_double(rhs));
+        default:
+            return au_value_op_error();
+        }
+    }
+    default:
+        break;
+    }
+    return au_value_op_error();
+}
 
 static _AlwaysInline au_value_t au_value_mod(au_value_t lhs,
                                              au_value_t rhs) {

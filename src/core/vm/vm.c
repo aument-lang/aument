@@ -20,6 +20,7 @@
 #define ALLOCA_MAX_VALUES 256
 #endif
 
+#include "platform/arithmetic.h"
 #include "platform/mmap.h"
 #include "platform/path.h"
 #include "platform/platform.h"
@@ -578,7 +579,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #else
 #define FAST_MOVE_VALUE(dest, src) MOVE_VALUE(dest, src)
 #endif
-#define BIN_OP(NAME, OP, TYPE)                                            \
+#define BIN_OP(NAME, EXPR)                                                \
     CASE(NAME##_INT) : {                                                  \
         _##NAME##_INT:;                                                   \
         const au_value_t lhs = frame.regs[bc[1]];                         \
@@ -591,23 +592,24 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             bc[0] = NAME;                                                 \
             goto _##NAME;                                                 \
         }                                                                 \
-        const au_value_t result =                                         \
-            TYPE(au_value_get_int(lhs) OP au_value_get_int(rhs));         \
+        const int32_t li = au_value_get_int(lhs),                         \
+                      ri = au_value_get_int(rhs);                         \
+        const au_value_t result = EXPR;                                   \
         FAST_MOVE_VALUE(frame.regs[res], result);                         \
                                                                           \
         DISPATCH;                                                         \
     }
-            BIN_OP(AU_OP_MUL, *, au_value_int)
-            BIN_OP(AU_OP_DIV, /, au_value_int)
-            BIN_OP(AU_OP_ADD, +, au_value_int)
-            BIN_OP(AU_OP_SUB, -, au_value_int)
-            BIN_OP(AU_OP_MOD, %, au_value_int)
-            BIN_OP(AU_OP_EQ, ==, au_value_bool)
-            BIN_OP(AU_OP_NEQ, !=, au_value_bool)
-            BIN_OP(AU_OP_LT, <, au_value_bool)
-            BIN_OP(AU_OP_GT, >, au_value_bool)
-            BIN_OP(AU_OP_LEQ, <=, au_value_bool)
-            BIN_OP(AU_OP_GEQ, >=, au_value_bool)
+            BIN_OP(AU_OP_ADD, au_value_int(au_platform_iadd_wrap(li, ri)))
+            BIN_OP(AU_OP_SUB, au_value_int(au_platform_isub_wrap(li, ri)))
+            BIN_OP(AU_OP_MUL, au_value_int(au_platform_imul_wrap(li, ri)))
+            BIN_OP(AU_OP_DIV, au_value_double((double)li / (double)ri))
+            BIN_OP(AU_OP_MOD, au_value_int(li % ri))
+            BIN_OP(AU_OP_EQ, au_value_bool(li == ri))
+            BIN_OP(AU_OP_NEQ, au_value_bool(li != ri))
+            BIN_OP(AU_OP_LT, au_value_bool(li < ri))
+            BIN_OP(AU_OP_GT, au_value_bool(li > ri))
+            BIN_OP(AU_OP_LEQ, au_value_bool(li <= ri))
+            BIN_OP(AU_OP_GEQ, au_value_bool(li >= ri))
 #undef BIN_OP
 #undef FAST_MOVE_VALUE
             // Binary operations (specialized on float)
@@ -1134,10 +1136,12 @@ _AU_OP_JNIF:;
                 const char *module_path = resolve_res.abspath;
 
                 char *module_path_with_subpath = 0;
-                if(resolve_res.subpath != 0) {
-                    const size_t len = strlen(resolve_res.abspath) + strlen(resolve_res.subpath) + 1;
+                if (resolve_res.subpath != 0) {
+                    const size_t len = strlen(resolve_res.abspath) +
+                                       strlen(resolve_res.subpath) + 1;
                     module_path_with_subpath = au_data_malloc(len + 1);
-                    snprintf(module_path_with_subpath, len, "%s:%s", resolve_res.abspath, resolve_res.subpath);
+                    snprintf(module_path_with_subpath, len, "%s:%s",
+                             resolve_res.abspath, resolve_res.subpath);
                     module_path_with_subpath[len] = 0;
                     module_path = module_path_with_subpath;
                 }
@@ -1145,7 +1149,7 @@ _AU_OP_JNIF:;
                 struct au_program_data *loaded_module =
                     au_vm_thread_local_get_module(tl, module_path);
                 if (loaded_module != 0) {
-                    if(module_path_with_subpath != 0)
+                    if (module_path_with_subpath != 0)
                         au_data_free(module_path_with_subpath);
                     au_module_resolve_result_del(&resolve_res);
                     link_to_imported(p_data, relative_module_idx,
@@ -1169,7 +1173,7 @@ _AU_OP_JNIF:;
                         tl, module_path, &tl_module_idx);
                 }
 
-                if(module_path_with_subpath != 0)
+                if (module_path_with_subpath != 0)
                     au_data_free(module_path_with_subpath);
                 module_path = 0;
 

@@ -52,6 +52,13 @@ AU_EXTERN_FUNC_DECL(au_std_io_flush);
 /// @return string string read from file
 AU_EXTERN_FUNC_DECL(au_std_io_read);
 
+/// [func-au] Reads a maximum of n bytes from a file
+/// @name io::read_up_to
+/// @param file path of file to be opened
+/// @param n number of bytes to read
+/// @return string string read from file
+AU_EXTERN_FUNC_DECL(au_std_io_read_up_to);
+
 /// [func-au] Writes a string to a file
 /// @name io::write
 /// @param file path of file to be opened

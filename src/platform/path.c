@@ -84,8 +84,8 @@ struct au_char_array au_binary_path() {
     memcpy(my_path, my_drive, strlen(my_drive));
     my_path[my_path_len + my_drive_len] = 0;
 #else
-    char buffer[BUFSIZ];
-    if (readlink("/proc/self/exe", buffer, BUFSIZ) < 0)
+    char buffer[PATH_MAX];
+    if (readlink("/proc/self/exe", buffer, PATH_MAX) < 0)
         goto fail;
     char *my_path = dirname(buffer);
 #endif

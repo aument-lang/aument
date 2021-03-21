@@ -263,9 +263,8 @@ write_imported_module_main_start(size_t imported_module_idx_in_source,
                        "(struct au_module_resolve_result){0};"
                        "r.abspath=\"%s\";\n",
                 abspath);
-    if(subpath != 0) {
-        comp_printf(&g_state->header_file,
-                    INDENT "r.subpath=\"%s\";\n",
+    if (subpath != 0) {
+        comp_printf(&g_state->header_file, INDENT "r.subpath=\"%s\";\n",
                     subpath);
     }
     comp_printf(&g_state->header_file,
@@ -286,8 +285,7 @@ write_imported_module_main_start(size_t imported_module_idx_in_source,
 static void
 write_imported_module_main(size_t imported_module_idx_in_source,
                            struct au_c_comp_global_state *g_state,
-                           const char *abspath,
-                           const char *subpath) {
+                           const char *abspath, const char *subpath) {
     write_imported_module_main_start(imported_module_idx_in_source,
                                      g_state, abspath, subpath);
     comp_printf(&g_state->header_file, "}\n");
@@ -846,13 +844,26 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             }
             }
 
+            const char *module_path = resolve_res.abspath;
+
+            char *module_path_with_subpath = 0;
+            if (resolve_res.subpath != 0) {
+                const size_t len = strlen(resolve_res.abspath) +
+                                   strlen(resolve_res.subpath) + 1;
+                module_path_with_subpath = au_data_malloc(len + 1);
+                snprintf(module_path_with_subpath, len, "%s:%s",
+                         resolve_res.abspath, resolve_res.subpath);
+                module_path_with_subpath[len] = 0;
+                module_path = module_path_with_subpath;
+            }
+
             size_t imported_module_idx = g_state->modules.len;
             int has_old_value = 0;
 
             {
                 au_hm_var_value_t *old_value = au_hm_vars_add(
-                    &g_state->modules_map, resolve_res.abspath,
-                    strlen(resolve_res.abspath), imported_module_idx);
+                    &g_state->modules_map, module_path,
+                    strlen(module_path), imported_module_idx);
                 if (old_value != 0) {
                     imported_module_idx = *old_value;
                     has_old_value = 1;
@@ -866,7 +877,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             switch (module.type) {
             case AU_MODULE_SOURCE: {
                 struct au_mmap_info mmap;
-                if (!au_mmap_read(resolve_res.abspath, &mmap))
+                if (!au_mmap_read(module_path, &mmap))
                     au_perror("mmap");
 
                 struct line_info_array line_info_array = {0};
@@ -891,7 +902,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 
                     program.data.file = 0;
                     program.data.cwd = 0;
-                    au_split_path(resolve_res.abspath, &program.data.file,
+                    au_split_path(module_path, &program.data.file,
                                   &program.data.cwd);
 
                     au_module_resolve_result_del(&resolve_res);
@@ -938,6 +949,12 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                     write_imported_module_main(
                         imported_module_idx_in_source, g_state,
                         lib_filename, resolve_res.subpath);
+                    struct au_c_comp_module comp_module =
+                        (struct au_c_comp_module){0};
+                    au_c_comp_module_array_add(&g_state->modules,
+                                               comp_module);
+                    // TODO: check for imported functions and error if they
+                    // exist
                     break;
                 }
 
@@ -1039,6 +1056,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                  state, relative_module, loaded_module);
             }
 
+            if (module_path_with_subpath != 0)
+                au_data_free(module_path_with_subpath);
             break;
         }
         // Array instructions

@@ -91,6 +91,8 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
 
         switch (opcode) {
         case AU_OP_LOAD_SELF: {
+            printf("\n");
+            pos += 3;
             break;
         }
         // Move instructions

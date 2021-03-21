@@ -173,6 +173,7 @@ endif
 if has_compile_feature
     rt_hdr_depends = files(
         'src/platform/platform.h',
+        'src/platform/arithmetic.h',
         'src/core/rt/malloc.h',
         'src/core/array.h',
         'src/core/rt/exception.h',
@@ -304,6 +305,7 @@ aument_header_files = [
 
 # Platform-specific
 'src/platform/platform.h',
+'src/platform/arithmetic.h',
 'src/core/rt/exception.h',
 'src/core/rt/malloc.h',
 
@@ -347,12 +349,12 @@ aument_header_files = [
 'src/core/vm/frame_link.h',
 'src/core/vm/tl.h',
 'src/core/vm/vm.h',
-'src/core/vm/module.h',
 'src/platform/cc.h',
 'src/platform/mmap.h',
 'src/platform/path.h',
 'src/platform/spawn.h',
 'src/platform/tmpfile.h',
+'src/core/vm/module.h',
 'src/stdlib/au_stdlib.h',
 'src/version.h',
 
@@ -449,6 +451,7 @@ if is_testing
     foreach import_lib_info : [
         ['dl_import_test', 'tests/dl-import'],
         ['dl_module_test', 'tests/dl-module'],
+        ['dl_subpath_test', 'tests/dl-subpath'],
     ]
         import_lib_test = shared_module(import_lib_info[0],
             files(import_lib_info[1] + '/lib.c'),

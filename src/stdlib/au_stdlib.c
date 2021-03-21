@@ -93,6 +93,7 @@ void au_install_stdlib(struct au_program_data *data) {
             MODULE_FUNC(io_open, "open", 2),
             MODULE_FUNC(io_close, "close", 1),
             MODULE_FUNC(io_read, "read", 1),
+            MODULE_FUNC(io_read_up_to, "read_up_to", 1),
             MODULE_FUNC(io_write, "write", 2),
             MODULE_FUNC(io_flush, "flush", 1),
         };
