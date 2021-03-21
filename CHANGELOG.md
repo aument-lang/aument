@@ -1,3 +1,20 @@
+# Version 0.4 [α]
+
+  * Language features:
+    * Added function values
+    * Dot binding and dot calls for creating and calling function values
+    * Importing `.dll` libraries on Windows, `.so` libraries on Unix
+  * Standard library:
+    * `io`: Added `read`, `read_up_to`, `write`, `flush` functions
+    * Enabled `math` functions
+    * Fixed reference counting bugs
+  * Interpreter:
+    * Implemented some performance improvements
+      * Storing the VM's instruction pointer in a register
+      * Prefetching subsequent instruction after decoding
+  * Parser:
+    * Better code generation by eliding local loads
+
 # Version 0.2–0.3 [α]
 
   * **Birth of the Aument language**
