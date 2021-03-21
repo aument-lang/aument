@@ -61,6 +61,24 @@ Initializes an au_bc_storage instance
 
 *none*
 
+### au_binary_path
+
+```c
+_Private struct au_char_array au_binary_path();
+```
+
+Defined in *src/platform/path.h*.
+
+Gets the path containing the currently running Aument executable
+
+#### Arguments
+
+*none*
+
+#### Return value
+
+*none*
+
 ### au_c_comp
 
 ```c
@@ -192,6 +210,47 @@ Deinitializes an au_dispatch_func instance
 #### Return value
 
 *none*
+
+### au_extern_module_add_fn
+
+```c
+static _Unused inline int
+au_extern_module_add_fn(au_extern_module_t p_data, const char *name,
+                        au_extern_func_t func, int num_args);
+```
+
+Defined in *src/lib/module.h*.
+
+Declares an exported function in the external module
+
+#### Arguments
+
+ * **p_data:** the module
+ * **name:** null-terminated string representing the name of the function
+ * **func:** the pointer to the external function
+ * **num_args:** the number of arguments the external function takes
+
+#### Return value
+
+0 if a function by that name already exists, 1 if successful
+
+### au_extern_module_new
+
+```c
+static _Unused inline au_extern_module_t au_extern_module_new();
+```
+
+Defined in *src/lib/module.h*.
+
+Creates a new external module
+
+#### Arguments
+
+*none*
+
+#### Return value
+
+a reference to the module
 
 ### au_fn_call_internal
 
@@ -496,48 +555,6 @@ Loads a file into memory and stores a reference into a au_mmap_info instance
 
 1 if success, 0 if errored
 
-### au_module_add_fn
-
-```c
-static _Unused inline int au_module_add_fn(struct au_program_data *p_data,
-                                           const char *name,
-                                           au_extern_func_t func,
-                                           int num_args);
-```
-
-Defined in *src/lib/module.h*.
-
-Declares an external function in the external module
-
-#### Arguments
-
- * **p_data:** the module
- * **name:** null-terminated string representing the name of the function
- * **func:** the pointer to the external function
- * **num_args:** the number of arguments the external function takes
-
-#### Return value
-
-0 if a function by that name already exists, 1 if successful
-
-### au_module_new
-
-```c
-static _Unused inline struct au_program_data *au_module_new();
-```
-
-Defined in *src/lib/module.h*.
-
-Creates a new external module
-
-#### Arguments
-
-*none*
-
-#### Return value
-
-a reference to the module
-
 ### au_parse
 
 ```c
@@ -740,17 +757,19 @@ Splits a path into file and directory components
 
 #### Arguments
 
-*none*
+ * **path:** the path to be split
+ * **file:** output pointer to the file component
+ * **wd:** output pointer to the directory component
 
 #### Return value
 
-*none*
+1 if successful, 0 if failed
 
 ### au_string_add
 
 ```c
-_Public struct au_string *au_string_add(struct au_string *left,
-                                        struct au_string *right);
+_Public struct au_string *au_string_add(const struct au_string *left,
+                                        const struct au_string *right);
 ```
 
 Defined in *src/core/rt/au_string.h*.
@@ -769,7 +788,8 @@ Concatenation of `left` and `right`
 ### au_string_cmp
 
 ```c
-_Public int au_string_cmp(struct au_string *left, struct au_string *right);
+static _Unused inline int au_string_cmp(const struct au_string *left,
+                                        const struct au_string *right);
 ```
 
 Defined in *src/core/rt/au_string.h*.
@@ -780,6 +800,26 @@ Compares 2 au_string instances
 
  * **left:** First string
  * **right:** Second string
+
+#### Return value
+
+Comparison of `left` and `right`
+
+### au_string_cmp_cstr
+
+```c
+static _Unused inline int au_string_cmp_cstr(const struct au_string *str,
+                                             const char *cstr);
+```
+
+Defined in *src/core/rt/au_string.h*.
+
+Compares an au_string instance with a zero-terminated string
+
+#### Arguments
+
+ * **str:** au_string instance
+ * **cstr:** C string
 
 #### Return value
 
