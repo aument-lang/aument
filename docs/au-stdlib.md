@@ -149,6 +149,21 @@ Reads a string from a file
 
 string string read from file
 
+### io::read_up_to
+
+Defined in *src/stdlib/io.h*.
+
+Reads a maximum of n bytes from a file
+
+#### Arguments
+
+ * **file:** path of file to be opened
+ * **n:** number of bytes to read
+
+#### Return value
+
+string string read from file
+
 ### io::stderr
 
 Defined in *src/stdlib/io.h*.

@@ -8,7 +8,11 @@
 #include "platform.h"
 
 /// [func] Splits a path into file and directory components
+/// @param path the path to be split
+/// @param file output pointer to the file component
+/// @param wd output pointer to the directory component
+/// @return 1 if successful, 0 if failed
 _Private int au_split_path(const char *path, char **file, char **wd);
 
-/// [func] Get the path that contains the running Aument executable
+/// [func] Gets the path containing the currently running Aument executable
 _Private struct au_char_array au_binary_path();

@@ -23,7 +23,7 @@ au_extern_module_t au_extern_module_new() {
         sizeof(struct au_program_data));
 }
 
-/// [func] Declares an external function in the external module
+/// [func] Declares an exported function in the external module
 /// @param p_data the module
 /// @param name null-terminated string representing the name of the
 /// function

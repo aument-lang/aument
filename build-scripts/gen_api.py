@@ -140,6 +140,7 @@ for root, _, files in os.walk("src/"):
     for file in files:
         if file.endswith(".h"):
             path = os.path.join(root, file)
+            path = path.replace("\\", "/")
             with open(path, "r") as f:
                 result = parse(f.read(), path)
                 functions += result["functions"]
