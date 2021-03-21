@@ -10,6 +10,7 @@
 #ifdef _WIN32
 #include <errhandlingapi.h>
 #include <libloaderapi.h>
+#include <sys/stat.h>
 #define AU_MODULE_LIB_EXT ".dll"
 #else
 #include <sys/stat.h>

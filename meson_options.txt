@@ -7,7 +7,7 @@ option('prefetch_insn', type: 'boolean', value: true)
 
 option('static_exe', type : 'boolean', value : false)
 
-option('math_library', type : 'boolean', value : false)
+option('math_library', type : 'boolean', value : true)
 option('io_library', type : 'boolean', value : true)
 
 option('debug_gc', type : 'boolean', value : false)
