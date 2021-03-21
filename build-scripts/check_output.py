@@ -34,6 +34,19 @@ def check_output(out_path):
     ])
     assert(output == expected_output)
 
+def check_output_stderr(out_path):
+    global out_extension, out_extension_len
+    program_path = out_path[:-out_extension_len] + '.au'
+    print(f"Checking {program_path}")
+    with open(out_path, "rb") as fout:
+        expected_output = fout.read()
+    output = subprocess.check_output([
+        args.binary,
+        'run',
+        program_path
+    ], stderr=subprocess.STDOUT)
+    assert(output == expected_output)
+
 def check_with_input(out_path):
     global out_extension, out_extension_len
     program_path = out_path[:-out_extension_len] + '.au'
@@ -110,6 +123,7 @@ check_fn = {
     "comp": check_comp,
     "errors": check_errors,
     "comp_to_path": check_comp_to_path,
+    "output_stderr": check_output_stderr,
 }[args.check]
 
 if args.file:

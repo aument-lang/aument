@@ -1,0 +1,2 @@
+fopen text.txt, rb
+fclose

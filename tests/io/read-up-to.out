@@ -1,0 +1,4 @@
+fopen text.txt, rb
+getc
+getc
+aa

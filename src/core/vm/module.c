@@ -141,21 +141,23 @@ static int endswith(const char *str, size_t len, const char *needle) {
 }
 
 static char *find_native_lib(const char *abspath) {
-    const size_t filename_len = strlen(abspath) - strlen(AU_MODULE_UNIV_LIB_EXT);
+    const size_t filename_len =
+        strlen(abspath) - strlen(AU_MODULE_UNIV_LIB_EXT);
     const size_t full_len = filename_len + strlen(AU_MODULE_LIB_EXT);
 
     char *native_lib = au_data_malloc(full_len + 1);
     memcpy(native_lib, abspath, filename_len);
-    memcpy(&native_lib[filename_len], AU_MODULE_LIB_EXT, strlen(AU_MODULE_LIB_EXT));
+    memcpy(&native_lib[filename_len], AU_MODULE_LIB_EXT,
+           strlen(AU_MODULE_LIB_EXT));
     native_lib[full_len] = 0;
 
 #ifdef _WIN32
     struct _stat buf;
-    if(_stat(native_lib, &buf) == -1)
+    if (_stat(native_lib, &buf) == -1)
         goto fail;
 #else
     struct stat buf;
-    if(stat(native_lib, &buf) == -1)
+    if (stat(native_lib, &buf) == -1)
         goto fail;
 #endif
 
@@ -171,20 +173,20 @@ au_module_import(struct au_module *module,
                  const struct au_module_resolve_result *resolved) {
     (void)module;
     const size_t abspath_len = strlen(resolved->abspath);
-    const int is_universal_lib = endswith(resolved->abspath, abspath_len, AU_MODULE_UNIV_LIB_EXT);
+    const int is_universal_lib =
+        endswith(resolved->abspath, abspath_len, AU_MODULE_UNIV_LIB_EXT);
     if (is_universal_lib ||
         endswith(resolved->abspath, abspath_len, AU_MODULE_LIB_EXT)) {
 #ifdef _WIN32
         module->type = AU_MODULE_LIB;
 
         HMODULE handle = 0;
-        if(is_universal_lib) {
+        if (is_universal_lib) {
             char *native_lib = find_native_lib(resolved->abspath);
-            if(native_lib == 0) {
+            if (native_lib == 0) {
                 return AU_MODULE_IMPORT_FAIL;
             } else {
-                module->data.lib.dl_handle =
-                    LoadLibraryA(native_lib);
+                module->data.lib.dl_handle = LoadLibraryA(native_lib);
                 au_data_free(native_lib);
             }
         } else {
@@ -219,9 +221,9 @@ au_module_import(struct au_module *module,
 #ifdef AU_FEAT_LIBDL
         module->type = AU_MODULE_LIB;
 
-        if(is_universal_lib) {
+        if (is_universal_lib) {
             char *native_lib = find_native_lib(resolved->abspath);
-            if(native_lib == 0) {
+            if (native_lib == 0) {
                 return AU_MODULE_IMPORT_FAIL;
             } else {
                 module->data.lib.dl_handle =

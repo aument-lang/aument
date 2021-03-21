@@ -1,0 +1,2 @@
+bound_bool = .bool;
+print bound_bool.(true);

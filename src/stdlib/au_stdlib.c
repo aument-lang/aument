@@ -14,6 +14,10 @@
 #include "math.h"
 #include "types.h"
 
+#ifdef AU_TEST
+#include "test_fns.h"
+#endif
+
 #define STDLIB_FUNC(NAME, ARGS)                                           \
     (struct au_lib_func) {                                                \
         .name = #NAME, .symbol = "au_std_" #NAME, .num_args = ARGS,       \
@@ -60,6 +64,10 @@ void au_install_stdlib(struct au_program_data *data) {
             STDLIB_FUNC(bool, 1),
             // *array.c*
             STDLIB_FUNC(len, 1),
+#ifdef AU_TEST
+            STDLIB_FUNC(test_1, 1),
+            STDLIB_FUNC(test_2, 2),
+#endif
         };
         const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
 
@@ -93,7 +101,7 @@ void au_install_stdlib(struct au_program_data *data) {
             MODULE_FUNC(io_open, "open", 2),
             MODULE_FUNC(io_close, "close", 1),
             MODULE_FUNC(io_read, "read", 1),
-            MODULE_FUNC(io_read_up_to, "read_up_to", 1),
+            MODULE_FUNC(io_read_up_to, "read_up_to", 2),
             MODULE_FUNC(io_write, "write", 2),
             MODULE_FUNC(io_flush, "flush", 1),
         };
