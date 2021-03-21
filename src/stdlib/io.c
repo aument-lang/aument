@@ -186,6 +186,27 @@ AU_EXTERN_FUNC_DECL(au_std_io_read) {
         goto fail;
     struct au_std_io *io = (struct au_std_io *)io_struct;
 
+    int ch = -1;
+    struct au_string_builder builder;
+    au_string_builder_init(&builder);
+    while ((ch = fgetc(io->f)) != EOF) {
+        au_string_builder_add(&builder, ch);
+    }
+    au_value_deref(io_val);
+    return au_value_string(au_string_builder_into_string(&builder));
+
+fail:
+    au_value_deref(io_val);
+    return au_value_op_error();
+}
+
+AU_EXTERN_FUNC_DECL(au_std_io_read_up_to) {
+    const au_value_t io_val = _args[0];
+    struct au_struct *io_struct = au_struct_coerce(io_val);
+    if (io_struct == NULL || io_struct->vdata != &io_vdata)
+        goto fail;
+    struct au_std_io *io = (struct au_std_io *)io_struct;
+
     const au_value_t n_val = _args[1];
     if (au_value_get_type(n_val) != AU_VALUE_INT)
         goto fail;
@@ -205,27 +226,6 @@ AU_EXTERN_FUNC_DECL(au_std_io_read) {
 fail:
     au_value_deref(io_val);
     au_value_deref(n_val);
-    return au_value_op_error();
-}
-
-AU_EXTERN_FUNC_DECL(au_std_io_read_up_to) {
-    const au_value_t io_val = _args[0];
-    struct au_struct *io_struct = au_struct_coerce(io_val);
-    if (io_struct == NULL || io_struct->vdata != &io_vdata)
-        goto fail;
-    struct au_std_io *io = (struct au_std_io *)io_struct;
-
-    int ch = -1;
-    struct au_string_builder builder;
-    au_string_builder_init(&builder);
-    while ((ch = fgetc(io->f)) != EOF) {
-        au_string_builder_add(&builder, ch);
-    }
-    au_value_deref(io_val);
-    return au_value_string(au_string_builder_into_string(&builder));
-
-fail:
-    au_value_deref(io_val);
     return au_value_op_error();
 }
 
