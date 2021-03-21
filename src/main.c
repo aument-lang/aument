@@ -83,7 +83,9 @@ int main(int argc, char **argv) {
 #endif
 #if defined(AU_LIBDIR)
                 else if (strcmp(full_opt, "libs") == 0) {
+#ifdef _WIN32
                     fputs(AU_LIBDIR "/libaument.exe.a", stdout);
+#endif
                     return 0;
                 }
 #endif

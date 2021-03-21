@@ -12,11 +12,14 @@
 #include <libloaderapi.h>
 #define AU_MODULE_LIB_EXT ".dll"
 #else
+#include <sys/stat.h>
 #define AU_MODULE_LIB_EXT ".so"
 #ifdef AU_FEAT_LIBDL
 #include <dlfcn.h>
 #endif
 #endif
+
+#define AU_MODULE_UNIV_LIB_EXT ".lib"
 
 #include "core/rt/malloc.h"
 #include "module.h"
@@ -137,16 +140,56 @@ static int endswith(const char *str, size_t len, const char *needle) {
            memcmp(&str[len - needle_len], needle, needle_len) == 0;
 }
 
+static char *find_native_lib(const char *abspath) {
+    const size_t filename_len = strlen(abspath) - strlen(AU_MODULE_UNIV_LIB_EXT);
+    const size_t full_len = filename_len + strlen(AU_MODULE_LIB_EXT);
+
+    char *native_lib = au_data_malloc(full_len + 1);
+    memcpy(native_lib, abspath, filename_len);
+    memcpy(&native_lib[filename_len], AU_MODULE_LIB_EXT, strlen(AU_MODULE_LIB_EXT));
+    native_lib[full_len] = 0;
+
+#ifdef _WIN32
+    struct _stat buf;
+    if(_stat(native_lib, &buf) == -1)
+        goto fail;
+#else
+    struct stat buf;
+    if(stat(native_lib, &buf) == -1)
+        goto fail;
+#endif
+
+    return native_lib;
+
+fail:
+    au_data_free(native_lib);
+    return 0;
+}
+
 enum au_module_import_result
 au_module_import(struct au_module *module,
-                 struct au_module_resolve_result *resolved) {
+                 const struct au_module_resolve_result *resolved) {
     (void)module;
     const size_t abspath_len = strlen(resolved->abspath);
-    if (endswith(resolved->abspath, abspath_len, AU_MODULE_LIB_EXT)) {
+    const int is_universal_lib = endswith(resolved->abspath, abspath_len, AU_MODULE_UNIV_LIB_EXT);
+    if (is_universal_lib ||
+        endswith(resolved->abspath, abspath_len, AU_MODULE_LIB_EXT)) {
 #ifdef _WIN32
         module->type = AU_MODULE_LIB;
 
-        HMODULE handle = LoadLibraryA(resolved->abspath);
+        HMODULE handle = 0;
+        if(is_universal_lib) {
+            char *native_lib = find_native_lib(resolved->abspath);
+            if(native_lib == 0) {
+                return AU_MODULE_IMPORT_FAIL;
+            } else {
+                module->data.lib.dl_handle =
+                    LoadLibraryA(native_lib);
+                au_data_free(native_lib);
+            }
+        } else {
+            handle = LoadLibraryA(resolved->abspath);
+        }
         if (handle == 0) {
             return AU_MODULE_IMPORT_FAIL_DL;
         }
@@ -175,8 +218,20 @@ au_module_import(struct au_module *module,
 #else
 #ifdef AU_FEAT_LIBDL
         module->type = AU_MODULE_LIB;
-        module->data.lib.dl_handle =
-            dlopen(resolved->abspath, RTLD_LAZY | RTLD_LOCAL);
+
+        if(is_universal_lib) {
+            char *native_lib = find_native_lib(resolved->abspath);
+            if(native_lib == 0) {
+                return AU_MODULE_IMPORT_FAIL;
+            } else {
+                module->data.lib.dl_handle =
+                    dlopen(native_lib, RTLD_LAZY | RTLD_LOCAL);
+                au_data_free(native_lib);
+            }
+        } else {
+            module->data.lib.dl_handle =
+                dlopen(resolved->abspath, RTLD_LAZY | RTLD_LOCAL);
+        }
         if (module->data.lib.dl_handle == 0) {
             return AU_MODULE_IMPORT_FAIL_DL;
         }

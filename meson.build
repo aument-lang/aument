@@ -452,6 +452,7 @@ if is_testing
         ['dl_import_test', 'tests/dl-import'],
         ['dl_module_test', 'tests/dl-module'],
         ['dl_subpath_test', 'tests/dl-subpath'],
+        ['dl_univ_lib_test', 'tests/dl-univ-lib'],
     ]
         import_lib_test = shared_module(import_lib_info[0],
             files(import_lib_info[1] + '/lib.c'),

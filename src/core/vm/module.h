@@ -52,7 +52,7 @@ _Private void au_module_lib_perror();
 
 _Public enum au_module_import_result
 au_module_import(struct au_module *module,
-                 struct au_module_resolve_result *resolved);
+                 const struct au_module_resolve_result *resolved);
 
 struct au_extern_module_options {
     const char *subpath;
