@@ -307,6 +307,8 @@ print module::random(); // => 4
 
 You can also import a dynamically linked library. On Unix systems, these files end with `.so`. On Windows, these files end with `.dll`. See [`tests/dl-module`](/tests/dl-module) for an example of importing a C library from Aument.
 
+If the `.lib` extension is used, Aument will load the library with the extension corresponding to the platform's library extension.
+
 If a DLL supports subpath imports, the importer can specify which subpath they want to import:
 
 ```
