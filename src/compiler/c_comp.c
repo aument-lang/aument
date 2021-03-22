@@ -711,7 +711,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                     comp_printf(state, "%s(0,&s_data[s_len-%d])",
                                 lib_func->symbol, n_args);
                 } else {
-                    comp_printf(state, "%s(0,0,0)", lib_func->symbol);
+                    comp_printf(state, "%s(0,0)", lib_func->symbol);
                 }
                 comp_printf(state, ");");
                 break;
