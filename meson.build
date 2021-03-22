@@ -188,7 +188,6 @@ if has_compile_feature
         'src/core/value_array.h',
         'src/core/rt/struct/vdata.h',
         'src/core/rt/struct/coerce.h',
-        'src/core/rt/struct/helper.h',
         'src/core/rt/value/ref.h',
         'src/core/rt/au_array.h',
         'src/core/rt/au_tuple.h',
@@ -197,7 +196,7 @@ if has_compile_feature
         'src/core/vm/frame_link.h',
         'src/platform/mmap.h',
         'src/core/vm/module.h',
-        'src/core/rt/struct/helper.c',
+        'src/core/rt/struct/helper.h',
         'src/core/rt/value/print.c',
     )
     stdlib_begin_hdr = files('src/core/rt/includes/stdlib_begin.h')
@@ -266,7 +265,6 @@ au_runtime_sources = [
     'src/core/rt/au_tuple.c',
     'src/core/rt/fn_value/comp_impl.c',
     'src/core/vm/module.c',
-    'src/core/rt/struct/helper.c',
     
     'src/stdlib/gc.c',
     'src/stdlib/types.c',
