@@ -20,7 +20,7 @@ static _Unused inline au_extern_module_t au_extern_module_new();
 
 au_extern_module_t au_extern_module_new() {
     return (au_extern_module_t)au_data_calloc(
-        sizeof(struct au_program_data));
+        1, sizeof(struct au_program_data));
 }
 
 /// [func] Declares an exported function in the external module
