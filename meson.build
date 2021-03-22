@@ -258,9 +258,6 @@ endif
 au_runtime_sources = [
     'src/core/rt/exception.c',
     'src/core/rt/malloc/static.c',
-    'src/stdlib/gc.c',
-    'src/stdlib/types.c',
-    'src/stdlib/collection.c',
     'src/core/hash.c',
     'src/core/hm_vars.c',
     'src/core/rt/au_class.c',
@@ -270,6 +267,12 @@ au_runtime_sources = [
     'src/core/rt/fn_value/comp_impl.c',
     'src/core/vm/module.c',
     'src/core/rt/struct/helper.c',
+    
+    'src/stdlib/gc.c',
+    'src/stdlib/types.c',
+    'src/stdlib/collection.c',
+    'src/stdlib/array.c',
+    'src/stdlib/str.c',
 ]
 if has_io_library
     au_runtime_sources += ['src/stdlib/io.c']
