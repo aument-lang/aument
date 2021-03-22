@@ -66,14 +66,14 @@ static inline void au_data_free(void *ptr) { free(ptr); }
 
 static _Unused inline char *au_data_strdup(const char *other) {
     const size_t len = strlen(other);
-    char *dest = au_data_malloc(len + 1);
+    char *dest = (char *)au_data_malloc(len + 1);
     memcpy(dest, other, len);
     dest[len] = 0;
     return dest;
 }
 
 static _Unused char *au_data_strndup(const char *str, size_t len) {
-    char *output = au_data_malloc(len + 1);
+    char *output = (char *)au_data_malloc(len + 1);
     memcpy(output, str, len);
     output[len] = 0;
     return output;
