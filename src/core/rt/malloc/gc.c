@@ -212,13 +212,19 @@ void *au_data_malloc(size_t size) {
     return (void *)header->data;
 }
 
-void *au_data_calloc(size_t size) {
-    collect_if_needed(size);
-    malloc_data.heap_size += size;
+void *au_data_calloc(size_t count, size_t size) {
+    const size_t nbytes = count * size;
+    
+    if(nbytes == 0) {
+        return 0;
+    }
+
+    collect_if_needed(nbytes);
+    malloc_data.heap_size += nbytes;
 
     struct au_data_malloc_header *header =
-        calloc(sizeof(struct au_data_malloc_header) + size, 1);
-    header->size = size;
+        calloc(1, sizeof(struct au_data_malloc_header) + nbytes);
+    header->size = nbytes;
     return (void *)header->data;
 }
 

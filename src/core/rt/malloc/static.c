@@ -21,7 +21,7 @@ void *au_obj_realloc(void *ptr, size_t size) { return realloc(ptr, size); }
 void au_obj_free(void *ptr) { free(ptr); }
 
 void *au_data_malloc(size_t size) { return malloc(size); }
-void *au_data_calloc(size_t size) { return calloc(size, 1); }
+void *au_data_calloc(size_t count, size_t size) { return calloc(count, size); }
 void *au_data_realloc(void *ptr, size_t size) {
     return realloc(ptr, size);
 }

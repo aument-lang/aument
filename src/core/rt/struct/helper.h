@@ -7,6 +7,7 @@
 #pragma once
 #include "../value/main.h"
 #include "main.h"
+#include "vdata.h"
 #include "platform/platform.h"
 #include "core/rt/exception.h"
 #endif
