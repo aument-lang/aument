@@ -52,7 +52,7 @@ void au_obj_tuple_del(struct au_obj_tuple *obj_tuple) {
 int au_obj_tuple_get(struct au_obj_tuple *obj_tuple, const au_value_t idx,
                      au_value_t *result) {
     const size_t index = au_value_get_int(idx);
-    if (index > obj_tuple->len)
+    if (index >= obj_tuple->len)
         return 0;
     au_value_ref(obj_tuple->data[index]);
     *result = obj_tuple->data[index];

@@ -13,6 +13,8 @@
 #include "io.h"
 #include "math.h"
 #include "types.h"
+#include "str.h"
+#include "array.h"
 
 #ifdef AU_TEST
 #include "test_fns.h"
@@ -154,4 +156,21 @@ void au_install_stdlib(struct au_program_data *data) {
         add_module(data, "math", mod_funcs, mod_funcs_len);
     }
 #endif
+    {
+        struct au_lib_func mod_funcs[] = {
+            // *array.c*
+            MODULE_FUNC(array_repeat, "repeat", 2),
+        };
+        const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
+        add_module(data, "array", mod_funcs, mod_funcs_len);
+    }
+    {
+        struct au_lib_func mod_funcs[] = {
+            // *str.c*
+            MODULE_FUNC(str_chars, "chars", 1),
+            MODULE_FUNC(str_char, "char", 1),
+        };
+        const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
+        add_module(data, "str", mod_funcs, mod_funcs_len);
+    }
 }
