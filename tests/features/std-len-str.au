@@ -1,5 +1,0 @@
-print len("$");
-print len("¢");
-print len("ह");
-print len("한");
-print len("𐍈");
