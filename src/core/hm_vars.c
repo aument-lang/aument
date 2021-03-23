@@ -108,7 +108,7 @@ au_hm_var_value_t *au_hm_vars_add(struct au_hm_vars *vars, const char *key,
     } else {
         // We can't guarantee vars->buckets_len is constant
         // as we may have rehashed the table
-        const int bucket_idx = hash & (vars->buckets_len - 1);
+        const size_t bucket_idx = (size_t)hash & (vars->buckets_len - 1);
         struct au_hm_bucket *bucket = &vars->buckets[bucket_idx];
         if (bucket->cap == 0) {
             bucket->data = au_data_malloc(sizeof(struct au_hm_var_el));
@@ -132,7 +132,7 @@ const au_hm_var_value_t *au_hm_vars_get(const struct au_hm_vars *vars,
     }
 
     const au_hash_t hash = au_hash((const uint8_t *)key, len);
-    const int bucket_idx = ((int)hash) & (vars->buckets_len - 1);
+    const size_t bucket_idx = ((size_t)hash) & (vars->buckets_len - 1);
     const struct au_hm_bucket *bucket = &vars->buckets[bucket_idx];
     for (size_t i = 0; i < bucket->len; i++) {
         const struct au_hm_var_el *el = &bucket->data[i];
