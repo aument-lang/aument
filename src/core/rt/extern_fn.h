@@ -26,5 +26,5 @@ struct au_lib_func {
 };
 
 #define AU_EXTERN_FUNC_DECL(NAME)                                         \
-    _Private au_value_t NAME(_Unused struct au_vm_thread_local *_tl,      \
-                             _Unused const au_value_t *_args)
+    AU_PRIVATE au_value_t NAME(AU_UNUSED struct au_vm_thread_local *_tl,      \
+                             AU_UNUSED const au_value_t *_args)

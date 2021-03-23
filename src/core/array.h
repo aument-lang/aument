@@ -20,7 +20,7 @@
         size_t len;                                                       \
         size_t cap;                                                       \
     };                                                                    \
-    static _Unused void NAME##_add(struct NAME *array, INNER el) {        \
+    static AU_UNUSED void NAME##_add(struct NAME *array, INNER el) {        \
         if (array->cap == 0) {                                            \
             array->data =                                                 \
                 (INNER *)au_data_malloc(sizeof(INNER) * IN_CAP);          \
@@ -32,30 +32,30 @@
         }                                                                 \
         array->data[array->len++] = el;                                   \
     }                                                                     \
-    static _Unused _AlwaysInline INNER NAME##_at(                         \
+    static AU_UNUSED AU_ALWAYS_INLINE INNER NAME##_at(                         \
         const struct NAME *array, size_t idx) {                           \
-        if (_Unlikely(idx >= array->len))                                 \
+        if (AU_UNLIKELY(idx >= array->len))                                 \
             au_fatal_index((void *)array, idx, array->len);               \
         return array->data[idx];                                          \
     }                                                                     \
-    static _Unused _AlwaysInline void NAME##_set(                         \
+    static AU_UNUSED AU_ALWAYS_INLINE void NAME##_set(                         \
         const struct NAME *array, size_t idx, INNER thing) {              \
-        if (_Unlikely(idx >= array->len))                                 \
+        if (AU_UNLIKELY(idx >= array->len))                                 \
             au_fatal_index((void *)array, idx, array->len);               \
         array->data[idx] = thing;                                         \
     }
 
 #define AU_ARRAY_STRUCT(INNER, NAME, IN_CAP)                              \
     AU_ARRAY_COPY(INNER, NAME, IN_CAP)                                    \
-    static _Unused _AlwaysInline const INNER *NAME##_at_ptr(              \
+    static AU_UNUSED AU_ALWAYS_INLINE const INNER *NAME##_at_ptr(              \
         const struct NAME *array, size_t idx) {                           \
-        if (_Unlikely(idx >= array->len))                                 \
+        if (AU_UNLIKELY(idx >= array->len))                                 \
             au_fatal_index((void *)array, idx, array->len);               \
         return &array->data[idx];                                         \
     }                                                                     \
-    static _Unused _AlwaysInline INNER *NAME##_at_mut(struct NAME *array, \
+    static AU_UNUSED AU_ALWAYS_INLINE INNER *NAME##_at_mut(struct NAME *array, \
                                                       size_t idx) {       \
-        if (_Unlikely(idx >= array->len))                                 \
+        if (AU_UNLIKELY(idx >= array->len))                                 \
             au_fatal_index((void *)array, idx, array->len);               \
         return &array->data[idx];                                         \
     }

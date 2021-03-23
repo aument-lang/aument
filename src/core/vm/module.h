@@ -19,7 +19,7 @@ struct au_module_lib {
     struct au_program_data *lib;
 };
 
-_Public void au_module_lib_del(struct au_module_lib *lib);
+AU_PUBLIC void au_module_lib_del(struct au_module_lib *lib);
 
 struct au_module {
     enum au_module_type type;
@@ -34,10 +34,10 @@ struct au_module_resolve_result {
     char *subpath;
 };
 
-_Public void
+AU_PUBLIC void
 au_module_resolve_result_del(struct au_module_resolve_result *result);
 
-_Public int au_module_resolve(struct au_module_resolve_result *result,
+AU_PUBLIC int au_module_resolve(struct au_module_resolve_result *result,
                               const char *import_path,
                               const char *parent_dir);
 
@@ -48,9 +48,9 @@ enum au_module_import_result {
     AU_MODULE_IMPORT_FAIL_DL = 3,
 };
 
-_Private void au_module_lib_perror();
+AU_PRIVATE void au_module_lib_perror();
 
-_Public enum au_module_import_result
+AU_PUBLIC enum au_module_import_result
 au_module_import(struct au_module *module,
                  const struct au_module_resolve_result *resolved);
 
@@ -62,6 +62,6 @@ struct au_extern_module_options {
 #ifdef AU_IS_INTERPRETER
 #include "core/rt/extern_fn.h"
 #endif
-_Public au_extern_func_t au_module_get_fn(struct au_module *module,
+AU_PUBLIC au_extern_func_t au_module_get_fn(struct au_module *module,
                                           const char *fn);
 #endif

@@ -16,7 +16,7 @@ typedef struct au_program_data *au_extern_module_t;
 
 /// [func] Creates a new external module
 /// @return a reference to the module
-static _Unused inline au_extern_module_t au_extern_module_new();
+static AU_UNUSED inline au_extern_module_t au_extern_module_new();
 
 au_extern_module_t au_extern_module_new() {
     return (au_extern_module_t)au_data_calloc(
@@ -30,7 +30,7 @@ au_extern_module_t au_extern_module_new() {
 /// @param func the pointer to the external function
 /// @param num_args the number of arguments the external function takes
 /// @return 0 if a function by that name already exists, 1 if successful
-static _Unused inline int
+static AU_UNUSED inline int
 au_extern_module_add_fn(au_extern_module_t p_data, const char *name,
                         au_extern_func_t func, int num_args);
 

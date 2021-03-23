@@ -12,7 +12,7 @@
 /// @param file output pointer to the file component
 /// @param wd output pointer to the directory component
 /// @return 1 if successful, 0 if failed
-_Private int au_split_path(const char *path, char **file, char **wd);
+AU_PRIVATE int au_split_path(const char *path, char **file, char **wd);
 
 /// [func] Gets the path containing the currently running Aument executable
-_Private struct au_char_array au_binary_path();
+AU_PRIVATE struct au_char_array au_binary_path();

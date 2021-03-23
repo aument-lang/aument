@@ -12,23 +12,23 @@
 
 struct au_obj_array;
 
-_Public struct au_obj_array *au_obj_array_new(size_t capacity);
+AU_PUBLIC struct au_obj_array *au_obj_array_new(size_t capacity);
 
-_Public void au_obj_array_del(struct au_obj_array *obj_array);
+AU_PUBLIC void au_obj_array_del(struct au_obj_array *obj_array);
 
-_Public void au_obj_array_push(struct au_obj_array *obj_array,
+AU_PUBLIC void au_obj_array_push(struct au_obj_array *obj_array,
                                au_value_t el);
 
-_Public int au_obj_array_get(struct au_obj_array *obj_array,
+AU_PUBLIC int au_obj_array_get(struct au_obj_array *obj_array,
                              const au_value_t idx, au_value_t *result);
 
-_Public int au_obj_array_set(struct au_obj_array *obj_array,
+AU_PUBLIC int au_obj_array_set(struct au_obj_array *obj_array,
                              au_value_t idx, au_value_t value);
 
-_Public int32_t au_obj_array_len(struct au_obj_array *obj_array);
+AU_PUBLIC int32_t au_obj_array_len(struct au_obj_array *obj_array);
 
 #ifdef _AUMENT_H
-_Public struct au_obj_array *au_obj_array_coerce(au_value_t value);
+AU_PUBLIC struct au_obj_array *au_obj_array_coerce(au_value_t value);
 #else
 extern struct au_struct_vdata au_obj_array_vdata;
 static inline struct au_obj_array *au_obj_array_coerce(au_value_t value) {

@@ -36,11 +36,11 @@ struct au_hm_vars {
 
 /// Initializes an au_hm_vars instance
 /// @param vars instance to be initialized
-_Public void au_hm_vars_init(struct au_hm_vars *vars);
+AU_PUBLIC void au_hm_vars_init(struct au_hm_vars *vars);
 
 /// Deinitializes an au_hm_vars instance
 /// @param vars instance to be destroyed
-_Public void au_hm_vars_del(struct au_hm_vars *vars);
+AU_PUBLIC void au_hm_vars_del(struct au_hm_vars *vars);
 
 /// Adds a key-value pair into an au_hm_vars instance
 /// @param vars the au_hm_vars instance
@@ -48,7 +48,7 @@ _Public void au_hm_vars_del(struct au_hm_vars *vars);
 /// @param len the bytesize length of the key
 /// @param value the value to be added
 /// @return the old value (if it exists), otherwise `NULL`
-_Public au_hm_var_value_t *au_hm_vars_add(struct au_hm_vars *vars,
+AU_PUBLIC au_hm_var_value_t *au_hm_vars_add(struct au_hm_vars *vars,
                                           const char *key, size_t len,
                                           au_hm_var_value_t value);
 
@@ -57,7 +57,7 @@ _Public au_hm_var_value_t *au_hm_vars_add(struct au_hm_vars *vars,
 /// @param key the key
 /// @param len the bytesize length of the key
 /// @return the value (if it exists), otherwise `NULL`
-_Public const au_hm_var_value_t *
+AU_PUBLIC const au_hm_var_value_t *
 au_hm_vars_get(const struct au_hm_vars *vars, const char *key, size_t len);
 
 #define AU_HM_VARS_FOREACH_PAIR(HM, NAME_VAR, ENTRY_VAR, BLOCK)           \

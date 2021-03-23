@@ -120,16 +120,16 @@ struct au_bc_storage {
 
 /// [func] Initializes an au_bc_storage instance
 /// @param bc_storage instance to be initialized
-_Public void au_bc_storage_init(struct au_bc_storage *bc_storage);
+AU_PUBLIC void au_bc_storage_init(struct au_bc_storage *bc_storage);
 
 /// [func] Deinitializes an au_bc_storage instance
 /// @param bc_storage instance to be deinitialized
-_Public void au_bc_storage_del(struct au_bc_storage *bc_storage);
+AU_PUBLIC void au_bc_storage_del(struct au_bc_storage *bc_storage);
 
 struct au_program_data;
 
 /// [func] Debugs an bytecode storage container
 /// @param bcs the bytecode storage
 /// @param data program data
-_Public void au_bc_dbg(const struct au_bc_storage *bcs,
+AU_PUBLIC void au_bc_dbg(const struct au_bc_storage *bcs,
                        const struct au_program_data *data);

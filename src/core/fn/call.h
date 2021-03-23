@@ -16,12 +16,12 @@
 /// @param p_data the program data containing the function
 /// @param args the arguments passed to the function
 /// @return the return value of the function
-_Unused static _AlwaysInline au_value_t
+static AU_UNUSED AU_ALWAYS_INLINE au_value_t
 au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
                     const struct au_program_data *p_data,
                     const au_value_t *args, int *is_native);
 
-_Unused static _AlwaysInline au_value_t
+static AU_UNUSED  AU_ALWAYS_INLINE au_value_t
 au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
                     const struct au_program_data *p_data,
                     const au_value_t *args, int *is_native) {
@@ -37,7 +37,7 @@ self_call:
         if ((fn->flags & AU_FN_FLAG_HAS_CLASS) != 0) {
             const struct au_obj_class *obj_class =
                 au_obj_class_coerce(args[0]);
-            if (_Unlikely((obj_class == 0) ||
+            if (AU_UNLIKELY((obj_class == 0) ||
                           (fn->as.bc_func.class_interface_cache !=
                            obj_class->interface))) {
                 return au_value_op_error();
@@ -56,7 +56,7 @@ self_call:
     case AU_FN_DISPATCH: {
         const struct au_obj_class *obj_class =
             au_obj_class_coerce(args[0]);
-        if (_Unlikely(obj_class == 0)) {
+        if (AU_UNLIKELY(obj_class == 0)) {
             return au_value_op_error();
         }
         const struct au_class_interface *class_interface =
@@ -78,7 +78,7 @@ self_call:
         }
     }
     default: {
-        _Unreachable;
+        AU_UNREACHABLE;
         return au_value_none();
     }
     }

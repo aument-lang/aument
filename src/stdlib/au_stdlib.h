@@ -10,4 +10,4 @@
 #include "platform/platform.h"
 
 struct au_program_data;
-_Private void au_install_stdlib(struct au_program_data *data);
+AU_PRIVATE void au_install_stdlib(struct au_program_data *data);

@@ -31,8 +31,8 @@ void au_class_interface_deref(struct au_class_interface *interface) {
     }
 }
 
-_Thread_local struct au_struct_vdata au_obj_class_vdata;
-static _Thread_local int au_obj_class_vdata_inited = 0;
+AU_THREAD_LOCAL struct au_struct_vdata au_obj_class_vdata;
+static AU_THREAD_LOCAL int au_obj_class_vdata_inited = 0;
 static void au_obj_class_vdata_init() {
     if (!au_obj_class_vdata_inited) {
         au_obj_class_vdata = (struct au_struct_vdata){
@@ -68,15 +68,15 @@ void au_obj_class_del(struct au_obj_class *obj_class) {
     }
 }
 
-int au_obj_class_get(_Unused struct au_obj_class *obj_class,
-                     _Unused const au_value_t idx,
-                     _Unused au_value_t *result) {
+int au_obj_class_get(AU_UNUSED struct au_obj_class *obj_class,
+                     AU_UNUSED const au_value_t idx,
+                     AU_UNUSED au_value_t *result) {
     return 0;
 }
 
-int au_obj_class_set(_Unused struct au_obj_class *obj_class,
-                     _Unused au_value_t idx_val,
-                     _Unused au_value_t value) {
+int au_obj_class_set(AU_UNUSED struct au_obj_class *obj_class,
+                     AU_UNUSED au_value_t idx_val,
+                     AU_UNUSED au_value_t value) {
     return 0;
 }
 

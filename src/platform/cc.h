@@ -18,19 +18,19 @@ struct au_cc_options {
 
 /// [func] Initializes an au_cc_options instance with default parameters
 /// @param cc instance to be initialized
-_Public void au_cc_options_default(struct au_cc_options *cc);
+AU_PUBLIC void au_cc_options_default(struct au_cc_options *cc);
 
 /// [func] Deinitializes an au_cc_options instance
 /// @param cc instance to be destroyed
-_Public void au_cc_options_del(struct au_cc_options *cc);
+AU_PUBLIC void au_cc_options_del(struct au_cc_options *cc);
 
 /// [func] Returns the path of the C compiler
-_Private char *au_get_cc();
+AU_PRIVATE char *au_get_cc();
 
 /// Spawns a C compiler with specified options, input and output.
 /// @param cc options passed into the compiler
 /// @param output_file path to the output file
 /// @param input_file path to the input file
 /// @return exit code of the C compiler
-_Public int au_spawn_cc(struct au_cc_options *cc, char *output_file,
+AU_PUBLIC int au_spawn_cc(struct au_cc_options *cc, char *output_file,
                         char *input_file);

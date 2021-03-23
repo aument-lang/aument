@@ -23,8 +23,8 @@ struct au_mmap_info {
 /// @param path path of file
 /// @param info info
 /// @return 1 if success, 0 if errored
-_Public int au_mmap_read(const char *path, struct au_mmap_info *info);
+AU_PUBLIC int au_mmap_read(const char *path, struct au_mmap_info *info);
 
 /// [func] Deinitializes an au_mmap_info instance
 /// @param info instance to be deinitialized
-_Public void au_mmap_del(struct au_mmap_info *info);
+AU_PUBLIC void au_mmap_del(struct au_mmap_info *info);
