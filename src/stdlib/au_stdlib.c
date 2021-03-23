@@ -9,9 +9,9 @@
 #include "core/vm/vm.h"
 
 #include "array.h"
-#include "collection.h"
 #include "gc.h"
 #include "io.h"
+#include "list.h"
 #include "math.h"
 #include "str.h"
 #include "types.h"
@@ -64,9 +64,8 @@ void au_install_stdlib(struct au_program_data *data) {
             STDLIB_FUNC(float, 1),
             STDLIB_FUNC(str, 1),
             STDLIB_FUNC(bool, 1),
-            // *array.c*
-            STDLIB_FUNC(len, 1),
 #ifdef AU_TEST
+            // *test_fns.c*
             STDLIB_FUNC(test_1, 1),
             STDLIB_FUNC(test_2, 2),
 #endif
@@ -163,6 +162,14 @@ void au_install_stdlib(struct au_program_data *data) {
         };
         const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
         add_module(data, "array", mod_funcs, mod_funcs_len);
+    }
+    {
+        struct au_lib_func mod_funcs[] = {
+            // *list.c*
+            MODULE_FUNC(list_len, "len", 1),
+        };
+        const int mod_funcs_len = sizeof(mod_funcs) / sizeof(mod_funcs[0]);
+        add_module(data, "list", mod_funcs, mod_funcs_len);
     }
     {
         struct au_lib_func mod_funcs[] = {

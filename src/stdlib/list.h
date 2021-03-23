@@ -14,7 +14,7 @@
 /// * For strings, it returns the number of UTF-8 codepoints in the
 /// string\n
 /// * For all other inputs, the result is 0.
-/// @name len
+/// @name list::len
 /// @param collection The collection (an array, string,...)
 /// @return The length of the collection.
-AU_EXTERN_FUNC_DECL(au_std_len);
+AU_EXTERN_FUNC_DECL(au_std_list_len);

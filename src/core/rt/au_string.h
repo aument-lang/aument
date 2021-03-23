@@ -25,21 +25,22 @@ struct au_string {
 /// @param s Pointer to the array of chars
 /// @param len Byte size of the string
 /// @returns An au_string instance
-_Public struct au_string *au_string_from_const(const char *s, size_t len);
+AU_PUBLIC struct au_string *au_string_from_const(const char *s,
+                                                 size_t len);
 
 /// [func] Creates an au_string from concatenating 2 au_string(s)
 /// @param left First string
 /// @param right Second string
 /// @return Concatenation of `left` and `right`
-_Public struct au_string *au_string_add(const struct au_string *left,
-                                        const struct au_string *right);
+AU_PUBLIC struct au_string *au_string_add(const struct au_string *left,
+                                          const struct au_string *right);
 
 /// [func] Compares 2 au_string instances
 /// @param left First string
 /// @param right Second string
 /// @return Comparison of `left` and `right`
-static _Unused inline int au_string_cmp(const struct au_string *left,
-                                        const struct au_string *right);
+static AU_UNUSED inline int au_string_cmp(const struct au_string *left,
+                                          const struct au_string *right);
 
 int au_string_cmp(const struct au_string *left,
                   const struct au_string *right) {
@@ -56,8 +57,8 @@ int au_string_cmp(const struct au_string *left,
 /// @param str au_string instance
 /// @param cstr C string
 /// @return Comparison of `left` and `right`
-static _Unused inline int au_string_cmp_cstr(const struct au_string *str,
-                                             const char *cstr);
+static AU_UNUSED inline int au_string_cmp_cstr(const struct au_string *str,
+                                               const char *cstr);
 
 int au_string_cmp_cstr(const struct au_string *str, const char *cstr) {
     const size_t clen = strlen(cstr);

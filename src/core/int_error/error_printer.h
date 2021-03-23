@@ -14,9 +14,10 @@
 #include "platform/platform.h"
 
 /// [func] Prints a parser error
-_Public void au_print_parser_error(struct au_parser_result res,
-                                   struct au_error_location loc);
+AU_PUBLIC void au_print_parser_error(struct au_parser_result res,
+                                     struct au_error_location loc);
 
 /// [func] Prints an interpreter error
-_Public void au_print_interpreter_error(struct au_interpreter_result type,
-                                        struct au_error_location loc);
+AU_PUBLIC void
+au_print_interpreter_error(struct au_interpreter_result type,
+                           struct au_error_location loc);

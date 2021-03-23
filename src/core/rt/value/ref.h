@@ -20,7 +20,7 @@ struct au_obj_rc {
     uint32_t rc;
 };
 
-static _AlwaysInline void au_value_ref(const au_value_t v) {
+static AU_ALWAYS_INLINE void au_value_ref(const au_value_t v) {
     struct au_obj_rc *obj_rc = 0;
     switch (au_value_get_type(v)) {
     case AU_VALUE_STR: {
@@ -39,12 +39,12 @@ static _AlwaysInline void au_value_ref(const au_value_t v) {
     default:
         return;
     }
-    if (_Unlikely(obj_rc->rc == INT32_MAX))
+    if (AU_UNLIKELY(obj_rc->rc == INT32_MAX))
         abort();
     obj_rc->rc++;
 }
 
-static _AlwaysInline void au_value_deref(const au_value_t v) {
+static AU_ALWAYS_INLINE void au_value_deref(const au_value_t v) {
     struct au_obj_rc *obj_rc = 0;
     switch (au_value_get_type(v)) {
     case AU_VALUE_STR: {
@@ -64,7 +64,7 @@ static _AlwaysInline void au_value_deref(const au_value_t v) {
         return;
     }
 
-    if (_Unlikely(obj_rc == 0))
+    if (AU_UNLIKELY(obj_rc == 0))
         abort();
     obj_rc->rc--;
 

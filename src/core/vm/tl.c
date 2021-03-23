@@ -9,7 +9,7 @@
 #include "core/rt/malloc.h"
 #include "platform/platform.h"
 
-static _Thread_local struct au_vm_thread_local *current_tl = 0;
+static AU_THREAD_LOCAL struct au_vm_thread_local *current_tl = 0;
 
 struct au_vm_thread_local *au_vm_thread_local_get() {
     return current_tl;

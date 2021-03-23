@@ -16,16 +16,17 @@ struct au_string_builder {
     size_t cap;
 };
 
-static _Unused inline void
+static AU_UNUSED inline void
 au_string_builder_init(struct au_string_builder *builder) {
-    builder->_string = au_obj_malloc(sizeof(struct au_string) + 1, 0);
+    builder->_string =
+        (struct au_string *)au_obj_malloc(sizeof(struct au_string) + 1, 0);
     builder->_string->rc = 1;
     builder->_string->len = 1;
     builder->pos = 0;
     builder->cap = 1;
 }
 
-static _Unused inline void
+static AU_UNUSED inline void
 au_string_builder_del(struct au_string_builder *builder) {
     if (builder->_string->rc != 0) {
         builder->_string->rc--;
@@ -35,18 +36,18 @@ au_string_builder_del(struct au_string_builder *builder) {
     builder->_string = 0;
 }
 
-static _Unused inline void
+static AU_UNUSED inline void
 au_string_builder_add(struct au_string_builder *builder, char ch) {
     if (builder->pos == builder->cap) {
         builder->cap *= 2;
-        builder->_string = au_obj_realloc(
+        builder->_string = (struct au_string *)au_obj_realloc(
             builder->_string, sizeof(struct au_string) + builder->cap);
     }
     builder->_string->data[builder->pos] = ch;
     builder->pos++;
 }
 
-static _Unused inline struct au_string *
+static AU_UNUSED inline struct au_string *
 au_string_builder_into_string(struct au_string_builder *builder) {
     struct au_string *ret = builder->_string;
     ret->len = builder->pos;

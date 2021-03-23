@@ -187,18 +187,20 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     frame.retval = au_value_none();
 
 #ifdef AU_STACK_GROWS_UP
-    if (_Unlikely(((uintptr_t)&frame - tl->stack_start) > tl->stack_max)) {
+    if (AU_UNLIKELY(((uintptr_t)&frame - tl->stack_start) >
+                    tl->stack_max)) {
         au_fatal("stack overflow");
     }
 #else
-    if (_Unlikely((tl->stack_start - (uintptr_t)&frame) > tl->stack_max)) {
+    if (AU_UNLIKELY((tl->stack_start - (uintptr_t)&frame) >
+                    tl->stack_max)) {
         au_fatal("stack overflow");
     }
 #endif
 
 #ifdef AU_USE_ALLOCA
     au_value_t *alloca_values = 0;
-    if (_Likely(bcs->num_values < ALLOCA_MAX_VALUES)) {
+    if (AU_LIKELY(bcs->num_values < ALLOCA_MAX_VALUES)) {
         alloca_values = alloca(bcs->num_values * sizeof(au_value_t));
         au_value_clear(alloca_values, bcs->num_values);
         frame.regs = alloca_values;
@@ -488,8 +490,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 const uint8_t ret = bc[2];
                 PREFETCH_INSN;
 
-                if (_Likely(au_value_get_type(frame.regs[reg]) ==
-                            AU_VALUE_BOOL)) {
+                if (AU_LIKELY(au_value_get_type(frame.regs[reg]) ==
+                              AU_VALUE_BOOL)) {
                     COPY_VALUE(frame.regs[ret],
                                au_value_bool(
                                    !au_value_get_bool(frame.regs[reg])));
@@ -528,7 +530,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                                                           \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (_Unlikely(au_value_is_op_error(result))) {                    \
+        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
             FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
@@ -550,7 +552,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                                                           \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (_Unlikely(au_value_is_op_error(result))) {                    \
+        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
             FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
@@ -587,8 +589,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const uint8_t res = bc[3];                                        \
         PREFETCH_INSN;                                                    \
                                                                           \
-        if (_Unlikely((au_value_get_type(lhs) != AU_VALUE_INT) ||         \
-                      (au_value_get_type(rhs) != AU_VALUE_INT))) {        \
+        if (AU_UNLIKELY((au_value_get_type(lhs) != AU_VALUE_INT) ||       \
+                        (au_value_get_type(rhs) != AU_VALUE_INT))) {      \
             bc[0] = NAME;                                                 \
             goto _##NAME;                                                 \
         }                                                                 \
@@ -626,8 +628,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const uint8_t res = bc[3];                                        \
         PREFETCH_INSN;                                                    \
                                                                           \
-        if (_Unlikely((au_value_get_type(lhs) != AU_VALUE_DOUBLE) ||      \
-                      (au_value_get_type(rhs) != AU_VALUE_DOUBLE))) {     \
+        if (AU_UNLIKELY((au_value_get_type(lhs) != AU_VALUE_DOUBLE) ||    \
+                        (au_value_get_type(rhs) != AU_VALUE_DOUBLE))) {   \
             bc[0] = NAME;                                                 \
             goto _##NAME;                                                 \
         }                                                                 \
@@ -703,7 +705,7 @@ _AU_OP_JNIF:;
                 PREFETCH_INSN;
 
                 const size_t offset = ((size_t)n) * 4;
-                if (_Unlikely(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
+                if (AU_UNLIKELY(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
                     bc[0] = AU_OP_JIF;
                     goto _AU_OP_JIF;
                 }
@@ -720,7 +722,7 @@ _AU_OP_JNIF:;
                 PREFETCH_INSN;
 
                 const size_t offset = ((size_t)n) * 4;
-                if (_Unlikely(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
+                if (AU_UNLIKELY(au_value_get_type(cmp) != AU_VALUE_BOOL)) {
                     bc[0] = AU_OP_JNIF;
                     goto _AU_OP_JNIF;
                 }
@@ -742,7 +744,7 @@ _AU_OP_JNIF:;
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (_Unlikely(au_value_is_op_error(result))) {                    \
+        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
             FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
@@ -763,7 +765,7 @@ _AU_OP_JNIF:;
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (_Unlikely(au_value_is_op_error(result))) {                    \
+        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
             FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
@@ -802,7 +804,7 @@ _AU_OP_JNIF:;
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, args, &is_native);
-                if (_Unlikely(au_value_is_op_error(callee_retval))) {
+                if (AU_UNLIKELY(au_value_is_op_error(callee_retval))) {
                     FLUSH_BC();
                     call_error(p_data, &frame);
                 }
@@ -840,7 +842,7 @@ _AU_OP_JNIF:;
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, &arg_reg, &is_native);
-                if (_Unlikely(au_value_is_op_error(callee_retval))) {
+                if (AU_UNLIKELY(au_value_is_op_error(callee_retval))) {
                     FLUSH_BC();
                     call_error(p_data, &frame);
                 }
@@ -887,7 +889,7 @@ _AU_OP_JNIF:;
 
                 struct au_fn_value *fn_value =
                     au_fn_value_coerce(frame.regs[func_reg]);
-                if (_Likely(fn_value != 0)) {
+                if (AU_LIKELY(fn_value != 0)) {
                     au_fn_value_add_arg(fn_value, frame.regs[arg_reg]);
                 } else {
                     assert(0);
@@ -903,14 +905,14 @@ _AU_OP_JNIF:;
 
                 struct au_fn_value *fn_value =
                     au_fn_value_coerce(frame.regs[func_reg]);
-                if (_Likely(fn_value != 0)) {
+                if (AU_LIKELY(fn_value != 0)) {
                     au_value_t *args =
                         &frame.arg_stack
                              .data[frame.arg_stack.len - num_args];
                     int is_native = 0;
                     const au_value_t callee_retval = au_fn_value_call_vm(
                         fn_value, tl, args, num_args, &is_native);
-                    if (_Unlikely(au_value_is_op_error(callee_retval))) {
+                    if (AU_UNLIKELY(au_value_is_op_error(callee_retval))) {
                         FLUSH_BC();
                         call_error(p_data, &frame);
                     }
@@ -986,7 +988,7 @@ _AU_OP_JNIF:;
 
                 struct au_obj_array *obj_array =
                     au_obj_array_coerce(array_val);
-                if (_Likely(obj_array != 0)) {
+                if (AU_LIKELY(obj_array != 0)) {
                     au_obj_array_push(obj_array, value_val);
                 }
 
@@ -999,7 +1001,7 @@ _AU_OP_JNIF:;
 
                 const uint8_t ret_reg = bc[3];
                 struct au_struct *collection = au_struct_coerce(col_val);
-                if (_Likely(collection != 0)) {
+                if (AU_LIKELY(collection != 0)) {
                     au_value_t value;
                     if (!collection->vdata->idx_get_fn(collection, idx_val,
                                                        &value)) {
@@ -1022,10 +1024,10 @@ _AU_OP_JNIF:;
                 PREFETCH_INSN;
 
                 struct au_struct *collection = au_struct_coerce(col_val);
-                if (_Likely(collection != 0)) {
-                    if (_Unlikely(collection->vdata->idx_set_fn(
-                                      collection, idx_val, value_val) ==
-                                  0)) {
+                if (AU_LIKELY(collection != 0)) {
+                    if (AU_UNLIKELY(collection->vdata->idx_set_fn(
+                                        collection, idx_val, value_val) ==
+                                    0)) {
                         FLUSH_BC();
                         invalid_index_error(col_val, idx_val, p_data,
                                             &frame);
@@ -1067,10 +1069,10 @@ _AU_OP_JNIF:;
                 PREFETCH_INSN;
 
                 struct au_struct *collection = au_struct_coerce(col_val);
-                if (_Likely(collection != 0)) {
-                    if (_Unlikely(collection->vdata->idx_set_fn(
-                                      collection, idx_val, value_val) ==
-                                  0)) {
+                if (AU_LIKELY(collection != 0)) {
+                    if (AU_UNLIKELY(collection->vdata->idx_set_fn(
+                                        collection, idx_val, value_val) ==
+                                    0)) {
                         FLUSH_BC();
                         invalid_index_error(col_val, idx_val, p_data,
                                             &frame);
@@ -1257,10 +1259,14 @@ _AU_OP_JNIF:;
                     struct au_program_data *loaded_module =
                         module.data.lib.lib;
                     module.data.lib.lib = 0;
-                    au_vm_thread_local_add_module(tl, tl_module_idx,
-                                                  loaded_module);
-                    link_to_imported(p_data, relative_module_idx,
-                                     loaded_module);
+                    if (tl_module_idx == ((uint32_t)-1)) {
+                        au_program_data_del(loaded_module);
+                    } else {
+                        au_vm_thread_local_add_module(tl, tl_module_idx,
+                                                      loaded_module);
+                        link_to_imported(p_data, relative_module_idx,
+                                         loaded_module);
+                    }
                     break;
                 }
                 }
@@ -1287,7 +1293,7 @@ _import_dispatch:;
     }
 end:
 #ifdef AU_USE_ALLOCA
-    if (_Likely(alloca_values != 0)) {
+    if (AU_LIKELY(alloca_values != 0)) {
 #ifndef AU_FEAT_DELAYED_RC
         for (int i = 0; i < bcs->num_values; i++) {
             au_value_deref(alloca_values[i]);

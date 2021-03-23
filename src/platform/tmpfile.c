@@ -41,8 +41,8 @@ void au_tmpfile_del(struct au_tmpfile *tmp) {
 const char rand_chars[] =
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-static int new_tmpfile(_Unused struct au_tmpfile *tmp,
-                       _Unused const char *ext) {
+static int new_tmpfile(AU_UNUSED struct au_tmpfile *tmp,
+                       AU_UNUSED const char *ext) {
     char name[MAX_PATH] = {0};
     if (GetTempPathA(MAX_PATH, name) == 0)
         return 0;

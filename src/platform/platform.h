@@ -8,45 +8,47 @@
 #endif
 
 #ifdef _MSC_VER
-#define _Unused
+#define AU_UNUSED
 #else
-#define _Unused __attribute__((unused))
+#define AU_UNUSED __attribute__((unused))
 #endif
 
 #ifdef _MSC_VER
-#define _NoReturn __declspec(noreturn)
+#define AU_NO_RETURN __declspec(noreturn)
 #else
-#define _NoReturn __attribute__((noreturn))
+#define AU_NO_RETURN __attribute__((noreturn))
 #endif
 
 #ifdef _MSC_VER
-#define _AlwaysInline __forceinline
+#define AU_ALWAYS_INLINE __forceinline
 #else
-#define _AlwaysInline __attribute__((always_inline)) inline
+#define AU_ALWAYS_INLINE __attribute__((always_inline)) inline
 #endif
 
 #ifdef _MSC_VER
-#define _Unreachable __assume(0)
+#define AU_UNREACHABLE __assume(0)
 #else
-#define _Unreachable __builtin_unreachable()
+#define AU_UNREACHABLE __builtin_unreachable()
 #endif
 
-#define _Likely(x) __builtin_expect(!!(x), 1)
-#define _Unlikely(x) __builtin_expect(!!(x), 0)
+#define AU_LIKELY(x) __builtin_expect(!!(x), 1)
+#define AU_UNLIKELY(x) __builtin_expect(!!(x), 0)
 
-#ifndef _Thread_local
-#define _Thread_local
+#ifdef _Thread_local
+#define AU_THREAD_LOCAL _Thread_local
+#else
+#define AU_THREAD_LOCAL
 #endif
 
 #if defined(_WIN32)
 #ifdef _AUMENT_H
-#define _Public __declspec(dllimport)
-#define _Private
+#define AU_PUBLIC __declspec(dllimport)
+#define AU_PRIVATE
 #else
-#define _Public __declspec(dllexport)
-#define _Private
+#define AU_PUBLIC __declspec(dllexport)
+#define AU_PRIVATE
 #endif
 #else
-#define _Public __attribute__((visibility("default")))
-#define _Private __attribute__((visibility("hidden")))
+#define AU_PUBLIC __attribute__((visibility("default")))
+#define AU_PRIVATE __attribute__((visibility("hidden")))
 #endif

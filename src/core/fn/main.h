@@ -41,7 +41,7 @@ struct au_imported_func {
 
 /// [func] Deinitializes an au_imported_func instance
 /// @param fn instance to be initialized
-_Public void au_imported_func_del(struct au_imported_func *fn);
+AU_PUBLIC void au_imported_func_del(struct au_imported_func *fn);
 
 /// [struct] A forward declared function. This object must
 /// only appear while parsing, and must not appear anywhere else.
@@ -74,7 +74,7 @@ struct au_dispatch_func {
 
 /// [func] Deinitializes an au_dispatch_func instance
 /// @param fn instance to be initialized
-_Public void au_dispatch_func_del(struct au_dispatch_func *fn);
+AU_PUBLIC void au_dispatch_func_del(struct au_dispatch_func *fn);
 
 #define AU_FN_FLAG_EXPORTED (1 << 0)
 #define AU_FN_FLAG_HAS_CLASS (1 << 1)
@@ -123,7 +123,7 @@ static inline int32_t au_fn_num_args(const struct au_fn *fn) {
 
 /// [func] Deinitializes an au_fn instance
 /// @param fn instance to be initialized
-_Public void au_fn_del(struct au_fn *fn);
+AU_PUBLIC void au_fn_del(struct au_fn *fn);
 
 /// [func] Fills a cached reference to a function in an external
 ///     module, and a reference to module itself, into an
@@ -131,7 +131,7 @@ _Public void au_fn_del(struct au_fn *fn);
 ///     must NOT be used in functions shared across threads.
 /// @param fn the imported function. This function must have the type
 /// AU_FN_IMPORTER
-_Private void au_fn_fill_import_cache_unsafe(
+AU_PRIVATE void au_fn_fill_import_cache_unsafe(
     const struct au_fn *fn, const struct au_fn *fn_cached,
     const struct au_program_data *p_data_cached);
 
@@ -141,7 +141,7 @@ _Private void au_fn_fill_import_cache_unsafe(
 /// @param fn an au_fn function
 /// @param current_p_data the au_program_data instance that the function
 ///     belongs to.
-_Private void au_fn_fill_class_cache_unsafe(
+AU_PRIVATE void au_fn_fill_class_cache_unsafe(
     const struct au_fn *fn, const struct au_program_data *current_p_data);
 
 AU_ARRAY_STRUCT(struct au_fn, au_fn_array, 1)
