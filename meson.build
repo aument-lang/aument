@@ -268,7 +268,7 @@ au_runtime_sources = [
     
     'src/stdlib/gc.c',
     'src/stdlib/types.c',
-    'src/stdlib/collection.c',
+    'src/stdlib/list.c',
     'src/stdlib/array.c',
     'src/stdlib/str.c',
 ]

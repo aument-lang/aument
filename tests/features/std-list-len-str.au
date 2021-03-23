@@ -1,0 +1,5 @@
+print list::len("$");
+print list::len("¢");
+print list::len("ह");
+print list::len("한");
+print list::len("𐍈");

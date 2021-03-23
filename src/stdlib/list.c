@@ -11,7 +11,7 @@
 #include "core/rt/value.h"
 #include "core/vm/vm.h"
 
-AU_EXTERN_FUNC_DECL(au_std_len) {
+AU_EXTERN_FUNC_DECL(au_std_list_len) {
     const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
     case AU_VALUE_STRUCT: {
