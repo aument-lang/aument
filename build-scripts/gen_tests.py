@@ -83,13 +83,15 @@ static void test_{i}_check(au_value_t value) {{ switch(test_{i}_idx) {{
             test_src += f"  case {val_idx}: {{\n"
             test_src += """\
     assert(au_value_get_type(value) == AU_VALUE_STRUCT && au_value_get_struct(value)->vdata == &au_obj_array_vdata);
-    struct au_obj_array *array = (struct au_obj_array *)au_value_get_struct(value);
 """
-            for item_idx in range(len(array_contents)):
-                test_src += f"au_value_t _value{item_idx}; assert(au_obj_array_get(array, au_value_int({item_idx}), &_value{item_idx}));\n"
             if len(array_contents) == 1 and not array_contents[0]:
                 test_src += f"  }}\n"
             else:
+                test_src += """\
+    struct au_obj_array *array = (struct au_obj_array *)au_value_get_struct(value);
+"""
+                for item_idx in range(len(array_contents)):
+                    test_src += f"au_value_t _value{item_idx}; assert(au_obj_array_get(array, au_value_int({item_idx}), &_value{item_idx}));\n"
                 for item_idx, item in enumerate(array_contents):
                     val_type, val_contents = item.split(',')
                     item = f"_value{item_idx}"

@@ -195,7 +195,8 @@ static void link_to_imported(
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
         if (fn_idx == 0)
             au_fatal("unknown function %.*s", key_len, key);
-        struct au_fn *fn = &loaded_module->fns.data[*fn_idx];
+        const struct au_fn *fn =
+            au_fn_array_at_ptr(&loaded_module->fns, *fn_idx);
         if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
             au_fatal("this function is not exported");
         if (au_fn_num_args(fn) != imported_func->num_args)
@@ -224,13 +225,15 @@ static void link_to_imported(
                     (int)*class_idx);                                     \
     } while (0)
     AU_HM_VARS_FOREACH_PAIR(&relative_module->class_map, key, entry, {
-        assert(p_data->classes.data[entry] == 0);
+        assert(au_class_interface_ptr_array_at(&p_data->classes, entry) ==
+               0);
         const au_hm_var_value_t *class_idx =
             au_hm_vars_get(&loaded_module->class_map, key, key_len);
         if (class_idx == 0)
             au_fatal("unknown class %.*s", key_len, key);
         struct au_class_interface *class_interface =
-            loaded_module->classes.data[*class_idx];
+            au_class_interface_ptr_array_at(&loaded_module->classes,
+                                            *class_idx);
         if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0)
             au_fatal("this class is not exported");
         X("#define _M%d_%d _M%d_%d\n");
@@ -1487,9 +1490,9 @@ void au_c_comp(struct au_c_comp_state *state,
     comp_printf(state, "int main() { _M0_main(); return 0; }\n");
 
     for (size_t i = 0; i < g_state.modules.len; i++) {
-        comp_printf(state, "%.*s\n",
-                    (int)g_state.modules.data[i].c_source.len,
-                    g_state.modules.data[i].c_source.data);
+        const struct au_c_comp_module *module = &g_state.modules.data[i];
+        comp_printf(state, "%.*s\n", (int)module->c_source.len,
+                    module->c_source.data);
     }
 
     if (cc) {

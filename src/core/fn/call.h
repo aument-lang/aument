@@ -16,12 +16,12 @@
 /// @param p_data the program data containing the function
 /// @param args the arguments passed to the function
 /// @return the return value of the function
-static AU_UNUSED AU_ALWAYS_INLINE au_value_t
+static AU_UNUSED au_value_t
 au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
                     const struct au_program_data *p_data,
                     const au_value_t *args, int *is_native);
 
-static AU_UNUSED AU_ALWAYS_INLINE au_value_t
+static AU_UNUSED au_value_t
 au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
                     const struct au_program_data *p_data,
                     const au_value_t *args, int *is_native) {
