@@ -46,5 +46,5 @@ struct au_interpreter_result {
 /// @param p_data program data
 /// @param frame the frame at which the error occurred
 AU_PUBLIC void au_vm_error(struct au_interpreter_result res,
-                         const struct au_program_data *p_data,
-                         struct au_vm_frame *frame);
+                           const struct au_program_data *p_data,
+                           struct au_vm_frame *frame);

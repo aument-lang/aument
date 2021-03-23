@@ -60,7 +60,7 @@ struct au_lexer {
 /// @param src pointer to source code to be lexed
 /// @param len byte-size length of the source code
 AU_PUBLIC void au_lexer_init(struct au_lexer *l, const char *src,
-                           size_t len);
+                             size_t len);
 
 /// [func] Deinitializes a lexer instance
 /// @param l instance to be deinitialized

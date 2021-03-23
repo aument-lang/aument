@@ -33,4 +33,4 @@ AU_PRIVATE char *au_get_cc();
 /// @param input_file path to the input file
 /// @return exit code of the C compiler
 AU_PUBLIC int au_spawn_cc(struct au_cc_options *cc, char *output_file,
-                        char *input_file);
+                          char *input_file);

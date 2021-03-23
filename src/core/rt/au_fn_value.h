@@ -18,7 +18,7 @@ struct au_fn_value;
 AU_PUBLIC void au_fn_value_del(struct au_fn_value *fn_value);
 
 AU_PUBLIC void au_fn_value_add_arg(struct au_fn_value *fn_value,
-                                 au_value_t value);
+                                   au_value_t value);
 
 #ifdef AU_IS_STDLIB
 au_value_t au_fn_value_from_compiled(au_compiled_func_t fn_ptr,
@@ -39,11 +39,9 @@ au_fn_value_from_vm(const struct au_fn *fn,
 #endif
 
 struct au_vm_thread_local;
-AU_PUBLIC au_value_t au_fn_value_call_vm(const struct au_fn_value *fn_value,
-                                       struct au_vm_thread_local *tl,
-                                       au_value_t *unbound_args,
-                                       int num_unbound_args,
-                                       int *is_native_out);
+AU_PUBLIC au_value_t au_fn_value_call_vm(
+    const struct au_fn_value *fn_value, struct au_vm_thread_local *tl,
+    au_value_t *unbound_args, int num_unbound_args, int *is_native_out);
 
 static inline struct au_fn_value *au_fn_value_coerce(au_value_t value) {
     if (au_value_get_type(value) != AU_VALUE_FN)

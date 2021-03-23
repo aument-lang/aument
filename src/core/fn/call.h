@@ -21,7 +21,7 @@ au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
                     const struct au_program_data *p_data,
                     const au_value_t *args, int *is_native);
 
-static AU_UNUSED  AU_ALWAYS_INLINE au_value_t
+static AU_UNUSED AU_ALWAYS_INLINE au_value_t
 au_fn_call_internal(const struct au_fn *fn, struct au_vm_thread_local *tl,
                     const struct au_program_data *p_data,
                     const au_value_t *args, int *is_native) {
@@ -38,8 +38,8 @@ self_call:
             const struct au_obj_class *obj_class =
                 au_obj_class_coerce(args[0]);
             if (AU_UNLIKELY((obj_class == 0) ||
-                          (fn->as.bc_func.class_interface_cache !=
-                           obj_class->interface))) {
+                            (fn->as.bc_func.class_interface_cache !=
+                             obj_class->interface))) {
                 return au_value_op_error();
             }
             return au_vm_exec_unverified(tl, &fn->as.bc_func, p_data,

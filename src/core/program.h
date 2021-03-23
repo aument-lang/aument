@@ -62,7 +62,7 @@ AU_ARRAY_STRUCT(struct au_imported_module, au_imported_module_array, 1)
 /// [func] Initializes an au_imported_module instance
 /// @param data instance to be initialized
 AU_PUBLIC void au_imported_module_init(struct au_imported_module *data,
-                                     int is_finished);
+                                       int is_finished);
 
 /// [func] Deinitializes an au_imported_module instance
 /// @param data instance to be deinitialized
@@ -101,8 +101,8 @@ AU_PUBLIC void au_program_data_del(struct au_program_data *data);
 /// @param v_len size of `v_data`
 /// @return index of the data
 AU_PRIVATE int au_program_data_add_data(struct au_program_data *p_data,
-                                      au_value_t value, uint8_t *v_data,
-                                      size_t v_len);
+                                        au_value_t value, uint8_t *v_data,
+                                        size_t v_len);
 
 struct au_program {
     struct au_bc_storage main;

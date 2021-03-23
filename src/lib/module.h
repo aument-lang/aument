@@ -53,3 +53,7 @@ int au_extern_module_add_fn(au_extern_module_t p_data, const char *name,
         return 0;
     }
 }
+
+#define AU_EXTERN_MODULE_MAIN(OPTIONS_ID)                                 \
+    au_extern_module_t au_extern_module_load(                             \
+        struct au_extern_module_options *OPTIONS_ID)

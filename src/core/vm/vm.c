@@ -187,11 +187,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     frame.retval = au_value_none();
 
 #ifdef AU_STACK_GROWS_UP
-    if (AU_UNLIKELY(((uintptr_t)&frame - tl->stack_start) > tl->stack_max)) {
+    if (AU_UNLIKELY(((uintptr_t)&frame - tl->stack_start) >
+                    tl->stack_max)) {
         au_fatal("stack overflow");
     }
 #else
-    if (AU_UNLIKELY((tl->stack_start - (uintptr_t)&frame) > tl->stack_max)) {
+    if (AU_UNLIKELY((tl->stack_start - (uintptr_t)&frame) >
+                    tl->stack_max)) {
         au_fatal("stack overflow");
     }
 #endif
@@ -489,7 +491,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                 PREFETCH_INSN;
 
                 if (AU_LIKELY(au_value_get_type(frame.regs[reg]) ==
-                            AU_VALUE_BOOL)) {
+                              AU_VALUE_BOOL)) {
                     COPY_VALUE(frame.regs[ret],
                                au_value_bool(
                                    !au_value_get_bool(frame.regs[reg])));
@@ -528,7 +530,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                                                           \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (AU_UNLIKELY(au_value_is_op_error(result))) {                    \
+        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
             FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
@@ -550,7 +552,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                                                           \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (AU_UNLIKELY(au_value_is_op_error(result))) {                    \
+        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
             FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
@@ -587,8 +589,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const uint8_t res = bc[3];                                        \
         PREFETCH_INSN;                                                    \
                                                                           \
-        if (AU_UNLIKELY((au_value_get_type(lhs) != AU_VALUE_INT) ||         \
-                      (au_value_get_type(rhs) != AU_VALUE_INT))) {        \
+        if (AU_UNLIKELY((au_value_get_type(lhs) != AU_VALUE_INT) ||       \
+                        (au_value_get_type(rhs) != AU_VALUE_INT))) {      \
             bc[0] = NAME;                                                 \
             goto _##NAME;                                                 \
         }                                                                 \
@@ -626,8 +628,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         const uint8_t res = bc[3];                                        \
         PREFETCH_INSN;                                                    \
                                                                           \
-        if (AU_UNLIKELY((au_value_get_type(lhs) != AU_VALUE_DOUBLE) ||      \
-                      (au_value_get_type(rhs) != AU_VALUE_DOUBLE))) {     \
+        if (AU_UNLIKELY((au_value_get_type(lhs) != AU_VALUE_DOUBLE) ||    \
+                        (au_value_get_type(rhs) != AU_VALUE_DOUBLE))) {   \
             bc[0] = NAME;                                                 \
             goto _##NAME;                                                 \
         }                                                                 \
@@ -742,7 +744,7 @@ _AU_OP_JNIF:;
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (AU_UNLIKELY(au_value_is_op_error(result))) {                    \
+        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
             FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
@@ -763,7 +765,7 @@ _AU_OP_JNIF:;
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (AU_UNLIKELY(au_value_is_op_error(result))) {                    \
+        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
             FLUSH_BC();                                                   \
             bin_op_error(lhs, rhs, p_data, &frame);                       \
         }                                                                 \
@@ -1024,8 +1026,8 @@ _AU_OP_JNIF:;
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (AU_LIKELY(collection != 0)) {
                     if (AU_UNLIKELY(collection->vdata->idx_set_fn(
-                                      collection, idx_val, value_val) ==
-                                  0)) {
+                                        collection, idx_val, value_val) ==
+                                    0)) {
                         FLUSH_BC();
                         invalid_index_error(col_val, idx_val, p_data,
                                             &frame);
@@ -1069,8 +1071,8 @@ _AU_OP_JNIF:;
                 struct au_struct *collection = au_struct_coerce(col_val);
                 if (AU_LIKELY(collection != 0)) {
                     if (AU_UNLIKELY(collection->vdata->idx_set_fn(
-                                      collection, idx_val, value_val) ==
-                                  0)) {
+                                        collection, idx_val, value_val) ==
+                                    0)) {
                         FLUSH_BC();
                         invalid_index_error(col_val, idx_val, p_data,
                                             &frame);

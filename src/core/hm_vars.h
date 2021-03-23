@@ -49,8 +49,8 @@ AU_PUBLIC void au_hm_vars_del(struct au_hm_vars *vars);
 /// @param value the value to be added
 /// @return the old value (if it exists), otherwise `NULL`
 AU_PUBLIC au_hm_var_value_t *au_hm_vars_add(struct au_hm_vars *vars,
-                                          const char *key, size_t len,
-                                          au_hm_var_value_t value);
+                                            const char *key, size_t len,
+                                            au_hm_var_value_t value);
 
 /// Retrieves a value from an au_hm_vars instance
 /// @param vars the au_hm_vars instance

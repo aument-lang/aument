@@ -37,6 +37,6 @@ struct au_c_comp_options {
 ///     This will be used to pass additional arguments required for
 ///     compilation.
 AU_PUBLIC void au_c_comp(struct au_c_comp_state *state,
-                       const struct au_program *program,
-                       const struct au_c_comp_options *options,
-                       struct au_cc_options *cc);
+                         const struct au_program *program,
+                         const struct au_c_comp_options *options,
+                         struct au_cc_options *cc);

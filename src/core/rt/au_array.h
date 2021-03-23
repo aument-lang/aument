@@ -17,13 +17,13 @@ AU_PUBLIC struct au_obj_array *au_obj_array_new(size_t capacity);
 AU_PUBLIC void au_obj_array_del(struct au_obj_array *obj_array);
 
 AU_PUBLIC void au_obj_array_push(struct au_obj_array *obj_array,
-                               au_value_t el);
+                                 au_value_t el);
 
 AU_PUBLIC int au_obj_array_get(struct au_obj_array *obj_array,
-                             const au_value_t idx, au_value_t *result);
+                               const au_value_t idx, au_value_t *result);
 
 AU_PUBLIC int au_obj_array_set(struct au_obj_array *obj_array,
-                             au_value_t idx, au_value_t value);
+                               au_value_t idx, au_value_t value);
 
 AU_PUBLIC int32_t au_obj_array_len(struct au_obj_array *obj_array);
 

@@ -6,10 +6,10 @@
 
 #include <stdio.h>
 
+#include "core/rt/au_array.h"
 #include "core/rt/extern_fn.h"
 #include "core/rt/value.h"
 #include "core/vm/vm.h"
-#include "core/rt/au_array.h"
 
 AU_EXTERN_FUNC_DECL(au_std_array_repeat) {
     au_value_t repeat_value = _args[0];
@@ -20,7 +20,7 @@ AU_EXTERN_FUNC_DECL(au_std_array_repeat) {
 
     struct au_obj_array *array = au_obj_array_new(times);
 
-    for(int32_t i = 0; i < times; i++) {
+    for (int32_t i = 0; i < times; i++) {
         au_value_ref(repeat_value);
         au_obj_array_push(array, repeat_value);
     }
