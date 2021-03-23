@@ -11,15 +11,15 @@
 
 /// Print fatal exception and abort
 /// @param fmt printf formatted string
-_Public _NoReturn void au_fatal(const char *fmt, ...);
+AU_PUBLIC AU_NO_RETURN void au_fatal(const char *fmt, ...);
 
 /// Print fatal exception from perror and exit program
 /// @param msg what the program was trying to do when the error occured
-_Public _NoReturn void au_perror(const char *msg);
+AU_PUBLIC AU_NO_RETURN void au_perror(const char *msg);
 
 /// Print index error and abort
 /// @param array the array
 /// @param idx the index the code is accessing
 /// @param len the length of the array
-_Public _NoReturn void au_fatal_index(const void *array, size_t idx,
+AU_PUBLIC AU_NO_RETURN void au_fatal_index(const void *array, size_t idx,
                                       size_t len);

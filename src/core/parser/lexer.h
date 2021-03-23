@@ -59,16 +59,16 @@ struct au_lexer {
 /// @param l instance to be initialized
 /// @param src pointer to source code to be lexed
 /// @param len byte-size length of the source code
-_Public void au_lexer_init(struct au_lexer *l, const char *src,
+AU_PUBLIC void au_lexer_init(struct au_lexer *l, const char *src,
                            size_t len);
 
 /// [func] Deinitializes a lexer instance
 /// @param l instance to be deinitialized
-_Public void au_lexer_del(struct au_lexer *l);
+AU_PUBLIC void au_lexer_del(struct au_lexer *l);
 
 /// [func] Gets the next token in the lexer stream
-_Public struct au_token au_lexer_next(struct au_lexer *l);
+AU_PUBLIC struct au_token au_lexer_next(struct au_lexer *l);
 
 /// [func] Look ahead the next token in the lexer stream without
 /// consuming it
-_Public struct au_token au_lexer_peek(struct au_lexer *l, int lh_pos);
+AU_PUBLIC struct au_token au_lexer_peek(struct au_lexer *l, int lh_pos);

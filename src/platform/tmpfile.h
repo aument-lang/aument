@@ -15,14 +15,14 @@ struct au_tmpfile {
 
 /// [func] Closes an au_tmpfile instance
 /// @param tmp instance to be closed
-_Public void au_tmpfile_close(struct au_tmpfile *tmp);
+AU_PUBLIC void au_tmpfile_close(struct au_tmpfile *tmp);
 
 /// [func] Deinitializes an au_tmpfile instance
 /// @param tmp instance to be deinitialized
-_Public void au_tmpfile_del(struct au_tmpfile *tmp);
+AU_PUBLIC void au_tmpfile_del(struct au_tmpfile *tmp);
 
 /// [func] Creates a new temporary file with the `.c` extension
-_Public int au_tmpfile_new(struct au_tmpfile *tmp);
+AU_PUBLIC int au_tmpfile_new(struct au_tmpfile *tmp);
 
 /// [func] Creates an empty executable file
-_Public int au_tmpfile_exec(struct au_tmpfile *tmp);
+AU_PUBLIC int au_tmpfile_exec(struct au_tmpfile *tmp);

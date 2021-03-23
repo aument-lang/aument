@@ -8,19 +8,19 @@
 #include "platform.h"
 #endif
 
-static _Unused _AlwaysInline int au_platform_iadd_wrap(int a, int b) {
+static AU_UNUSED AU_ALWAYS_INLINE int au_platform_iadd_wrap(int a, int b) {
     int res;
     __builtin_sadd_overflow(a, b, &res);
     return res;
 }
 
-static _Unused _AlwaysInline int au_platform_isub_wrap(int a, int b) {
+static AU_UNUSED AU_ALWAYS_INLINE int au_platform_isub_wrap(int a, int b) {
     int res;
     __builtin_ssub_overflow(a, b, &res);
     return res;
 }
 
-static _Unused _AlwaysInline int au_platform_imul_wrap(int a, int b) {
+static AU_UNUSED AU_ALWAYS_INLINE int au_platform_imul_wrap(int a, int b) {
     int res;
     __builtin_smul_overflow(a, b, &res);
     return res;
