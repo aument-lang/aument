@@ -214,8 +214,8 @@ void *au_data_malloc(size_t size) {
 
 void *au_data_calloc(size_t count, size_t size) {
     const size_t nbytes = count * size;
-    
-    if(nbytes == 0) {
+
+    if (nbytes == 0) {
         return 0;
     }
 

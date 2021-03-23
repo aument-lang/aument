@@ -6,13 +6,14 @@
 #ifdef AU_IS_INTERPRETER
 #pragma once
 #include "../value/main.h"
-#include "main.h"
-#include "vdata.h"
-#include "platform/platform.h"
 #include "core/rt/exception.h"
+#include "main.h"
+#include "platform/platform.h"
+#include "vdata.h"
 #endif
 
-static _Unused _AlwaysInline au_value_t au_struct_idx_get(au_value_t value, au_value_t idx) {
+static _Unused _AlwaysInline au_value_t au_struct_idx_get(au_value_t value,
+                                                          au_value_t idx) {
     au_value_t retval;
     struct au_struct *s = au_value_get_struct(value);
     if (_Unlikely(!s->vdata->idx_get_fn(s, idx, &retval))) {
@@ -21,8 +22,8 @@ static _Unused _AlwaysInline au_value_t au_struct_idx_get(au_value_t value, au_v
     return retval;
 }
 
-static _Unused _AlwaysInline void au_struct_idx_set(au_value_t value, au_value_t idx,
-                               au_value_t item) {
+static _Unused _AlwaysInline void
+au_struct_idx_set(au_value_t value, au_value_t idx, au_value_t item) {
     struct au_struct *s = au_value_get_struct(value);
     if (_Unlikely(!s->vdata->idx_set_fn(s, idx, item))) {
         au_fatal("au_struct_idx_set: setting invalid index");

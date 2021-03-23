@@ -32,7 +32,8 @@ _Public void *au_obj_realloc(void *ptr, size_t size);
 _Public void au_obj_free(void *ptr);
 
 _Public __attribute__((malloc)) void *au_data_malloc(size_t size);
-_Public __attribute__((malloc)) void *au_data_calloc(size_t count, size_t size);
+_Public __attribute__((malloc)) void *au_data_calloc(size_t count,
+                                                     size_t size);
 _Public void *au_data_realloc(void *ptr, size_t size);
 _Public void au_data_free(void *ptr);
 #else
@@ -55,7 +56,8 @@ static inline void au_obj_free(void *ptr) { free(ptr); }
 __attribute__((malloc)) static inline void *au_data_malloc(size_t size) {
     return malloc(size);
 }
-__attribute__((malloc)) static inline void *au_data_calloc(size_t count, size_t size) {
+__attribute__((malloc)) static inline void *au_data_calloc(size_t count,
+                                                           size_t size) {
     return calloc(count, size);
 }
 static inline void *au_data_realloc(void *ptr, size_t size) {
