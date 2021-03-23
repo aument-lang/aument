@@ -215,7 +215,7 @@ static void parser_emit_pad8(struct au_parser *p) {
     parser_emit_bc_u8(p, 0);
 }
 
-static _Unused void parser_flush_cached_regs(struct au_parser *p) {
+static AU_UNUSED void parser_flush_cached_regs(struct au_parser *p) {
     for (size_t i = 0; i < p->local_to_reg.len; i++) {
         p->local_to_reg.data[i] = CACHED_REG_NONE;
     }
@@ -238,7 +238,7 @@ static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
 
 #define EXPECT_TOKEN(CONDITION, TOKEN, EXPECTED)                          \
     do {                                                                  \
-        if (_Unlikely(!(CONDITION))) {                                    \
+        if (AU_UNLIKELY(!(CONDITION))) {                                  \
             p->res = (struct au_parser_result){                           \
                 .type = AU_PARSER_RES_UNEXPECTED_TOKEN,                   \
                 .data.unexpected_token.got_token = TOKEN,                 \
@@ -250,7 +250,7 @@ static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
 
 #define EXPECT_GLOBAL_SCOPE(TOKEN)                                        \
     do {                                                                  \
-        if (_Unlikely(p->block_level != 0)) {                             \
+        if (AU_UNLIKELY(p->block_level != 0)) {                           \
             p->res = (struct au_parser_result){                           \
                 .type = AU_PARSER_RES_EXPECT_GLOBAL_SCOPE,                \
                 .data.expect_global.at_token = TOKEN,                     \
@@ -261,7 +261,7 @@ static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
 
 #define EXPECT_BYTECODE(CONDITION)                                        \
     do {                                                                  \
-        if (_Unlikely(!(CONDITION))) {                                    \
+        if (AU_UNLIKELY(!(CONDITION))) {                                  \
             p->res = (struct au_parser_result){                           \
                 .type = AU_PARSER_RES_BYTECODE_GEN,                       \
             };                                                            \

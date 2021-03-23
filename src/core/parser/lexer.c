@@ -298,7 +298,7 @@ struct au_token au_lexer_peek(struct au_lexer *l, int lh_pos) {
 #endif
         return lh->token;
     } else {
-        _Unreachable;
+        AU_UNREACHABLE;
     }
 }
 

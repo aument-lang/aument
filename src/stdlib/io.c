@@ -48,7 +48,7 @@ static size_t _test_fwrite(const void *ptr, size_t size, size_t count,
     return num_bytes;
 }
 
-static _Thread_local int nread = 0;
+static AU_THREAD_LOCAL int nread = 0;
 #define TEST_NREAD_MAX 10
 static int _test_fgetc(FILE *stream) {
     (void)stream;
@@ -91,8 +91,8 @@ static void io_close(struct au_std_io *io) {
     }
 }
 
-static _Thread_local struct au_struct_vdata io_vdata;
-static _Thread_local int io_vdata_inited = 0;
+static AU_THREAD_LOCAL struct au_struct_vdata io_vdata;
+static AU_THREAD_LOCAL int io_vdata_inited = 0;
 static void io_vdata_init() {
     if (!io_vdata_inited) {
         io_vdata = (struct au_struct_vdata){

@@ -16,5 +16,5 @@ struct au_program;
 /// @param len the bytesize len of the source code
 /// @param program output into a program
 /// @return 1 if parsed successfully, 0 if an error occurred
-_Public struct au_parser_result au_parse(const char *src, size_t len,
-                                         struct au_program *program);
+AU_PUBLIC struct au_parser_result au_parse(const char *src, size_t len,
+                                           struct au_program *program);

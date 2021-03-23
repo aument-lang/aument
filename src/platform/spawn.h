@@ -9,4 +9,4 @@
 #include "platform.h"
 
 /// [func] Spawns a program with arguments specified
-_Public int au_spawn(struct au_str_array *args);
+AU_PUBLIC int au_spawn(struct au_str_array *args);

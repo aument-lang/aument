@@ -30,29 +30,30 @@ struct au_vm_thread_local {
 
 /// [func] Gets the current thread's au_vm_thread_local instance
 /// @return the current thread's au_vm_thread_local instance
-_Public struct au_vm_thread_local *au_vm_thread_local_get();
+AU_PUBLIC struct au_vm_thread_local *au_vm_thread_local_get();
 
 /// [func] Sets the current thread's au_vm_thread_local instance.
 ///     The caller must ensure that tl lasts for the lifetime
 ///     of an executed aument program.
 /// @param tl the current thread's au_vm_thread_local instance
-_Public void au_vm_thread_local_set(struct au_vm_thread_local *tl);
+AU_PUBLIC void au_vm_thread_local_set(struct au_vm_thread_local *tl);
 
 /// [func] Initializes an au_vm_thread_local instance
 /// @param tl instance to be initialized
 /// @param p_data global au_program_data instance
-_Public void au_vm_thread_local_init(struct au_vm_thread_local *tl,
-                                     const struct au_program_data *p_data);
+AU_PUBLIC void
+au_vm_thread_local_init(struct au_vm_thread_local *tl,
+                        const struct au_program_data *p_data);
 
 /// [func] Deinitializes an au_vm_thread_local instance
 /// @param tl instance to be deinitialized
-_Public void au_vm_thread_local_del(struct au_vm_thread_local *tl);
+AU_PUBLIC void au_vm_thread_local_del(struct au_vm_thread_local *tl);
 
-_Private void
+AU_PRIVATE void
 au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
                                    size_t len);
 
-_Private void
+AU_PRIVATE void
 au_vm_thread_local_del_const_cache(struct au_vm_thread_local *tl);
 
 enum au_tl_reserve_mod_retval {
@@ -63,18 +64,19 @@ enum au_tl_reserve_mod_retval {
 #undef X
 };
 
-_Private enum au_tl_reserve_mod_retval
+AU_PRIVATE enum au_tl_reserve_mod_retval
 au_vm_thread_local_reserve_module(struct au_vm_thread_local *tl,
                                   const char *abspath, uint32_t *retidx);
 
-_Private enum au_tl_reserve_mod_retval
+AU_PRIVATE enum au_tl_reserve_mod_retval
 au_vm_thread_local_reserve_import_only(struct au_vm_thread_local *tl,
                                        const char *abspath);
 
-_Private void au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
-                                            const uint32_t idx,
-                                            struct au_program_data *data);
+AU_PRIVATE void
+au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
+                              const uint32_t idx,
+                              struct au_program_data *data);
 
-_Private struct au_program_data *
+AU_PRIVATE struct au_program_data *
 au_vm_thread_local_get_module(const struct au_vm_thread_local *tl,
                               const char *abspath);

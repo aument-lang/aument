@@ -31,14 +31,15 @@ struct au_obj_class {
 
 AU_ARRAY_COPY(struct au_class_interface *, au_class_interface_ptr_array, 1)
 
-_Public void au_class_interface_init(struct au_class_interface *interface,
-                                     char *name);
+AU_PUBLIC void
+au_class_interface_init(struct au_class_interface *interface, char *name);
 
 /// [func] Increases reference count of an au_class_interface instance.
 /// This struct is owned by a au_class_interface_ptr_array and should
 /// only be called when initializing it inside a
 /// au_class_interface_ptr_array.
-_Public void au_class_interface_ref(struct au_class_interface *interface);
+AU_PUBLIC void
+au_class_interface_ref(struct au_class_interface *interface);
 
 /// [func] Decreases reference count of an au_class_interface instance.
 /// This struct is owned by a au_class_interface_ptr_array and should
@@ -48,20 +49,20 @@ void au_class_interface_deref(struct au_class_interface *interface);
 
 struct au_obj_class;
 
-_Public struct au_obj_class *
+AU_PUBLIC struct au_obj_class *
 au_obj_class_new(const struct au_class_interface *interface);
 
-_Public void au_obj_class_del(struct au_obj_class *obj_class);
+AU_PUBLIC void au_obj_class_del(struct au_obj_class *obj_class);
 
-_Public int au_obj_class_get(struct au_obj_class *obj_class,
-                             const au_value_t idx, au_value_t *result);
+AU_PUBLIC int au_obj_class_get(struct au_obj_class *obj_class,
+                               const au_value_t idx, au_value_t *result);
 
-_Public int au_obj_class_set(struct au_obj_class *obj_class,
-                             au_value_t idx, au_value_t value);
+AU_PUBLIC int au_obj_class_set(struct au_obj_class *obj_class,
+                               au_value_t idx, au_value_t value);
 int32_t au_obj_class_len(struct au_obj_class *obj_class);
 
 #ifdef _AUMENT_H
-_Public struct au_obj_class *au_obj_class_coerce(const au_value_t value);
+AU_PUBLIC struct au_obj_class *au_obj_class_coerce(const au_value_t value);
 #else
 extern struct au_struct_vdata au_obj_class_vdata;
 static inline struct au_obj_class *
