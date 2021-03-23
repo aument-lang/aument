@@ -238,7 +238,7 @@ static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
 
 #define EXPECT_TOKEN(CONDITION, TOKEN, EXPECTED)                          \
     do {                                                                  \
-        if (AU_UNLIKELY(!(CONDITION))) {                                    \
+        if (AU_UNLIKELY(!(CONDITION))) {                                  \
             p->res = (struct au_parser_result){                           \
                 .type = AU_PARSER_RES_UNEXPECTED_TOKEN,                   \
                 .data.unexpected_token.got_token = TOKEN,                 \
@@ -250,7 +250,7 @@ static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
 
 #define EXPECT_GLOBAL_SCOPE(TOKEN)                                        \
     do {                                                                  \
-        if (AU_UNLIKELY(p->block_level != 0)) {                             \
+        if (AU_UNLIKELY(p->block_level != 0)) {                           \
             p->res = (struct au_parser_result){                           \
                 .type = AU_PARSER_RES_EXPECT_GLOBAL_SCOPE,                \
                 .data.expect_global.at_token = TOKEN,                     \
@@ -261,7 +261,7 @@ static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
 
 #define EXPECT_BYTECODE(CONDITION)                                        \
     do {                                                                  \
-        if (AU_UNLIKELY(!(CONDITION))) {                                    \
+        if (AU_UNLIKELY(!(CONDITION))) {                                  \
             p->res = (struct au_parser_result){                           \
                 .type = AU_PARSER_RES_BYTECODE_GEN,                       \
             };                                                            \

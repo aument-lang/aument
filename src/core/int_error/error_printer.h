@@ -15,8 +15,9 @@
 
 /// [func] Prints a parser error
 AU_PUBLIC void au_print_parser_error(struct au_parser_result res,
-                                   struct au_error_location loc);
+                                     struct au_error_location loc);
 
 /// [func] Prints an interpreter error
-AU_PUBLIC void au_print_interpreter_error(struct au_interpreter_result type,
-                                        struct au_error_location loc);
+AU_PUBLIC void
+au_print_interpreter_error(struct au_interpreter_result type,
+                           struct au_error_location loc);

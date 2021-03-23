@@ -18,10 +18,10 @@ AU_PUBLIC struct au_obj_tuple *au_obj_tuple_new(size_t len);
 AU_PUBLIC void au_obj_tuple_del(struct au_obj_tuple *obj_tuple);
 
 AU_PUBLIC int au_obj_tuple_get(struct au_obj_tuple *obj_tuple,
-                             const au_value_t idx, au_value_t *result);
+                               const au_value_t idx, au_value_t *result);
 
 AU_PUBLIC int au_obj_tuple_set(struct au_obj_tuple *obj_tuple,
-                             au_value_t idx, au_value_t value);
+                               au_value_t idx, au_value_t value);
 
 AU_PUBLIC int32_t au_obj_tuple_len(struct au_obj_tuple *obj_tuple);
 

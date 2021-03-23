@@ -22,4 +22,4 @@ AU_PUBLIC AU_NO_RETURN void au_perror(const char *msg);
 /// @param idx the index the code is accessing
 /// @param len the length of the array
 AU_PUBLIC AU_NO_RETURN void au_fatal_index(const void *array, size_t idx,
-                                      size_t len);
+                                           size_t len);

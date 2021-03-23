@@ -6,10 +6,10 @@
 
 #include <stdio.h>
 
+#include "core/rt/au_array.h"
 #include "core/rt/extern_fn.h"
 #include "core/rt/value.h"
 #include "core/vm/vm.h"
-#include "core/rt/au_array.h"
 #include "lib/string_builder.h"
 
 AU_EXTERN_FUNC_DECL(au_std_str_chars) {
@@ -22,7 +22,7 @@ AU_EXTERN_FUNC_DECL(au_std_str_chars) {
 
     // FIXME: support Unicode characters
 
-    for(size_t i = 0; i < str->len; i++) {
+    for (size_t i = 0; i < str->len; i++) {
         struct au_string_builder builder = {0};
         au_string_builder_init(&builder);
         au_string_builder_add(&builder, str->data[i]);

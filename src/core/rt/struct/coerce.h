@@ -9,7 +9,8 @@
 #include "main.h"
 #endif
 
-static AU_UNUSED AU_ALWAYS_INLINE struct au_struct *au_struct_coerce(au_value_t value) {
+static AU_UNUSED AU_ALWAYS_INLINE struct au_struct *
+au_struct_coerce(au_value_t value) {
     if (au_value_get_type(value) != AU_VALUE_STRUCT)
         return 0;
     return (struct au_struct *)au_value_get_struct(value);

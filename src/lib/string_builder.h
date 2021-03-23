@@ -18,7 +18,8 @@ struct au_string_builder {
 
 static AU_UNUSED inline void
 au_string_builder_init(struct au_string_builder *builder) {
-    builder->_string = (struct au_string *)au_obj_malloc(sizeof(struct au_string) + 1, 0);
+    builder->_string =
+        (struct au_string *)au_obj_malloc(sizeof(struct au_string) + 1, 0);
     builder->_string->rc = 1;
     builder->_string->len = 1;
     builder->pos = 0;

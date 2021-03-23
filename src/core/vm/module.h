@@ -38,8 +38,8 @@ AU_PUBLIC void
 au_module_resolve_result_del(struct au_module_resolve_result *result);
 
 AU_PUBLIC int au_module_resolve(struct au_module_resolve_result *result,
-                              const char *import_path,
-                              const char *parent_dir);
+                                const char *import_path,
+                                const char *parent_dir);
 
 enum au_module_import_result {
     AU_MODULE_IMPORT_SUCCESS = 0,
@@ -63,5 +63,5 @@ struct au_extern_module_options {
 #include "core/rt/extern_fn.h"
 #endif
 AU_PUBLIC au_extern_func_t au_module_get_fn(struct au_module *module,
-                                          const char *fn);
+                                            const char *fn);
 #endif
