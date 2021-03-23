@@ -39,10 +39,9 @@ struct au_vm_frame {
 /// @param link link to previous frame or imported program
 /// @return return value specified by interpreted aument's
 ///      return statement
-au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
-                                 const struct au_bc_storage *bcs,
-                                 const struct au_program_data *p_data,
-                                 const au_value_t *args);
+AU_PUBLIC au_value_t au_vm_exec_unverified(
+    struct au_vm_thread_local *tl, const struct au_bc_storage *bcs,
+    const struct au_program_data *p_data, const au_value_t *args);
 
 /// [func] Executes unverified bytecode in a au_program
 /// @param tl thread local storage
