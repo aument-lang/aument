@@ -56,6 +56,12 @@ void au_obj_array_push(struct au_obj_array *obj_array, au_value_t el) {
     au_value_array_add(&obj_array->array, el);
 }
 
+au_value_t au_obj_array_pop(struct au_obj_array *obj_array) {
+    if(obj_array->array.len == 0)
+        return au_value_none();
+    return obj_array->array.data[--obj_array->array.len];
+}
+
 int au_obj_array_get(struct au_obj_array *obj_array, const au_value_t idx,
                      au_value_t *result) {
     const size_t index = au_value_get_int(idx);

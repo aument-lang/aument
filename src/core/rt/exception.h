@@ -9,15 +9,15 @@
 #include <stdlib.h>
 #endif
 
-/// Print fatal exception and abort
+/// [func] Print fatal exception and abort
 /// @param fmt printf formatted string
 AU_PUBLIC AU_NO_RETURN void au_fatal(const char *fmt, ...);
 
-/// Print fatal exception from perror and exit program
+/// [func] Print fatal exception from perror and exit program
 /// @param msg what the program was trying to do when the error occured
 AU_PUBLIC AU_NO_RETURN void au_perror(const char *msg);
 
-/// Print index error and abort
+/// [func] Print index error and abort
 /// @param array the array
 /// @param idx the index the code is accessing
 /// @param len the length of the array

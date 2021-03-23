@@ -27,7 +27,8 @@ AU_PUBLIC void au_cc_options_del(struct au_cc_options *cc);
 /// [func] Returns the path of the C compiler
 AU_PRIVATE char *au_get_cc();
 
-/// Spawns a C compiler with specified options, input and output.
+/// [func] Spawns a C compiler with specified options, input file and
+/// output file
 /// @param cc options passed into the compiler
 /// @param output_file path to the output file
 /// @param input_file path to the input file

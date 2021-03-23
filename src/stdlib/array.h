@@ -9,3 +9,5 @@
 #include "core/rt/extern_fn.h"
 
 AU_EXTERN_FUNC_DECL(au_std_array_repeat);
+AU_EXTERN_FUNC_DECL(au_std_array_push);
+AU_EXTERN_FUNC_DECL(au_std_array_pop);

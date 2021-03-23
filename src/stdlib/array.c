@@ -13,6 +13,7 @@
 
 AU_EXTERN_FUNC_DECL(au_std_array_repeat) {
     au_value_t repeat_value = _args[0];
+
     const au_value_t times_value = _args[1];
     if (au_value_get_type(times_value) != AU_VALUE_INT)
         goto fail;
@@ -30,5 +31,34 @@ AU_EXTERN_FUNC_DECL(au_std_array_repeat) {
 fail:
     au_value_deref(repeat_value);
     au_value_deref(times_value);
+    return au_value_none();
+}
+
+AU_EXTERN_FUNC_DECL(au_std_array_push) {
+    const au_value_t array_value = _args[0];
+    struct au_obj_array *array = au_obj_array_coerce(array_value);
+    if (array == 0)
+        goto fail;
+
+    const au_value_t item = _args[1];
+
+    au_obj_array_push(array, item);
+
+    au_value_deref(item);
+    return array_value;
+fail:
+    au_value_deref(array_value);
+    return au_value_none();
+}
+
+AU_EXTERN_FUNC_DECL(au_std_array_pop) {
+    const au_value_t array_value = _args[0];
+    struct au_obj_array *array = au_obj_array_coerce(array_value);
+    if (array == 0)
+        goto fail;
+
+    return au_obj_array_pop(array);
+fail:
+    au_value_deref(array_value);
     return au_value_none();
 }

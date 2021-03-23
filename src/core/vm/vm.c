@@ -1259,13 +1259,13 @@ _AU_OP_JNIF:;
                     struct au_program_data *loaded_module =
                         module.data.lib.lib;
                     module.data.lib.lib = 0;
-                    if(tl_module_idx == ((uint32_t)-1)) {
+                    if (tl_module_idx == ((uint32_t)-1)) {
                         au_program_data_del(loaded_module);
                     } else {
                         au_vm_thread_local_add_module(tl, tl_module_idx,
-                                                    loaded_module);
+                                                      loaded_module);
                         link_to_imported(p_data, relative_module_idx,
-                                        loaded_module);
+                                         loaded_module);
                     }
                     break;
                 }
