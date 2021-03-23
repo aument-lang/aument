@@ -120,6 +120,8 @@ static _AlwaysInline au_value_t au_value_int(int32_t n) {
     return v;
 }
 static _AlwaysInline int32_t au_value_get_int(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_INT)
+        abort();
     return (int32_t)(AU_REPR_GET_POINTER(v.raw));
 }
 
@@ -138,6 +140,8 @@ static _AlwaysInline au_value_t au_value_double(double n) {
     return v;
 }
 static _AlwaysInline double au_value_get_double(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_DOUBLE)
+        abort();
     return v.d;
 }
 
@@ -147,6 +151,8 @@ static _AlwaysInline au_value_t au_value_bool(int32_t n) {
     return v;
 }
 static _AlwaysInline int32_t au_value_get_bool(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_BOOL)
+        abort();
     return v.raw & 1;
 }
 
@@ -157,6 +163,8 @@ static _AlwaysInline au_value_t au_value_string(struct au_string *data) {
 }
 static _AlwaysInline struct au_string *
 au_value_get_string(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_STR)
+        abort();
     return (struct au_string *)(AU_REPR_GET_POINTER(v.raw));
 }
 
@@ -167,6 +175,8 @@ static _AlwaysInline au_value_t au_value_fn(struct au_fn_value *data) {
 }
 static _AlwaysInline struct au_fn_value *
 au_value_get_fn(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_FN)
+        abort();
     return (struct au_fn_value *)(AU_REPR_GET_POINTER(v.raw));
 }
 
@@ -177,6 +187,8 @@ static _AlwaysInline au_value_t au_value_struct(struct au_struct *data) {
 }
 static _AlwaysInline struct au_struct *
 au_value_get_struct(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_STRUCT)
+        abort();
     return (struct au_struct *)(AU_REPR_GET_POINTER(v.raw));
 }
 #else
@@ -207,6 +219,8 @@ static _AlwaysInline au_value_t au_value_int(int32_t n) {
     return v;
 }
 static _AlwaysInline int32_t au_value_get_int(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_INT)
+        abort();
     return v._data.d_int;
 }
 
@@ -217,6 +231,8 @@ static _AlwaysInline au_value_t au_value_double(double n) {
     return v;
 }
 static _AlwaysInline double au_value_get_double(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_DOUBLE)
+        abort();
     return v._data.d_double;
 }
 
@@ -227,6 +243,8 @@ static _AlwaysInline au_value_t au_value_bool(int32_t n) {
     return v;
 }
 static _AlwaysInline int32_t au_value_get_bool(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_BOOL)
+        abort();
     return v._data.d_int;
 }
 
@@ -238,6 +256,8 @@ static _AlwaysInline au_value_t au_value_string(struct au_string *data) {
 }
 static _AlwaysInline struct au_string *
 au_value_get_string(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_STR)
+        abort();
     return (struct au_string *)v._data.d_ptr;
 }
 
@@ -249,6 +269,8 @@ static _AlwaysInline au_value_t au_value_fn(struct au_fn_value *data) {
 }
 static _AlwaysInline struct au_fn_value *
 au_value_get_fn(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_FN)
+        abort();
     return (struct au_fn_value *)v._data.d_ptr;
 }
 
@@ -260,6 +282,8 @@ static _AlwaysInline au_value_t au_value_struct(struct au_struct *data) {
 }
 static _AlwaysInline struct au_struct *
 au_value_get_struct(const au_value_t v) {
+    if (au_value_get_type(v) != AU_VALUE_STRUCT)
+        abort();
     return (struct au_struct *)v._data.d_ptr;
 }
 #endif

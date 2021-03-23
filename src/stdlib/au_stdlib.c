@@ -8,13 +8,13 @@
 #include "core/program.h"
 #include "core/vm/vm.h"
 
+#include "array.h"
 #include "collection.h"
 #include "gc.h"
 #include "io.h"
 #include "math.h"
-#include "types.h"
 #include "str.h"
-#include "array.h"
+#include "types.h"
 
 #ifdef AU_TEST
 #include "test_fns.h"
