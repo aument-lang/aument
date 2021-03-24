@@ -1339,11 +1339,14 @@ end:
     return frame.retval;
 }
 
-au_value_t
-au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
-                           struct au_program *program);
-
 au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
                                       struct au_program *program) {
+    for(size_t relative_idx = 0; relative_idx < program->data.imported_modules.len; relative_idx++) {
+        const struct au_imported_module *module = &program->data.imported_modules.data[relative_idx];
+        if(module->stdlib_module_idx != AU_IMPORTED_MODULE_NOT_STDLIB) {
+            const struct au_program_data *stdlib_module = au_program_data_array_at(&tl->stdlib_modules, module->stdlib_module_idx);
+            link_to_imported(&program->data, (uint32_t)relative_idx, stdlib_module);
+        }
+    }
     return au_vm_exec_unverified(tl, &program->main, &program->data, 0);
 }

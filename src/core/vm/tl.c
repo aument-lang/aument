@@ -8,6 +8,7 @@
 #include "core/rt/exception.h"
 #include "core/rt/malloc.h"
 #include "platform/platform.h"
+#include "stdlib/au_stdlib.h"
 
 static AU_THREAD_LOCAL struct au_vm_thread_local *current_tl = 0;
 
@@ -128,4 +129,10 @@ au_vm_thread_local_get_module(const struct au_vm_thread_local *tl,
         au_fatal_index(&tl->loaded_modules, *value,
                        tl->loaded_modules.len);
     return tl->loaded_modules.data[*value];
+}
+
+void au_vm_thread_local_install_stdlib(struct au_vm_thread_local *tl) {
+    for(size_t i = 0; i < au_stdlib_modules_len; i++) {
+        au_program_data_array_add(&tl->stdlib_modules, au_stdlib_module(i));
+    }
 }
