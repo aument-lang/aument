@@ -131,7 +131,7 @@ AU_PUBLIC void au_fn_del(struct au_fn *fn);
 ///     must NOT be used in functions shared across threads.
 /// @param fn the imported function. This function must have the type
 /// AU_FN_IMPORTER
-AU_PRIVATE void au_fn_fill_import_cache_unsafe(
+AU_PRIVATE void au_fn_fill_import_cache(
     struct au_fn *fn, size_t fn_idx_cached,
     const struct au_program_data *p_data_cached);
 
@@ -141,7 +141,7 @@ AU_PRIVATE void au_fn_fill_import_cache_unsafe(
 /// @param fn an au_fn function
 /// @param current_p_data the au_program_data instance that the function
 ///     belongs to.
-AU_PRIVATE void au_fn_fill_class_cache_unsafe(
+AU_PRIVATE void au_fn_fill_class_cache(
     struct au_fn *fn, const struct au_program_data *current_p_data);
 
 AU_ARRAY_STRUCT(struct au_fn, au_fn_array, 1)

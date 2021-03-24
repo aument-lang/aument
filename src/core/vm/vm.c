@@ -97,7 +97,7 @@ static void link_to_imported(const struct au_program_data *p_data,
             au_fatal("this function is not exported");
         if (au_fn_num_args(fn) != imported_func->num_args)
             au_fatal("unexpected number of arguments");
-        au_fn_fill_import_cache_unsafe(&p_data->fns.data[entry], entry,
+        au_fn_fill_import_cache(&p_data->fns.data[entry], entry,
                                        loaded_module);
     })
     AU_HM_VARS_FOREACH_PAIR(&relative_module->class_map, key, entry, {
@@ -115,7 +115,7 @@ static void link_to_imported(const struct au_program_data *p_data,
     })
     if (relative_module->class_map.entries_occ > 0) {
         for (size_t i = 0; i < p_data->fns.len; i++) {
-            au_fn_fill_class_cache_unsafe(&p_data->fns.data[i], p_data);
+            au_fn_fill_class_cache(&p_data->fns.data[i], p_data);
         }
     }
 }
