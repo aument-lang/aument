@@ -82,4 +82,5 @@ AU_PRIVATE struct au_program_data *
 au_vm_thread_local_get_module(const struct au_vm_thread_local *tl,
                               const char *abspath);
 
-AU_PUBLIC void au_vm_thread_local_install_stdlib(struct au_vm_thread_local *tl);
+AU_PUBLIC void
+au_vm_thread_local_install_stdlib(struct au_vm_thread_local *tl);

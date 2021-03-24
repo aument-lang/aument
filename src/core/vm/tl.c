@@ -132,7 +132,8 @@ au_vm_thread_local_get_module(const struct au_vm_thread_local *tl,
 }
 
 void au_vm_thread_local_install_stdlib(struct au_vm_thread_local *tl) {
-    for(size_t i = 0; i < au_stdlib_modules_len; i++) {
-        au_program_data_array_add(&tl->stdlib_modules, au_stdlib_module(i));
+    for (size_t i = 0; i < au_stdlib_modules_len; i++) {
+        au_program_data_array_add(&tl->stdlib_modules,
+                                  au_stdlib_module(i));
     }
 }
