@@ -8,6 +8,12 @@
 
 #include "core/rt/extern_fn.h"
 
+/// [func-au] Checks if a value is a float
+/// @name float::is
+/// @param value the value you want to check
+/// @return true if the value is an float, else, returns false
+AU_EXTERN_FUNC_DECL(au_std_float_is);
+
 /// [func-au] Converts an object into a float.\n\n
 /// * For *int* inputs, the result is its float equivalent.\n
 /// * For *float* inputs, the result is exactly the same as the input.\n

@@ -8,6 +8,12 @@
 
 #include "core/rt/extern_fn.h"
 
+/// [func-au] Checks if a value is a boolean
+/// @name bool::is
+/// @param value the value you want to check
+/// @return true if the value is a boolean, else, returns false
+AU_EXTERN_FUNC_DECL(au_std_bool_is);
+
 /// [func-au] Converts an object into a boolean\n\n
 /// * For *integer* and *floating-point* inputs, the result is `true` when
 /// the input is greater than 0.\n

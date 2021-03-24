@@ -8,6 +8,12 @@
 
 #include "core/rt/extern_fn.h"
 
+/// [func-au] Checks if a value is an array
+/// @name array::is
+/// @param value the value you want to check
+/// @return true if the value is an array, else, returns false
+AU_EXTERN_FUNC_DECL(au_std_array_is);
+
 /// [func-au] Repeats an element and stores that list of elements into an
 /// array
 /// @name array::repeat

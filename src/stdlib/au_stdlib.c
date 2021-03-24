@@ -35,12 +35,15 @@ struct std_module {
     const size_t fns_len;
 };
 
-#define AU_MODULE_FN(NAME, SYMBOL, NUM_ARGS)\
-    (struct std_module_fn){\
-        .name = NAME, .symbol = # SYMBOL, .func = SYMBOL, .num_args = NUM_ARGS}
+#define AU_MODULE_FN(NAME, SYMBOL, NUM_ARGS)                              \
+    (struct std_module_fn) {                                              \
+        .name = NAME, .symbol = #SYMBOL, .func = SYMBOL,                  \
+        .num_args = NUM_ARGS                                              \
+    }
 
 // * array.h *
 static const struct std_module_fn array_fns[] = {
+    AU_MODULE_FN("is", au_std_array_is, 1),
     AU_MODULE_FN("repeat", au_std_array_repeat, 2),
     AU_MODULE_FN("push", au_std_array_push, 2),
     AU_MODULE_FN("pop", au_std_array_pop, 1),
@@ -48,11 +51,13 @@ static const struct std_module_fn array_fns[] = {
 
 // * array.h *
 static const struct std_module_fn bool_fns[] = {
+    AU_MODULE_FN("is", au_std_bool_is, 1),
     AU_MODULE_FN("into", au_std_bool_into, 1),
 };
 
 // * float.h *
 static const struct std_module_fn float_fns[] = {
+    AU_MODULE_FN("is", au_std_float_is, 1),
     AU_MODULE_FN("into", au_std_float_into, 1),
 };
 
@@ -63,6 +68,7 @@ static const struct std_module_fn gc_fns[] = {
 
 // * int.h *
 static const struct std_module_fn int_fns[] = {
+    AU_MODULE_FN("is", au_std_int_is, 1),
     AU_MODULE_FN("into", au_std_int_into, 1),
 };
 
@@ -203,7 +209,8 @@ au_extern_module_t au_stdlib_module(size_t idx) {
             .symbol = std_fn->symbol,
         };
         const au_hm_var_value_t fn_idx = module->fns.len;
-        if (au_hm_vars_add(&module->fn_map, std_fn->name, strlen(std_fn->name), fn_idx) == 0) {
+        if (au_hm_vars_add(&module->fn_map, std_fn->name,
+                           strlen(std_fn->name), fn_idx) == 0) {
             au_fn_array_add(&module->fns, fn);
         } else {
             abort();

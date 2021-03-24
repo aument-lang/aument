@@ -8,6 +8,12 @@
 
 #include "core/rt/extern_fn.h"
 
+/// [func-au] Checks if a value is an integer
+/// @name int::is
+/// @param value the value you want to check
+/// @return true if the value is an integer, else, returns false
+AU_EXTERN_FUNC_DECL(au_std_int_is);
+
 /// [func-au] Converts an object into an integer.\n\n
 /// * For *integer* inputs, the result is exactly the same as the input.\n
 /// * For *float* inputs, the result is its integer equivalent.\n

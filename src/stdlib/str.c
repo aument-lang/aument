@@ -12,6 +12,13 @@
 #include "core/vm/vm.h"
 #include "lib/string_builder.h"
 
+AU_EXTERN_FUNC_DECL(au_std_str_is) {
+    const au_value_t value = _args[0];
+    const au_value_t retval = au_value_bool(au_value_get_type(value) == AU_VALUE_STR);
+    au_value_deref(value);
+    return retval;
+}
+
 AU_EXTERN_FUNC_DECL(au_std_str_into) {
     const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
