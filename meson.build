@@ -17,6 +17,7 @@ has_compile_feature = get_option('compiler')
 has_delayed_rc_feature = get_option('delayed_rc')
 has_leak_mem_feature = get_option('leak_mem')
 has_prefetch_insn_feature = get_option('prefetch_insn')
+has_dispatch_jump_feature = get_option('dispatch_jump')
 
 is_static_exe = get_option('static_exe')
 
@@ -63,16 +64,18 @@ else
     endif
 endif
 
-code = '''#include<stdio.h>
-int main(int argc, char **argv) {
-  static void *cb[] = { &&a, &&b };
-  a: printf("1"); return 0;
-  b: printf("0"); return 0;
-}
-'''
-result = compiler.run(code, name : 'dispatch jump')
-if result.stdout().strip() == '1'
-    add_project_arguments('-DAU_USE_DISPATCH_JMP', language : ['c'])
+if has_dispatch_jump_feature
+    code = '''#include<stdio.h>
+    int main(int argc, char **argv) {
+    static void *cb[] = { &&a, &&b };
+    a: printf("1"); return 0;
+    b: printf("0"); return 0;
+    }
+    '''
+    result = compiler.run(code, name : 'dispatch jump')
+    if result.stdout().strip() == '1'
+        add_project_arguments('-DAU_USE_DISPATCH_JMP', language : ['c'])
+    endif
 endif
 
 code = '''#include<float.h>
