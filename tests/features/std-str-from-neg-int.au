@@ -1,1 +1,1 @@
-print str(0-10);
+print str::into(-10);

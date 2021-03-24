@@ -14,7 +14,7 @@
 
 #include "lib/string_builder.h"
 
-AU_EXTERN_FUNC_DECL(au_std_input) {
+AU_EXTERN_FUNC_DECL(au_std_io_input) {
     int ch = -1;
     struct au_string_builder builder;
     au_string_builder_init(&builder);
@@ -147,18 +147,21 @@ AU_EXTERN_FUNC_DECL(au_std_io_stderr) {
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_open) {
-    const au_value_t path_val = _args[0];
-    if (au_value_get_type(path_val) != AU_VALUE_STR)
-        goto fail;
-    const struct au_string *path_str = au_value_get_string(path_val);
-
-    const au_value_t mode_val = _args[1];
-    if (au_value_get_type(mode_val) != AU_VALUE_STR)
-        goto fail;
-    const struct au_string *mode_str = au_value_get_string(mode_val);
+    au_value_t path_value = au_value_none();
+    au_value_t mode_value = au_value_none();
 
     struct au_std_io *io = 0;
     FILE *f = 0;
+
+    path_value = _args[0];
+    if (au_value_get_type(path_value) != AU_VALUE_STR)
+        goto fail;
+    const struct au_string *path_str = au_value_get_string(path_value);
+
+    mode_value = _args[1];
+    if (au_value_get_type(mode_value) != AU_VALUE_STR)
+        goto fail;
+    const struct au_string *mode_str = au_value_get_string(mode_value);
 
     // Set up mode parameter
     const char *mode = 0;
@@ -201,13 +204,13 @@ AU_EXTERN_FUNC_DECL(au_std_io_open) {
     f = 0;
     io->can_close = 1;
 
-    au_value_deref(path_val);
-    au_value_deref(mode_val);
+    au_value_deref(path_value);
+    au_value_deref(mode_value);
     return au_value_struct((struct au_struct *)io);
 
 fail:
-    au_value_deref(path_val);
-    au_value_deref(mode_val);
+    au_value_deref(path_value);
+    au_value_deref(mode_value);
     if (f != 0)
         fclose(f);
     if (io != 0)
@@ -216,20 +219,20 @@ fail:
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_close) {
-    const au_value_t io_val = _args[0];
-    struct au_struct *io_struct = au_struct_coerce(io_val);
+    const au_value_t io_valueue = _args[0];
+    struct au_struct *io_struct = au_struct_coerce(io_valueue);
     if (io_struct == NULL || io_struct->vdata != &io_vdata) {
-        au_value_deref(io_val);
+        au_value_deref(io_valueue);
         return au_value_op_error();
     }
     io_close((struct au_std_io *)io_struct);
-    au_value_deref(io_val);
+    au_value_deref(io_valueue);
     return au_value_none();
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_read) {
-    const au_value_t io_val = _args[0];
-    struct au_struct *io_struct = au_struct_coerce(io_val);
+    const au_value_t io_valueue = _args[0];
+    struct au_struct *io_struct = au_struct_coerce(io_valueue);
     if (io_struct == NULL || io_struct->vdata != &io_vdata)
         goto fail;
     struct au_std_io *io = (struct au_std_io *)io_struct;
@@ -240,25 +243,28 @@ AU_EXTERN_FUNC_DECL(au_std_io_read) {
     while ((ch = fgetc(io->f)) != EOF) {
         au_string_builder_add(&builder, ch);
     }
-    au_value_deref(io_val);
+    au_value_deref(io_valueue);
     return au_value_string(au_string_builder_into_string(&builder));
 
 fail:
-    au_value_deref(io_val);
+    au_value_deref(io_valueue);
     return au_value_op_error();
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_read_up_to) {
-    const au_value_t io_val = _args[0];
-    struct au_struct *io_struct = au_struct_coerce(io_val);
+    au_value_t io_value = au_value_none();
+    au_value_t n_value = au_value_none();
+
+    io_value = _args[0];
+    struct au_struct *io_struct = au_struct_coerce(io_value);
     if (io_struct == NULL || io_struct->vdata != &io_vdata)
         goto fail;
     struct au_std_io *io = (struct au_std_io *)io_struct;
 
-    const au_value_t n_val = _args[1];
-    if (au_value_get_type(n_val) != AU_VALUE_INT)
+    n_value = _args[1];
+    if (au_value_get_type(n_value) != AU_VALUE_INT)
         goto fail;
-    const int32_t n = au_value_get_int(n_val);
+    const int32_t n = au_value_get_int(n_value);
 
     struct au_string_builder builder;
     au_string_builder_init(&builder);
@@ -268,49 +274,52 @@ AU_EXTERN_FUNC_DECL(au_std_io_read_up_to) {
             break;
         au_string_builder_add(&builder, ch);
     }
-    au_value_deref(io_val);
+    au_value_deref(io_value);
     return au_value_string(au_string_builder_into_string(&builder));
 
 fail:
-    au_value_deref(io_val);
-    au_value_deref(n_val);
+    au_value_deref(io_value);
+    au_value_deref(n_value);
     return au_value_op_error();
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_write) {
-    const au_value_t io_val = _args[0];
-    struct au_struct *io_struct = au_struct_coerce(io_val);
+    au_value_t io_value = au_value_none();
+    au_value_t out_value = au_value_none();
+
+    io_value = _args[0];
+    struct au_struct *io_struct = au_struct_coerce(io_value);
     if (io_struct == NULL || io_struct->vdata != &io_vdata)
         goto fail;
     struct au_std_io *io = (struct au_std_io *)io_struct;
 
-    const au_value_t out_val = _args[1];
-    if (au_value_get_type(out_val) != AU_VALUE_STR)
+    out_value = _args[1];
+    if (au_value_get_type(out_value) != AU_VALUE_STR)
         goto fail;
-    const struct au_string *out = au_value_get_string(out_val);
+    const struct au_string *out = au_value_get_string(out_value);
 
     int32_t retval = (int32_t)fwrite(out->data, 1, out->len, io->f);
-    au_value_deref(io_val);
-    au_value_deref(out_val);
+    au_value_deref(io_value);
+    au_value_deref(out_value);
     return au_value_int(retval);
 
 fail:
-    au_value_deref(io_val);
-    au_value_deref(out_val);
+    au_value_deref(io_value);
+    au_value_deref(out_value);
     return au_value_op_error();
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_flush) {
-    const au_value_t io_val = _args[0];
-    struct au_struct *io_struct = au_struct_coerce(io_val);
+    const au_value_t io_value = _args[0];
+    struct au_struct *io_struct = au_struct_coerce(io_value);
     if (io_struct == NULL || io_struct->vdata != &io_vdata)
         goto fail;
     struct au_std_io *io = (struct au_std_io *)io_struct;
     fflush(io->f);
-    au_value_deref(io_val);
+    au_value_deref(io_value);
     return au_value_none();
 
 fail:
-    au_value_deref(io_val);
+    au_value_deref(io_value);
     return au_value_op_error();
 }

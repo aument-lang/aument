@@ -1,2 +1,2 @@
-print int("3");
-print int("4ab");
+print int::into("3");
+print int::into("4ab");

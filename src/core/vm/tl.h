@@ -23,6 +23,7 @@ struct au_vm_thread_local {
     size_t const_len;
     struct au_hm_vars loaded_modules_map;
     struct au_program_data_array loaded_modules;
+    struct au_program_data_array stdlib_modules;
     struct au_vm_frame_link current_frame;
     uintptr_t stack_start;
     size_t stack_max;
@@ -80,3 +81,6 @@ au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
 AU_PRIVATE struct au_program_data *
 au_vm_thread_local_get_module(const struct au_vm_thread_local *tl,
                               const char *abspath);
+
+AU_PUBLIC void
+au_vm_thread_local_install_stdlib(struct au_vm_thread_local *tl);

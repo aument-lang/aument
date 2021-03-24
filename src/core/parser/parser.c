@@ -16,6 +16,8 @@
 #include "core/rt/malloc.h"
 #include "platform/mmap.h"
 
+#include "stdlib/au_stdlib.h"
+
 #include "lexer.h"
 #include "parser.h"
 
@@ -449,7 +451,7 @@ static int parser_exec_import_statement(struct au_parser *p,
 
         const size_t module_idx = p->p_data->imported_modules.len;
         struct au_imported_module module;
-        au_imported_module_init(&module, 0);
+        au_imported_module_init(&module);
         au_imported_module_array_add(&p->p_data->imported_modules, module);
 
         const au_hm_var_value_t *old_value =
@@ -1731,13 +1733,7 @@ static int parser_resolve_fn(struct au_parser *p,
             &p->p_data->imported_modules.data[module_idx];
         const au_hm_var_value_t *val =
             au_hm_vars_get(&module->fn_map, id_tok.src, id_tok.len);
-        if (val == 0 && module->is_finished) {
-            p->res = (struct au_parser_result){
-                .type = AU_PARSER_RES_UNKNOWN_FUNCTION,
-                .data.unknown_id.name_token = id_tok,
-            };
-            return 0;
-        } else if (val == 0) {
+        if (val == 0) {
             au_hm_var_value_t value = p->p_data->fns.len;
             char *import_name = au_data_malloc(id_tok.len);
             memcpy(import_name, id_tok.src, id_tok.len);
@@ -2266,6 +2262,7 @@ struct au_parser_result au_parse(const char *src, size_t len,
                                  struct au_program *program) {
     struct au_program_data p_data;
     au_program_data_init(&p_data);
+    au_stdlib_export(&p_data);
 
     struct au_lexer l;
     au_lexer_init(&l, src, len);

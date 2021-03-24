@@ -8,8 +8,14 @@
 
 #include "core/rt/extern_fn.h"
 
+/// [func-au] Converts an object into a string
+/// @name str::into
+/// @param input Object to be converted into string
+/// @return The string equivalent of the `input` object.
+AU_EXTERN_FUNC_DECL(au_std_str_into);
+
 /// [func-au] Splits a string into an array of characters
-/// @name str
+/// @name str::chars
 /// @param input Object to split
 /// @return The array of characters inside the string
 AU_EXTERN_FUNC_DECL(au_std_str_chars);

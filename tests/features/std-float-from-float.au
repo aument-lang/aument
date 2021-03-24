@@ -1,1 +1,1 @@
-print float(2.0);
+print float::into(2.0);

@@ -39,7 +39,7 @@ struct au_vm_frame {
 /// @param link link to previous frame or imported program
 /// @return return value specified by interpreted aument's
 ///      return statement
-AU_PUBLIC au_value_t au_vm_exec_unverified(
+AU_PRIVATE au_value_t au_vm_exec_unverified(
     struct au_vm_thread_local *tl, const struct au_bc_storage *bcs,
     const struct au_program_data *p_data, const au_value_t *args);
 
@@ -49,11 +49,5 @@ AU_PUBLIC au_value_t au_vm_exec_unverified(
 ///     stored here is unverified and should be checked
 ///     beforehand if it's safe to run.
 /// @return return value
-static inline au_value_t
-au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
-                           struct au_program *program);
-
-au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
-                                      struct au_program *program) {
-    return au_vm_exec_unverified(tl, &program->main, &program->data, 0);
-}
+AU_PUBLIC au_value_t au_vm_exec_unverified_main(
+    struct au_vm_thread_local *tl, struct au_program *program);

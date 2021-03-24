@@ -1,1 +1,1 @@
-print str(true), str(false);
+print str::into(true), str::into(false);
