@@ -16,6 +16,8 @@
 #include "core/rt/malloc.h"
 #include "platform/mmap.h"
 
+#include "stdlib/au_stdlib.h"
+
 #include "lexer.h"
 #include "parser.h"
 
@@ -2266,6 +2268,7 @@ struct au_parser_result au_parse(const char *src, size_t len,
                                  struct au_program *program) {
     struct au_program_data p_data;
     au_program_data_init(&p_data);
+    au_install_stdlib(&p_data);
 
     struct au_lexer l;
     au_lexer_init(&l, src, len);

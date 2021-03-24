@@ -1338,3 +1338,12 @@ end:
     tl->current_frame = frame.link;
     return frame.retval;
 }
+
+au_value_t
+au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
+                           struct au_program *program);
+
+au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
+                                      struct au_program *program) {
+    return au_vm_exec_unverified(tl, &program->main, &program->data, 0);
+}

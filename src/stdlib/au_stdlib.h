@@ -8,6 +8,9 @@
 
 #include "core/rt/extern_fn.h"
 #include "platform/platform.h"
+#include "lib/module.h"
 
 struct au_program_data;
+AU_PRIVATE au_extern_module_t au_stdlib_module();
 AU_PRIVATE void au_install_stdlib(struct au_program_data *data);
+

@@ -31,7 +31,6 @@ void au_imported_module_del(struct au_imported_module *data) {
 void au_program_data_init(struct au_program_data *data) {
     memset(data, 0, sizeof(struct au_program_data));
     au_hm_vars_init(&data->fn_map);
-    au_install_stdlib(data);
 }
 
 void au_program_data_del(struct au_program_data *data) {
