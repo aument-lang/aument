@@ -1,1 +1,1 @@
-print bool(1), bool(0)
+print bool::into(1), bool::into(0)

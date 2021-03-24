@@ -9,12 +9,14 @@
 #include "core/vm/vm.h"
 
 #include "array.h"
+#include "bool.h"
+#include "float.h"
 #include "gc.h"
+#include "int.h"
 #include "io.h"
 #include "list.h"
 #include "math.h"
 #include "str.h"
-#include "types.h"
 
 #ifdef AU_TEST
 #include "test_fns.h"
@@ -42,10 +44,28 @@ static const struct std_module_fn array_fns[] = {
         .name = "pop", .func = au_std_array_pop, .num_args = 1},
 };
 
+// * array.h *
+static const struct std_module_fn bool_fns[] = {
+    (struct std_module_fn){
+        .name = "into", .func = au_std_bool_into, .num_args = 1},
+};
+
+// * float.h *
+static const struct std_module_fn float_fns[] = {
+    (struct std_module_fn){
+        .name = "into", .func = au_std_float_into, .num_args = 1},
+};
+
 // * gc.h *
 static const struct std_module_fn gc_fns[] = {
     (struct std_module_fn){
         .name = "heap_size", .func = au_std_gc_heap_size, .num_args = 0},
+};
+
+// * int.h *
+static const struct std_module_fn int_fns[] = {
+    (struct std_module_fn){
+        .name = "into", .func = au_std_int_into, .num_args = 1},
 };
 
 #ifdef AU_FEAT_IO_LIB
@@ -167,6 +187,15 @@ static const struct std_module_fn str_fns[] = {
         .name = "char", .func = au_std_str_char, .num_args = 1},
 };
 
+#ifdef AU_TEST
+static const struct std_module_fn test_fns[] = {
+    (struct std_module_fn){
+        .name = "test1", .func = au_std_test_1, .num_args = 1},
+    (struct std_module_fn){
+        .name = "test2", .func = au_std_test_2, .num_args = 2},
+};
+#endif
+
 // standard library definitions
 static const struct std_module au_stdlib_modules_data[] = {
 #define LIBRARY(NAME)                                                     \
@@ -183,6 +212,9 @@ static const struct std_module au_stdlib_modules_data[] = {
     LIBRARY(math),
 #endif
     LIBRARY(str),
+#ifdef AU_TEST
+    LIBRARY(test),
+#endif
 #undef LIBRARY
 };
 const size_t au_stdlib_modules_len =
