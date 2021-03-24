@@ -12,6 +12,62 @@
 #include "core/vm/vm.h"
 #include "lib/string_builder.h"
 
+AU_EXTERN_FUNC_DECL(au_std_str_into) {
+    const au_value_t value = _args[0];
+    switch (au_value_get_type(value)) {
+    case AU_VALUE_STR: {
+        return value;
+    }
+    case AU_VALUE_BOOL: {
+        const char *repr = au_value_get_bool(value) ? "(true)" : "(false)";
+        return au_value_string(au_string_from_const(repr, strlen(repr)));
+    }
+    case AU_VALUE_INT: {
+        int32_t abs_num = au_value_get_int(value);
+        struct au_string *header =
+            au_obj_malloc(sizeof(struct au_string) + 1, 0);
+        header->rc = 1;
+        header->len = 1;
+        uint32_t pos = 0, cap = 1;
+        int is_neg = 0;
+        if (abs_num < 0) {
+            is_neg = 1;
+            abs_num = -abs_num;
+        }
+        while (abs_num != 0) {
+            if (pos == cap) {
+                cap *= 2;
+                header =
+                    au_obj_realloc(header, sizeof(struct au_string) + cap);
+            }
+            header->data[pos] = ((abs_num % 10) + '0');
+            pos++;
+            abs_num /= 10;
+        }
+        if (is_neg) {
+            if (pos == cap) {
+                cap *= 2;
+                header =
+                    au_obj_realloc(header, sizeof(struct au_string) + cap);
+            }
+            header->data[pos] = '-';
+            pos++;
+        }
+        for (int i = 0, j = pos - 1; i < j; i++, j--) {
+            char c = header->data[i];
+            header->data[i] = header->data[j];
+            header->data[j] = c;
+        }
+        header->len = pos;
+        return au_value_string(header);
+    }
+    default: {
+        au_value_deref(value);
+        return au_value_string(au_string_from_const("", 0));
+    }
+    }
+}
+
 AU_EXTERN_FUNC_DECL(au_std_str_chars) {
     const au_value_t value = _args[0];
     if (au_value_get_type(value) != AU_VALUE_STR)
