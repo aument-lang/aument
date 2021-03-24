@@ -35,9 +35,9 @@ void au_fn_del(struct au_fn *fn) {
 }
 
 void au_fn_fill_import_cache_unsafe(
-    const struct au_fn *fn, const struct au_fn *fn_cached,
+    const struct au_fn *fn, const size_t fn_idx_cached,
     const struct au_program_data *p_data_cached) {
-    *(const struct au_fn **)(&fn->as.imported_func.fn_cached) = fn_cached;
+    *(size_t *)(&fn->as.imported_func.fn_idx_cached) = fn_idx_cached;
     *(const struct au_program_data **)(&fn->as.imported_func
                                             .p_data_cached) =
         p_data_cached;

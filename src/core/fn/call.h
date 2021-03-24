@@ -49,8 +49,8 @@ self_call:
     }
     case AU_FN_IMPORTER: {
         const struct au_fn *old_fn = fn;
-        fn = old_fn->as.imported_func.fn_cached;
         p_data = old_fn->as.imported_func.p_data_cached;
+        fn = &p_data->fns.data[old_fn->as.imported_func.fn_idx_cached];
         goto self_call;
     }
     case AU_FN_DISPATCH: {

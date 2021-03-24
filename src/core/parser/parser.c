@@ -1748,7 +1748,7 @@ static int parser_resolve_fn(struct au_parser *p,
                 .as.imported_func.module_idx = module_idx,
                 .as.imported_func.name = import_name,
                 .as.imported_func.name_len = id_tok.len,
-                .as.imported_func.fn_cached = 0,
+                .as.imported_func.fn_idx_cached = 0,
                 .as.imported_func.p_data_cached = 0,
             };
             au_fn_array_add(&p->p_data->fns, fn);

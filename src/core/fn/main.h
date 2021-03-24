@@ -34,7 +34,7 @@ struct au_imported_func {
     int32_t module_idx;
     char *name;
     size_t name_len;
-    const struct au_fn *fn_cached;
+    size_t fn_idx_cached;
     const struct au_program_data *p_data_cached;
 };
 // end-struct
@@ -132,7 +132,7 @@ AU_PUBLIC void au_fn_del(struct au_fn *fn);
 /// @param fn the imported function. This function must have the type
 /// AU_FN_IMPORTER
 AU_PRIVATE void au_fn_fill_import_cache_unsafe(
-    const struct au_fn *fn, const struct au_fn *fn_cached,
+    const struct au_fn *fn, size_t fn_idx_cached,
     const struct au_program_data *p_data_cached);
 
 /// [func] Resolves references to classes imported from external modules.
