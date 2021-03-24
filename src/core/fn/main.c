@@ -35,32 +35,28 @@ void au_fn_del(struct au_fn *fn) {
 }
 
 void au_fn_fill_import_cache_unsafe(
-    const struct au_fn *fn, const size_t fn_idx_cached,
+    struct au_fn *fn, const size_t fn_idx_cached,
     const struct au_program_data *p_data_cached) {
-    *(size_t *)(&fn->as.imported_func.fn_idx_cached) = fn_idx_cached;
-    *(const struct au_program_data **)(&fn->as.imported_func
-                                            .p_data_cached) =
-        p_data_cached;
+    fn->as.imported_func.fn_idx_cached = fn_idx_cached;
+    fn->as.imported_func.p_data_cached = p_data_cached;
 }
 
 void au_fn_fill_class_cache_unsafe(
-    const struct au_fn *fn, const struct au_program_data *current_p_data) {
+    struct au_fn *fn, const struct au_program_data *current_p_data) {
     switch (fn->type) {
     case AU_FN_BC: {
         if (fn->as.bc_func.class_interface_cache == 0) {
-            *(struct au_class_interface **)(&fn->as.bc_func
-                                                 .class_interface_cache) =
+            fn->as.bc_func.class_interface_cache =
                 current_p_data->classes.data[fn->as.bc_func.class_idx];
         }
         break;
     }
     case AU_FN_DISPATCH: {
         for (size_t i = 0; i < fn->as.dispatch_func.data.len; i++) {
-            const struct au_dispatch_func_instance *instance =
+            struct au_dispatch_func_instance *instance =
                 &fn->as.dispatch_func.data.data[i];
             if (instance->class_interface_cache == 0) {
-                *(struct au_class_interface *
-                      *)(&instance->class_interface_cache) =
+                instance->class_interface_cache =
                     current_p_data->classes.data[instance->class_idx];
             }
         }
