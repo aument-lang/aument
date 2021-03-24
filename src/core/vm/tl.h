@@ -14,6 +14,7 @@
 #include "platform/platform.h"
 
 typedef void (*au_vm_print_fn_t)(au_value_t);
+
 struct au_program_data;
 AU_ARRAY_COPY(struct au_program_data *, au_program_data_array, 1)
 

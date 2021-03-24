@@ -12,7 +12,8 @@
 
 AU_EXTERN_FUNC_DECL(au_std_float_is) {
     const au_value_t value = _args[0];
-    const au_value_t retval = au_value_bool(au_value_get_type(value) == AU_VALUE_DOUBLE);
+    const au_value_t retval =
+        au_value_bool(au_value_get_type(value) == AU_VALUE_DOUBLE);
     au_value_deref(value);
     return retval;
 }

@@ -13,7 +13,8 @@
 
 AU_EXTERN_FUNC_DECL(au_std_array_is) {
     const au_value_t value = _args[0];
-    const au_value_t retval = au_value_bool(au_obj_array_coerce(value) != 0);
+    const au_value_t retval =
+        au_value_bool(au_obj_array_coerce(value) != 0);
     au_value_deref(value);
     return retval;
 }

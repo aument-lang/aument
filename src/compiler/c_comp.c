@@ -61,6 +61,9 @@ struct au_c_comp_module {
 
 AU_ARRAY_STRUCT(struct au_c_comp_module, au_c_comp_module_array, 1)
 
+struct au_program_data;
+AU_ARRAY_COPY(struct au_program_data *, au_program_data_array, 1)
+
 struct au_c_comp_global_state {
     struct au_hm_vars modules_map;
     struct au_c_comp_module_array modules;
@@ -68,6 +71,7 @@ struct au_c_comp_global_state {
     struct au_c_comp_options options;
     struct au_c_comp_state header_file;
     struct au_hm_vars declared_externs;
+    struct au_program_data_array stdlib_modules;
     int loads_dl;
 };
 
@@ -1263,7 +1267,7 @@ void au_c_comp_module(struct au_c_comp_state *state,
             break;
         }
         case AU_FN_LIB: {
-            _decl_fn_lib:;
+_decl_fn_lib:;
             const au_hm_var_value_t *old = au_hm_vars_add(
                 &g_state->declared_externs, fn->as.lib_func.symbol,
                 strlen(fn->as.lib_func.symbol), 0);
@@ -1274,15 +1278,21 @@ void au_c_comp_module(struct au_c_comp_state *state,
             break;
         }
         case AU_FN_IMPORTER: {
-            const struct au_imported_module *module = au_imported_module_array_at_ptr(&program->data.imported_modules, fn->as.imported_func.module_idx);
-            if(module->stdlib_module_idx != AU_IMPORTED_MODULE_NOT_STDLIB) {
-                au_extern_module_t extern_module = au_stdlib_module(module->stdlib_module_idx);
-                const au_hm_var_value_t *idx = au_hm_vars_get(&extern_module->fn_map, fn->as.imported_func.name, fn->as.imported_func.name_len);
+            const struct au_imported_module *module =
+                au_imported_module_array_at_ptr(
+                    &program->data.imported_modules,
+                    fn->as.imported_func.module_idx);
+            if (module->stdlib_module_idx !=
+                AU_IMPORTED_MODULE_NOT_STDLIB) {
+                au_extern_module_t extern_module =
+                    au_program_data_array_at(&g_state->stdlib_modules,
+                                             module->stdlib_module_idx);
+                const au_hm_var_value_t *idx = au_hm_vars_get(
+                    &extern_module->fn_map, fn->as.imported_func.name,
+                    fn->as.imported_func.name_len);
                 if (idx == 0)
                     abort();
                 *fn = au_fn_array_at(&extern_module->fns, *idx);
-                au_program_data_del(extern_module);
-                au_data_free(extern_module);
                 goto _decl_fn_lib;
             }
             if (fn->as.imported_func.num_args > 0) {
@@ -1479,6 +1489,11 @@ void au_c_comp(struct au_c_comp_state *state,
     g_state.header_file = (struct au_c_comp_state){0};
     g_state.loads_dl = 0;
 
+    for (size_t i = 0; i < au_stdlib_modules_len; i++) {
+        au_program_data_array_add(&g_state.stdlib_modules,
+                                  au_stdlib_module(i));
+    }
+
     if (g_state.options.with_debug) {
         struct au_mmap_info mmap;
         assert(au_mmap_read(program->data.file, &mmap));
@@ -1528,4 +1543,10 @@ void au_c_comp(struct au_c_comp_state *state,
     au_data_free(g_state.main_line_info.data);
     au_c_comp_state_del(&g_state.header_file);
     au_hm_vars_del(&g_state.declared_externs);
+    for (size_t i = 0; i < g_state.stdlib_modules.len; i++) {
+        struct au_program_data *module = g_state.stdlib_modules.data[i];
+        au_program_data_del(module);
+        au_data_free(module);
+    }
+    au_data_free(g_state.stdlib_modules.data);
 }
