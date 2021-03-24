@@ -12,7 +12,7 @@
 /// a newline character
 /// @name input
 /// @return string read from stdin
-AU_EXTERN_FUNC_DECL(au_std_input);
+AU_EXTERN_FUNC_DECL(au_std_io_input);
 
 /// [func-au] Opens stdout as a file object
 /// @name io::stdout
