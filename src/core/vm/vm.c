@@ -98,7 +98,7 @@ static void link_to_imported(const struct au_program_data *p_data,
         if (au_fn_num_args(fn) != imported_func->num_args)
             au_fatal("unexpected number of arguments");
         au_fn_fill_import_cache(&p_data->fns.data[entry], entry,
-                                       loaded_module);
+                                loaded_module);
     })
     AU_HM_VARS_FOREACH_PAIR(&relative_module->class_map, key, entry, {
         assert(p_data->classes.data[entry] == 0);

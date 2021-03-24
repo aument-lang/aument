@@ -203,7 +203,12 @@ static const struct std_module au_stdlib_modules_data[] = {
         .name = #NAME, .fns = NAME##_fns,                                 \
         .fns_len = sizeof(NAME##_fns) / sizeof(struct std_module_fn),     \
     }
-    LIBRARY(array), LIBRARY(gc),
+    // clang-format off
+    LIBRARY(array),
+    LIBRARY(bool),
+    LIBRARY(float),
+    LIBRARY(gc),
+    LIBRARY(int),
 #ifdef AU_FEAT_IO_LIB
     LIBRARY(io),
 #endif
@@ -215,6 +220,7 @@ static const struct std_module au_stdlib_modules_data[] = {
 #ifdef AU_TEST
     LIBRARY(test),
 #endif
+// clang-format on
 #undef LIBRARY
 };
 const size_t au_stdlib_modules_len =
