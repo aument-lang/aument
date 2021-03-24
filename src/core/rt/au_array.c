@@ -57,7 +57,7 @@ void au_obj_array_push(struct au_obj_array *obj_array, au_value_t el) {
 }
 
 au_value_t au_obj_array_pop(struct au_obj_array *obj_array) {
-    if(obj_array->array.len == 0)
+    if (obj_array->array.len == 0)
         return au_value_none();
     return obj_array->array.data[--obj_array->array.len];
 }

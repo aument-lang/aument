@@ -46,6 +46,7 @@ AU_EXTERN_FUNC_DECL(au_std_math_log2);
 AU_EXTERN_FUNC_DECL(au_std_math_log10);
 
 // ** Power functions **
+
 /// [func-au]
 /// @name math::sqrt
 AU_EXTERN_FUNC_DECL(au_std_math_sqrt);
@@ -63,6 +64,7 @@ AU_EXTERN_FUNC_DECL(au_std_math_hypot);
 AU_EXTERN_FUNC_DECL(au_std_math_pow);
 
 // ** Trigonometric functions **
+
 /// [func-au]
 /// @name math::sin
 AU_EXTERN_FUNC_DECL(au_std_math_sin);
@@ -92,6 +94,7 @@ AU_EXTERN_FUNC_DECL(au_std_math_atan);
 AU_EXTERN_FUNC_DECL(au_std_math_atan2);
 
 // ** Hyperbolic functions **
+
 /// [func-au]
 /// @name math::sinh
 AU_EXTERN_FUNC_DECL(au_std_math_sinh);
@@ -117,6 +120,7 @@ AU_EXTERN_FUNC_DECL(au_std_math_acosh);
 AU_EXTERN_FUNC_DECL(au_std_math_atanh);
 
 // ** Error & gamma functions **
+
 /// [func-au]
 /// @name math::erf
 AU_EXTERN_FUNC_DECL(au_std_math_erf);
@@ -134,6 +138,7 @@ AU_EXTERN_FUNC_DECL(au_std_math_lgamma);
 AU_EXTERN_FUNC_DECL(au_std_math_tgamma);
 
 // ** Rounding **
+
 /// [func-au]
 /// @name math::ceil
 AU_EXTERN_FUNC_DECL(au_std_math_ceil);
@@ -148,6 +153,7 @@ AU_EXTERN_FUNC_DECL(au_std_math_trunc);
 AU_EXTERN_FUNC_DECL(au_std_math_round);
 
 // ** Classification **
+
 /// [func-au]
 /// @name math::is_finite
 AU_EXTERN_FUNC_DECL(au_std_math_is_finite);
