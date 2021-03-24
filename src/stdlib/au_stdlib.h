@@ -7,10 +7,9 @@
 #pragma once
 
 #include "core/rt/extern_fn.h"
-#include "platform/platform.h"
 #include "lib/module.h"
+#include "platform/platform.h"
 
-struct au_program_data;
-AU_PRIVATE au_extern_module_t au_stdlib_module();
-AU_PRIVATE void au_install_stdlib(struct au_program_data *data);
-
+AU_PRIVATE void au_stdlib_export(struct au_program_data *data);
+extern AU_PRIVATE const size_t au_stdlib_modules_len;
+AU_PRIVATE au_extern_module_t au_stdlib_module(size_t idx);

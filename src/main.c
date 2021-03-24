@@ -195,6 +195,8 @@ int main(int argc, char **argv) {
         tl.stack_start = (uintptr_t)&tl;
         tl.stack_max = AU_STACK_MAX;
 
+        au_vm_thread_local_install_stdlib(&tl);
+
         au_malloc_set_collect(1);
         au_vm_exec_unverified_main(&tl, &program);
 

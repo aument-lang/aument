@@ -49,7 +49,5 @@ AU_PRIVATE au_value_t au_vm_exec_unverified(
 ///     stored here is unverified and should be checked
 ///     beforehand if it's safe to run.
 /// @return return value
-AU_PUBLIC au_value_t
-au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
-                           struct au_program *program);
-
+AU_PUBLIC au_value_t au_vm_exec_unverified_main(
+    struct au_vm_thread_local *tl, struct au_program *program);

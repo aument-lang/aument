@@ -32,10 +32,10 @@ au_extern_module_t au_extern_module_new() {
 /// @return 0 if a function by that name already exists, 1 if successful
 static AU_UNUSED inline int
 au_extern_module_add_fn(au_extern_module_t p_data, const char *name,
-                        au_extern_func_t func, int num_args);
+                        au_extern_func_t func, int32_t num_args);
 
 int au_extern_module_add_fn(au_extern_module_t p_data, const char *name,
-                            au_extern_func_t func, int num_args) {
+                            au_extern_func_t func, int32_t num_args) {
     struct au_fn fn;
     fn.flags = AU_FN_FLAG_EXPORTED;
     fn.type = AU_FN_LIB;
@@ -57,4 +57,3 @@ int au_extern_module_add_fn(au_extern_module_t p_data, const char *name,
 #define AU_EXTERN_MODULE_MAIN(OPTIONS_ID)                                 \
     au_extern_module_t au_extern_module_load(                             \
         struct au_extern_module_options *OPTIONS_ID)
-
