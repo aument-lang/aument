@@ -10,7 +10,7 @@
 #include "core/rt/value.h"
 #include "core/vm/vm.h"
 
-AU_EXTERN_FUNC_DECL(au_std_int) {
+AU_EXTERN_FUNC_DECL(au_std_int_into) {
     const au_value_t value = _args[0];
     switch (au_value_get_type(value)) {
     case AU_VALUE_INT: {
@@ -37,26 +37,4 @@ AU_EXTERN_FUNC_DECL(au_std_int) {
         return au_value_int(0);
     }
     }
-}
-
-AU_EXTERN_FUNC_DECL(au_std_float) {
-    const au_value_t value = _args[0];
-    switch (au_value_get_type(value)) {
-    case AU_VALUE_INT: {
-        return au_value_double((double)au_value_get_int(value));
-    }
-    case AU_VALUE_DOUBLE: {
-        return value;
-    }
-    default: {
-        au_value_deref(value);
-        return au_value_double(0);
-    }
-    }
-}
-
-AU_EXTERN_FUNC_DECL(au_std_bool) {
-    au_value_t value = au_value_bool(au_value_is_truthy(_args[0]));
-    au_value_deref(_args[0]);
-    return value;
 }

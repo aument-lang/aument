@@ -266,10 +266,12 @@ au_runtime_sources = [
     'src/core/rt/fn_value/comp_impl.c',
     'src/core/vm/module.c',
     
-    'src/stdlib/gc.c',
-    'src/stdlib/types.c',
-    'src/stdlib/list.c',
     'src/stdlib/array.c',
+    'src/stdlib/bool.c',
+    'src/stdlib/float.c',
+    'src/stdlib/gc.c',
+    'src/stdlib/int.c',
+    'src/stdlib/list.c',
     'src/stdlib/str.c',
 ]
 if has_io_library

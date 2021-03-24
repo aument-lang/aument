@@ -1,1 +1,1 @@
-print int(2);
+print int::into(2);
