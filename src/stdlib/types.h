@@ -43,9 +43,3 @@ AU_EXTERN_FUNC_DECL(au_std_float);
 /// @param input Object to be converted into a boolean
 /// @return The boolean equivalent of the `input` object.
 AU_EXTERN_FUNC_DECL(au_std_bool);
-
-/// [func-au] Converts an object into a string
-/// @name str
-/// @param input Object to be converted into string
-/// @return The string equivalent of the `input` object.
-AU_EXTERN_FUNC_DECL(au_std_str);

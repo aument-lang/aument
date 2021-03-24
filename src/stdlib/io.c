@@ -286,7 +286,7 @@ fail:
 AU_EXTERN_FUNC_DECL(au_std_io_write) {
     au_value_t io_value = au_value_none();
     au_value_t out_value = au_value_none();
-    
+
     io_value = _args[0];
     struct au_struct *io_struct = au_struct_coerce(io_value);
     if (io_struct == NULL || io_struct->vdata != &io_vdata)
