@@ -598,4 +598,10 @@ static AU_ALWAYS_INLINE au_value_t au_value_neq(au_value_t lhs,
     return au_value_bool(1);
 }
 
+static AU_ALWAYS_INLINE au_value_t au_value_force(au_value_t v) {
+    if (AU_UNLIKELY(au_value_is_error(v)))
+        abort();
+    return v;
+}
+
 void au_value_print(au_value_t value);

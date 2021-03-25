@@ -591,8 +591,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         uint8_t rhs = bc(pos + 1);                                        \
         uint8_t res = bc(pos + 2);                                        \
         comp_printf(state,                                                \
-                    "MOVE_VALUE(r%d,au_value_" NAME "(r%d,r%d));\n", res, \
-                    lhs, rhs);                                            \
+                    "MOVE_VALUE(r%d,au_value_force(au_value_" NAME        \
+                    "(r%d,r%d)));\n",                                     \
+                    res, lhs, rhs);                                       \
         break;                                                            \
     }
         case AU_OP_MUL:
@@ -630,7 +631,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         uint8_t reg = bc(pos);                                            \
         DEF_BC16(local, 1)                                                \
         comp_printf(state,                                                \
-                    "MOVE_VALUE(l%d,au_value_" NAME "(l%d,r%d));\n",      \
+                    "MOVE_VALUE(l%d,au_value_force(au_value_" NAME        \
+                    "(l%d,r%d)));\n",                                     \
                     local, local, reg);                                   \
         break;                                                            \
     }
@@ -658,15 +660,19 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case AU_OP_BNOT: {
             uint8_t reg = bc(pos);
             uint8_t ret = bc(pos + 1);
-            comp_printf(state, "COPY_VALUE(r%d,au_value_bnot(r%d));", ret,
-                        reg);
+            comp_printf(
+                state,
+                "COPY_VALUE(r%d,au_value_force(au_value_bnot(r%d)));", ret,
+                reg);
             break;
         }
         case AU_OP_NEG: {
             uint8_t reg = bc(pos);
             uint8_t ret = bc(pos + 1);
-            comp_printf(state, "COPY_VALUE(r%d,au_value_neg(r%d));", ret,
-                        reg);
+            comp_printf(
+                state,
+                "COPY_VALUE(r%d,au_value_force(au_value_neg(r%d)));", ret,
+                reg);
             break;
         }
         // Jump instructions
