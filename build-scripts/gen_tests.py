@@ -145,6 +145,7 @@ static void test_{i}() {{
     au_vm_thread_local_init(&tl, &program.data);
     au_vm_thread_local_set(&tl);
     tl.print_fn = test_{i}_check;
+    au_vm_thread_local_install_stdlib(&tl);
     au_malloc_set_collect(1);
     au_vm_exec_unverified_main(&tl, &program);
 #ifdef AU_FEAT_DELAYED_RC

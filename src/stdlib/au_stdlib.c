@@ -75,6 +75,7 @@ static const struct std_module_fn int_fns[] = {
 #ifdef AU_FEAT_IO_LIB
 // * io.h *
 static const struct std_module_fn io_fns[] = {
+    AU_MODULE_FN("input", au_std_io_input, 0),
     AU_MODULE_FN("stdout", au_std_io_stdout, 0),
     AU_MODULE_FN("stdin", au_std_io_stdin, 0),
     AU_MODULE_FN("stderr", au_std_io_stderr, 0),
@@ -193,7 +194,7 @@ void au_stdlib_export(struct au_program_data *data) {
 }
 
 au_extern_module_t au_stdlib_module(size_t idx) {
-    if (idx > au_stdlib_modules_len)
+    if (idx >= au_stdlib_modules_len)
         abort();
     const struct std_module *lib = &au_stdlib_modules_data[idx];
     au_extern_module_t module = au_extern_module_new();

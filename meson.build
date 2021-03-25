@@ -368,12 +368,12 @@ aument_header_files = [
 'src/platform/path.h',
 'src/platform/spawn.h',
 'src/platform/tmpfile.h',
+'src/lib/module.h',
 'src/core/vm/module.h',
 'src/stdlib/au_stdlib.h',
 'src/version.h',
 
 # Libraries
-'src/lib/module.h',
 'src/lib/string_builder.h',
 'src/lib/fn_value.h',
     ]
