@@ -91,13 +91,13 @@ static void link_to_imported(const struct au_program_data *p_data,
         const au_hm_var_value_t *fn_idx =
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
         if (fn_idx == 0)
-            au_fatal("unknown function %.*s", key_len, key);
+            au_fatal("unknown function %.*s", (int)key_len, key);
         struct au_fn *fn = &loaded_module->fns.data[*fn_idx];
         if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
             au_fatal("this function is not exported");
         if (au_fn_num_args(fn) != imported_func->num_args)
             au_fatal("unexpected number of arguments");
-        au_fn_fill_import_cache(&p_data->fns.data[entry], entry,
+        au_fn_fill_import_cache(&p_data->fns.data[entry], *fn_idx,
                                 loaded_module);
     })
     AU_HM_VARS_FOREACH_PAIR(&relative_module->class_map, key, entry, {
