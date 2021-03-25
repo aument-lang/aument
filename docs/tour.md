@@ -267,6 +267,8 @@ print op.(10);
 
 ## Modules
 
+### Imports
+
 You can import files using the `import` statement.
 
 ```
@@ -278,6 +280,15 @@ print "Hello World\n";
 // importer.au
 import "./importee.au"; // prints out Hello World
 ```
+
+Exported functions and classes are accessible under a **module**. You have to explicitly import a file as a module in order to use it:
+
+```
+import "importee.au" as module;
+print module::random(); // => 4
+```
+
+### Exports
 
 All files are executed separately and you cannot directly use an imported file's variables/functions (unless exported). To export a function, use the `export` statement:
 
@@ -296,16 +307,9 @@ export class Human {
 }
 ```
 
-Exported functions and classes are accessible under a **module**. You have to explicitly import a file as a module in order to use it:
+### Importing native DLLs
 
-```
-import "importee.au" as module;
-print module::random(); // => 4
-```
-
-### Importing native dynamically-linked library (DLLs)
-
-You can also import a dynamically linked library. On Unix systems, these files end with `.so`. On Windows, these files end with `.dll`. See [`tests/dl-module`](/tests/dl-module) for an example of importing a C library from Aument.
+You can also import native, dynamically linked libraries (DLLs). On Unix systems, these files end with `.so`. On Windows, these files end with `.dll`. See [`tests/dl-module`](/tests/dl-module) for an example of importing a C library from Aument.
 
 If the `.lib` extension is used, Aument will load the library with the extension corresponding to the platform's library extension.
 
