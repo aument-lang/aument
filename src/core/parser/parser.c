@@ -1887,7 +1887,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
         int32_t sign = 1;
 
         size_t i = 0;
-        if(t.src[0] == '-') {
+        if (t.src[0] == '-') {
             i += 1;
             sign = -1;
         }

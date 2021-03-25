@@ -658,19 +658,15 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case AU_OP_BNOT: {
             uint8_t reg = bc(pos);
             uint8_t ret = bc(pos + 1);
-            comp_printf(
-                state,
-                "COPY_VALUE(r%d,au_value_bnot(r%d));",
-                ret, reg);
+            comp_printf(state, "COPY_VALUE(r%d,au_value_bnot(r%d));", ret,
+                        reg);
             break;
         }
         case AU_OP_NEG: {
             uint8_t reg = bc(pos);
             uint8_t ret = bc(pos + 1);
-            comp_printf(
-                state,
-                "COPY_VALUE(r%d,au_value_neg(r%d));",
-                ret, reg);
+            comp_printf(state, "COPY_VALUE(r%d,au_value_neg(r%d));", ret,
+                        reg);
             break;
         }
         // Jump instructions
