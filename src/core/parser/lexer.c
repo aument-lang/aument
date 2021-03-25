@@ -175,79 +175,36 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
                 .len = len,
             };
         }
-    } else if (start_ch == '+' || start_ch == '-' || start_ch == '*' ||
-               start_ch == '/' || start_ch == '%' || start_ch == '!' ||
-               start_ch == '<' || start_ch == '>' || start_ch == '=') {
-        l->pos++;
-        if (!L_EOF() && l->src[l->pos] == '=') {
-            l->pos++;
-            return (struct au_token){
-                .type = AU_TOK_OPERATOR,
-                .src = l->src + start,
-                .len = 2,
-            };
-        }
-        return (struct au_token){
-            .type = AU_TOK_OPERATOR,
-            .src = l->src + start,
-            .len = 1,
-        };
-    } else if (start_ch == '&' || start_ch == '|') {
-        l->pos++;
-        if (!L_EOF() && l->src[l->pos] == start_ch) {
-            l->pos++;
-            return (struct au_token){
-                .type = AU_TOK_OPERATOR,
-                .src = l->src + start,
-                .len = 2,
-            };
-        }
-        return (struct au_token){
-            .type = AU_TOK_OPERATOR,
-            .src = l->src + start,
-            .len = 1,
-        };
-    } else if (start_ch == '(' || start_ch == ')' || start_ch == ';' ||
-               start_ch == ',' || start_ch == '{' || start_ch == '}' ||
-               start_ch == '[' || start_ch == ']' || start_ch == '.') {
-        l->pos++;
-        return (struct au_token){
-            .type = AU_TOK_OPERATOR,
-            .src = l->src + start,
-            .len = 1,
-        };
-    } else if (start_ch == ':') {
-        l->pos++;
-        if (!L_EOF() && l->src[l->pos] == ':') {
-            l->pos++;
-            return (struct au_token){
-                .type = AU_TOK_OPERATOR,
-                .src = l->src + start,
-                .len = 2,
-            };
-        }
-        return (struct au_token){
-            .type = AU_TOK_OPERATOR,
-            .src = l->src + start,
-            .len = 1,
-        };
-    } else if (start_ch == '#') {
-        l->pos++;
-        if (!L_EOF() && l->src[l->pos] == '[') {
-            l->pos++;
-            return (struct au_token){
-                .type = AU_TOK_OPERATOR,
-                .src = l->src + start,
-                .len = 2,
-            };
-        }
-    } else if (start_ch == 0) {
+    }
+#define X(TOKEN)                                                          \
+    if (l->pos + strlen(TOKEN) >= l->len &&                               \
+        memcmp(&l->src[l->pos], TOKEN, strlen(TOKEN)) == 0) {             \
+        size_t _len = strlen(TOKEN);                                      \
+        l->pos += _len;                                                   \
+        return (struct au_token){                                         \
+            .type = AU_TOK_AT_IDENTIFIER,                                 \
+            .src = l->src + start,                                        \
+            .len = _len,                                                  \
+        };                                                                \
+    }
+    // clang-format off
+    else X("+") else X("-") else X("*") else X("/")
+    else X("%") else X("!") else X("<") else X(">")
+    else X("=") else X("&") else X("|")
+    else X("+=") else X("-=") else X("*=") else X("/=")
+    else X("%=") else X("!=") else X("<=") else X(">=")
+    else X("==") else X("&=") else X("|=")
+    else X("(") else X(")") else X("{") else X("}")
+    else X(";") else X(",") else X(".") else X("::")
+    else X("#[") else X("[") else X("]")
+    else if (start_ch == 0) {
         l->pos = l->len;
         return (struct au_token){
             .type = AU_TOK_EOF,
         };
     }
-
+        // clang-format on
+#undef X
     return (struct au_token){
         .type = AU_TOK_UNKNOWN,
         .src = l->src + start,
