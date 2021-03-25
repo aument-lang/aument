@@ -617,6 +617,12 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             BIN_OP("leq")
         case AU_OP_GEQ:
             BIN_OP("geq")
+        case AU_OP_BAND:
+            BIN_OP("band")
+        case AU_OP_BOR:
+            BIN_OP("bor")
+        case AU_OP_BXOR:
+            BIN_OP("bxor")
 #undef BIN_OP
             // Binary operations on local variables
 #define BIN_AU_OP_ASG(NAME)                                               \
@@ -646,6 +652,24 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             comp_printf(
                 state,
                 "COPY_VALUE(r%d,au_value_bool(!au_value_is_truthy(r%d)));",
+                ret, reg);
+            break;
+        }
+        case AU_OP_BNOT: {
+            uint8_t reg = bc(pos);
+            uint8_t ret = bc(pos + 1);
+            comp_printf(
+                state,
+                "COPY_VALUE(r%d,au_value_bnot(r%d));",
+                ret, reg);
+            break;
+        }
+        case AU_OP_NEG: {
+            uint8_t reg = bc(pos);
+            uint8_t ret = bc(pos + 1);
+            comp_printf(
+                state,
+                "COPY_VALUE(r%d,au_value_neg(r%d));",
                 ret, reg);
             break;
         }

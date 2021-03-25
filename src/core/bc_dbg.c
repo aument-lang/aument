@@ -59,7 +59,15 @@ const char *au_opcode_dbg[256] = {"load_self",
                                   "set_const",
                                   "load_func",
                                   "bind_arg_to_func",
-                                  "call_func_value"};
+                                  "call_func_value",
+                                  "load_nil",
+                                  "bor",
+                                  "bxor",
+                                  "band",
+                                  "bshl",
+                                  "bshr",
+                                  "bnot",
+                                  "neg"};
 
 #ifdef AU_COVERAGE
 void au_bc_dbg(const struct au_bc_storage *bcs,
@@ -155,7 +163,11 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         case AU_OP_LT:
         case AU_OP_GT:
         case AU_OP_LEQ:
-        case AU_OP_GEQ: {
+        case AU_OP_GEQ:
+        case AU_OP_BAND:
+        case AU_OP_BOR:
+        case AU_OP_BSHL:
+        case AU_OP_BSHR: {
             uint8_t lhs = bc(pos);
             uint8_t rhs = bc(pos + 1);
             uint8_t res = bc(pos + 2);
@@ -176,7 +188,9 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             break;
         }
         // Unary instructions
-        case AU_OP_NOT: {
+        case AU_OP_NOT:
+        case AU_OP_NEG:
+        case AU_OP_BNOT: {
             uint8_t reg = bc(pos);
             uint8_t ret = bc(pos + 1);
             printf(" r%d <- r%d\n", ret, reg);

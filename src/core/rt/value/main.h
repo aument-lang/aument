@@ -464,16 +464,62 @@ static AU_ALWAYS_INLINE au_value_t au_value_div(au_value_t lhs,
 
 static AU_ALWAYS_INLINE au_value_t au_value_mod(au_value_t lhs,
                                                 au_value_t rhs) {
-    if (AU_UNLIKELY(au_value_get_type(lhs) != au_value_get_type(rhs)))
+    if (AU_UNLIKELY(au_value_get_type(lhs) != AU_VALUE_INT ||
+                    au_value_get_type(rhs) != AU_VALUE_INT))
         return au_value_error();
-    switch (au_value_get_type(lhs)) {
-    case AU_VALUE_INT: {
-        return au_value_int(au_value_get_int(lhs) % au_value_get_int(rhs));
-    }
-    default:
-        break;
-    }
-    return au_value_error();
+    return au_value_int(au_value_get_int(lhs) % au_value_get_int(rhs));
+}
+
+static AU_ALWAYS_INLINE au_value_t au_value_band(au_value_t lhs,
+                                                 au_value_t rhs) {
+    if (AU_UNLIKELY(au_value_get_type(lhs) != AU_VALUE_INT ||
+                    au_value_get_type(rhs) != AU_VALUE_INT))
+        return au_value_error();
+    return au_value_int(au_value_get_int(lhs) & au_value_get_int(rhs));
+}
+
+static AU_ALWAYS_INLINE au_value_t au_value_bor(au_value_t lhs,
+                                                au_value_t rhs) {
+    if (AU_UNLIKELY(au_value_get_type(lhs) != AU_VALUE_INT ||
+                    au_value_get_type(rhs) != AU_VALUE_INT))
+        return au_value_error();
+    return au_value_int(au_value_get_int(lhs) | au_value_get_int(rhs));
+}
+
+static AU_ALWAYS_INLINE au_value_t au_value_bxor(au_value_t lhs,
+                                                 au_value_t rhs) {
+    if (AU_UNLIKELY(au_value_get_type(lhs) != AU_VALUE_INT ||
+                    au_value_get_type(rhs) != AU_VALUE_INT))
+        return au_value_error();
+    return au_value_int(au_value_get_int(lhs) ^ au_value_get_int(rhs));
+}
+
+static AU_ALWAYS_INLINE au_value_t au_value_bshl(au_value_t lhs,
+                                                 au_value_t rhs) {
+    if (AU_UNLIKELY(au_value_get_type(lhs) != AU_VALUE_INT ||
+                    au_value_get_type(rhs) != AU_VALUE_INT))
+        return au_value_error();
+    return au_value_int(au_value_get_int(lhs) << au_value_get_int(rhs));
+}
+
+static AU_ALWAYS_INLINE au_value_t au_value_bshr(au_value_t lhs,
+                                                 au_value_t rhs) {
+    if (AU_UNLIKELY(au_value_get_type(lhs) != AU_VALUE_INT ||
+                    au_value_get_type(rhs) != AU_VALUE_INT))
+        return au_value_error();
+    return au_value_int(au_value_get_int(lhs) >> au_value_get_int(rhs));
+}
+
+static AU_ALWAYS_INLINE au_value_t au_value_bnot(au_value_t value) {
+    if (AU_UNLIKELY(au_value_get_type(value) != AU_VALUE_INT))
+        return au_value_error();
+    return au_value_int(~au_value_get_int(value));
+}
+
+static AU_ALWAYS_INLINE au_value_t au_value_neg(au_value_t value) {
+    if (AU_UNLIKELY(au_value_get_type(value) != AU_VALUE_INT))
+        return au_value_error();
+    return au_value_int(-au_value_get_int(value));
 }
 
 #define _BIN_OP_BOOL_GENERIC(NAME, OP)                                    \

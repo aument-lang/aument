@@ -176,35 +176,50 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
             };
         }
     }
+
 #define X(TOKEN)                                                          \
-    if (l->pos + strlen(TOKEN) >= l->len &&                               \
+    if ((l->pos + strlen(TOKEN) <= l->len) &&                             \
         memcmp(&l->src[l->pos], TOKEN, strlen(TOKEN)) == 0) {             \
         size_t _len = strlen(TOKEN);                                      \
         l->pos += _len;                                                   \
         return (struct au_token){                                         \
-            .type = AU_TOK_AT_IDENTIFIER,                                 \
+            .type = AU_TOK_OPERATOR,                                      \
             .src = l->src + start,                                        \
             .len = _len,                                                  \
         };                                                                \
     }
     // clang-format off
-    else X("+") else X("-") else X("*") else X("/")
-    else X("%") else X("!") else X("<") else X(">")
-    else X("=") else X("&") else X("|")
+
+    // Two character operators:
+    // A/C assignment operators
     else X("+=") else X("-=") else X("*=") else X("/=")
     else X("%=") else X("!=") else X("<=") else X(">=")
-    else X("==") else X("&=") else X("|=")
-    else X("(") else X(")") else X("{") else X("}")
-    else X(";") else X(",") else X(".") else X("::")
-    else X("#[") else X("[") else X("]")
+    else X("==")
+    else X("&&") else X("||") else X("&=") else X("|=")
+    // Other
+    else X("#[") else X("::")
+
+    // One character operators:
+    // Arithmetic/comparison operators
+    else X("+")  else X("-")  else X("*")  else X("/")
+    else X("%")  else X("!")  else X("<")  else X(">")
+    else X("=")
+    // Bitwise operators
+    else X("&")  else X("|")  else X("~")
+    // Other
+    else X("(")  else X(")")  else X("{")  else X("}")
+    else X(";")  else X(",")  else X(".")  else X(":")
+    else X("[")  else X("]")
+
     else if (start_ch == 0) {
         l->pos = l->len;
         return (struct au_token){
             .type = AU_TOK_EOF,
         };
     }
-        // clang-format on
-#undef X
+
+#undef X // clang-format on
+
     return (struct au_token){
         .type = AU_TOK_UNKNOWN,
         .src = l->src + start,

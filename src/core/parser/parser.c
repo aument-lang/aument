@@ -1568,26 +1568,37 @@ BIN_EXPR(
     },
     parser_exec_unary_expr)
 
+#undef BIN_EXPR
+
 static int parser_exec_unary_expr(struct au_parser *p,
                                   struct au_lexer *l) {
     struct au_token tok = au_lexer_peek(l, 0);
-    if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == '!') {
-        au_lexer_next(l);
-        if (!parser_exec_expr(p, l))
-            return 0;
+#define UNARY_EXPR_BODY(OPCODE)                                           \
+    do {                                                                  \
+        au_lexer_next(l);                                                 \
+        if (!parser_exec_expr(p, l))                                      \
+            return 0;                                                     \
+                                                                          \
+        const uint8_t reg = parser_pop_reg(p);                            \
+        parser_emit_bc_u8(p, OPCODE);                                     \
+        parser_emit_bc_u8(p, reg);                                        \
+        uint8_t result_reg;                                               \
+        EXPECT_BYTECODE(parser_new_reg(p, &result_reg));                  \
+        parser_emit_bc_u8(p, result_reg);                                 \
+        parser_emit_pad8(p);                                              \
+                                                                          \
+        return 1;                                                         \
+    } while (0)
 
-        const uint8_t reg = parser_pop_reg(p);
-        parser_emit_bc_u8(p, AU_OP_NOT);
-        parser_emit_bc_u8(p, reg);
-        uint8_t result_reg;
-        EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
-        parser_emit_bc_u8(p, result_reg);
-        parser_emit_pad8(p);
-
-        return 1;
-    } else {
+    if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == '!')
+        UNARY_EXPR_BODY(AU_OP_NOT);
+    else if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
+             tok.src[0] == '~')
+        UNARY_EXPR_BODY(AU_OP_BNOT);
+    else
         return parser_exec_index_expr(p, l);
-    }
+
+#undef UNARY_EXPR_BODY
 }
 
 static int parser_exec_index_expr(struct au_parser *p,
@@ -1646,7 +1657,6 @@ static int parser_exec_index_expr(struct au_parser *p,
             struct au_token id_tok = au_lexer_next(l);
             if (id_tok.type == AU_TOK_OPERATOR && id_tok.len == 1 &&
                 id_tok.src[0] == '(') {
-
                 int num_args = 0;
                 if (!parser_exec_call_args(p, l, &num_args))
                     return 0;
@@ -1873,10 +1883,18 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
 
     switch (t.type) {
     case AU_TOK_INT: {
-        int num = 0;
-        for (size_t i = 0; i < t.len; i++) {
+        int32_t num = 0;
+        int32_t sign = 1;
+
+        size_t i = 0;
+        if(t.src[0] == '-') {
+            i += 1;
+            sign = -1;
+        }
+        for (; i < t.len; i++) {
             num = num * 10 + (t.src[i] - '0');
         }
+        num *= sign;
 
         uint8_t result_reg;
         EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
@@ -1899,7 +1917,7 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
         for (size_t i = 0; i < t.len; i++) {
             if (t.src[i] == '.') {
                 i++;
-                unsigned int fractional = 0, power = 1;
+                uint64_t fractional = 0, power = 1;
                 for (; i < t.len; i++) {
                     fractional = (fractional * 10) + (t.src[i] - '0');
                     power *= 10;
@@ -1922,8 +1940,24 @@ static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
     }
     case AU_TOK_OPERATOR: {
         if (t.len == 1 && t.src[0] == '(') {
-            if (!parser_exec_expr(p, l))
-                return 0;
+            t = au_lexer_peek(l, 0);
+            if (t.type == AU_TOK_OPERATOR && t.len == 1 &&
+                t.src[0] == '-') {
+                au_lexer_next(l);
+                if (!parser_exec_expr(p, l))
+                    return 0;
+
+                const uint8_t reg = parser_pop_reg(p);
+                parser_emit_bc_u8(p, AU_OP_NEG);
+                parser_emit_bc_u8(p, reg);
+                uint8_t result_reg;
+                EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+                parser_emit_bc_u8(p, result_reg);
+                parser_emit_pad8(p);
+            } else {
+                if (!parser_exec_expr(p, l))
+                    return 0;
+            }
             t = au_lexer_next(l);
             EXPECT_TOKEN(t.len == 1 && t.src[0] == ')', t, "')'");
         } else if (t.len == 1 && t.src[0] == '[') {

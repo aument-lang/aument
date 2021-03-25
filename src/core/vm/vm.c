@@ -353,6 +353,13 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_BIND_ARG_TO_FUNC),
             &&CASE(AU_OP_CALL_FUNC_VALUE),
             &&CASE(AU_OP_LOAD_NIL),
+            &&CASE(AU_OP_BOR),
+            &&CASE(AU_OP_BXOR),
+            &&CASE(AU_OP_BAND),
+            &&CASE(AU_OP_BSHL),
+            &&CASE(AU_OP_BSHR),
+            &&CASE(AU_OP_BNOT),
+            &&CASE(AU_OP_NEG),
             &&CASE(AU_OP_MUL_INT),
             &&CASE(AU_OP_DIV_INT),
             &&CASE(AU_OP_ADD_INT),
@@ -525,6 +532,35 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 
                 DISPATCH;
             }
+            CASE(AU_OP_BNOT) : {
+                const uint8_t reg = bc[1];
+                const uint8_t ret = bc[2];
+                PREFETCH_INSN;
+
+                COPY_VALUE(frame.regs[ret],
+                           au_value_bnot(frame.regs[reg]));
+
+                // FIXME: unary operator error
+                if (AU_UNLIKELY(au_value_is_error(frame.regs[ret])))
+                    RAISE(call_error());
+
+                DISPATCH;
+            }
+            CASE(AU_OP_NEG) : {
+                const uint8_t reg = bc[1];
+                const uint8_t ret = bc[2];
+                PREFETCH_INSN;
+
+                // FIXME: unary operator error
+                if (AU_UNLIKELY(au_value_get_type(frame.regs[reg]) !=
+                                AU_VALUE_INT))
+                    RAISE(call_error());
+
+                frame.regs[ret] =
+                    au_value_int(-au_value_get_int(frame.regs[reg]));
+
+                DISPATCH;
+            }
             // Binary operations
 #define SPECIALIZED_INT_ONLY(NAME)                                        \
     if ((au_value_get_type(lhs) == AU_VALUE_INT) &&                       \
@@ -539,6 +575,12 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
              (au_value_get_type(rhs) == AU_VALUE_DOUBLE)) {               \
         bc[0] = NAME##_DOUBLE;                                            \
         goto _##NAME##_DOUBLE;                                            \
+    }
+
+// This macro stops the compiler from warning us about unused labels
+#define NO_SPECIALIZER(NAME)                                              \
+    while (0) {                                                           \
+        goto _##NAME;                                                     \
     }
 
 #ifdef AU_FEAT_DELAYED_RC
@@ -592,6 +634,11 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             BIN_OP(AU_OP_GT, gt, SPECIALIZED_INT_AND_DOUBLE(AU_OP_GT))
             BIN_OP(AU_OP_LEQ, leq, SPECIALIZED_INT_AND_DOUBLE(AU_OP_LEQ))
             BIN_OP(AU_OP_GEQ, geq, SPECIALIZED_INT_AND_DOUBLE(AU_OP_GEQ))
+            BIN_OP(AU_OP_BOR, bor, NO_SPECIALIZER(AU_OP_BOR))
+            BIN_OP(AU_OP_BXOR, bxor, NO_SPECIALIZER(AU_OP_BXOR))
+            BIN_OP(AU_OP_BAND, band, NO_SPECIALIZER(AU_OP_BAND))
+            BIN_OP(AU_OP_BSHL, bshl, NO_SPECIALIZER(AU_OP_BSHL))
+            BIN_OP(AU_OP_BSHR, bshr, NO_SPECIALIZER(AU_OP_BSHR))
 #undef SPECIALIZED_INT_ONLY
 #undef SPECIALIZED_INT_AND_DOUBLE
 #undef BIN_OP
