@@ -29,14 +29,26 @@ AU_EXTERN_FUNC_DECL(au_std_int_into) {
     }
     case AU_VALUE_STR: {
         const struct au_string *header = au_value_get_string(value);
-        int num = 0;
-        for (size_t i = 0; i < header->len; i++) {
+
+        int32_t num = 0;
+        int32_t sign = 1;
+
+        size_t i = 0;
+        if (header->data[i] == '-') {
+            sign = -1;
+            i++;
+        } else if (header->data[i] == '+') {
+            i++;
+        }
+        for (; i < header->len; i++) {
             if (header->data[i] >= '0' && header->data[i] <= '9') {
                 num = num * 10 + (header->data[i] - '0');
             } else {
                 break;
             }
         }
+        num *= sign;
+
         au_value_deref(value);
         return au_value_int(num);
     }
