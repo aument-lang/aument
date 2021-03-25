@@ -79,7 +79,7 @@ struct au_parser {
     size_t self_keyword_len;
 
     /// Function ID
-    size_t func_id;
+    size_t func_idx;
 
     /// Result of the parser
     struct au_parser_result res;
@@ -114,7 +114,7 @@ static void parser_init(struct au_parser *p,
     p->self_len = 0;
     p->self_fill_call = (struct size_t_array){0};
     p->self_num_args = 0;
-    p->func_id = AU_SM_FUNC_ID_MAIN;
+    p->func_idx = AU_SM_FUNC_ID_MAIN;
 
     p->class_interface = 0;
     p->self_keyword = 0;
@@ -426,7 +426,7 @@ static int parser_exec_statement(struct au_parser *p, struct au_lexer *l) {
                     .bc_from = bc_from,
                     .bc_to = bc_to,
                     .source_start = source_start,
-                    .func_idx = p->func_id,
+                    .func_idx = p->func_idx,
                 };
             au_program_source_map_array_add(&p->p_data->source_map, map);
         }
@@ -768,7 +768,7 @@ static int parser_exec_def_statement(struct au_parser *p,
     parser_init(&func_p, p->p_data);
     func_p.self_name = id_tok.src;
     func_p.self_len = id_tok.len;
-    func_p.func_id = func_value;
+    func_p.func_idx = func_value;
     func_p.class_interface = class_interface;
     struct au_bc_storage bcs = {0};
 
@@ -885,6 +885,7 @@ static int parser_exec_def_statement(struct au_parser *p,
     bcs.class_idx = class_idx;
     bcs.class_interface_cache = class_interface;
     bcs.source_map_start = source_map_start;
+    bcs.func_idx = func_p.func_idx;
     func_p.bc = (struct au_bc_buf){0};
 
     for (size_t i = 0; i < func_p.self_fill_call.len; i++) {
@@ -918,7 +919,7 @@ static int parser_exec_const_statement(struct au_parser *p,
         return 0;
     const uint8_t right_reg = parser_pop_reg(p);
 
-    if (p->func_id == AU_SM_FUNC_ID_MAIN) {
+    if (p->func_idx == AU_SM_FUNC_ID_MAIN) {
         // Main function
         int data_len = p->p_data->data_val.len;
         au_hm_var_value_t *old =
@@ -2294,6 +2295,7 @@ struct au_parser_result au_parse(const char *src, size_t len,
 
     struct au_bc_storage p_main;
     au_bc_storage_init(&p_main);
+    p_main.func_idx = AU_SM_FUNC_ID_MAIN;
     p_main.bc = p.bc;
     p_main.num_locals = p.num_locals;
     p_main.num_registers = p.max_register + 1;

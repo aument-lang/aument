@@ -9,14 +9,28 @@
 
 #include "core/array.h"
 #include "core/hm_vars.h"
+#include "core/int_error/error_location.h"
 #include "core/rt/value.h"
+#include "core/vm/exception.h"
 #include "core/vm/frame_link.h"
+
 #include "platform/platform.h"
 
 typedef void (*au_vm_print_fn_t)(au_value_t);
 
 struct au_program_data;
 AU_ARRAY_COPY(struct au_program_data *, au_program_data_array, 1)
+
+struct au_vm_trace_main {
+    const char *file;
+    struct au_interpreter_result result;
+};
+
+struct au_vm_trace_item {
+    const char *file;
+    size_t pos;
+};
+AU_ARRAY_COPY(struct au_vm_trace_item, au_vm_trace_item_array, 1)
 
 struct au_vm_thread_local {
     au_vm_print_fn_t print_fn;
@@ -28,6 +42,8 @@ struct au_vm_thread_local {
     struct au_vm_frame_link current_frame;
     uintptr_t stack_start;
     size_t stack_max;
+    struct au_vm_trace_main error;
+    struct au_vm_trace_item_array backtrace;
 };
 
 /// [func] Gets the current thread's au_vm_thread_local instance

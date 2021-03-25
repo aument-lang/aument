@@ -50,7 +50,7 @@ au_value_t au_fn_value_call_vm(const struct au_fn_value *fn_value,
     const int32_t num_bound_args = fn_value->bound_args.len;
     const int32_t total_args = num_bound_args + num_unbound_args;
     if (total_args != au_fn_num_args(fn_value->fn)) {
-        return au_value_op_error();
+        return au_value_error();
     }
     au_value_t *args = au_value_calloc(total_args);
     for (int i = 0; i < (int)fn_value->bound_args.len; i++) {

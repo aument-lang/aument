@@ -223,7 +223,7 @@ AU_EXTERN_FUNC_DECL(au_std_io_close) {
     struct au_struct *io_struct = au_struct_coerce(io_valueue);
     if (io_struct == NULL || io_struct->vdata != &io_vdata) {
         au_value_deref(io_valueue);
-        return au_value_op_error();
+        return au_value_error();
     }
     io_close((struct au_std_io *)io_struct);
     au_value_deref(io_valueue);
@@ -248,7 +248,7 @@ AU_EXTERN_FUNC_DECL(au_std_io_read) {
 
 fail:
     au_value_deref(io_valueue);
-    return au_value_op_error();
+    return au_value_error();
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_read_up_to) {
@@ -280,7 +280,7 @@ AU_EXTERN_FUNC_DECL(au_std_io_read_up_to) {
 fail:
     au_value_deref(io_value);
     au_value_deref(n_value);
-    return au_value_op_error();
+    return au_value_error();
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_write) {
@@ -306,7 +306,7 @@ AU_EXTERN_FUNC_DECL(au_std_io_write) {
 fail:
     au_value_deref(io_value);
     au_value_deref(out_value);
-    return au_value_op_error();
+    return au_value_error();
 }
 
 AU_EXTERN_FUNC_DECL(au_std_io_flush) {
@@ -321,5 +321,5 @@ AU_EXTERN_FUNC_DECL(au_std_io_flush) {
 
 fail:
     au_value_deref(io_value);
-    return au_value_op_error();
+    return au_value_error();
 }

@@ -68,7 +68,7 @@ static au_value_t direct_call_fn_value(const struct au_fn_value *fn_value,
     const int32_t num_bound_args = fn_value->bound_args.len;
     const int32_t total_args = num_bound_args + num_unbound_args;
     if (total_args != fn_value->num_args) {
-        return au_value_op_error();
+        return au_value_error();
     }
     au_value_t *args = au_value_calloc(total_args);
     for (int i = 0; i < (int)fn_value->bound_args.len; i++) {
@@ -100,7 +100,7 @@ au_value_t au_fn_value_call_rt(au_value_t fn_value_,
                                int32_t num_unbound_args) {
     struct au_fn_value *fn_value = au_fn_value_coerce(fn_value_);
     if (fn_value == 0)
-        return au_value_op_error();
+        return au_value_error();
     return direct_call_fn_value(fn_value, unbound_args, num_unbound_args);
 }
 

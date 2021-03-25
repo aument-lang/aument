@@ -120,53 +120,47 @@ static void link_to_imported(const struct au_program_data *p_data,
     }
 }
 
-static void bin_op_error(au_value_t left, au_value_t right,
-                         const struct au_program_data *p_data,
-                         struct au_vm_frame *frame) {
-    au_vm_error(
-        (struct au_interpreter_result){
-            .type = AU_INT_ERR_INCOMPAT_BIN_OP,
-            .data.incompat_bin_op.left = left,
-            .data.incompat_bin_op.right = right,
-            .pos = 0,
-        },
-        p_data, frame);
+// * Error functions *
+
+static struct au_interpreter_result bin_op_error(au_value_t left,
+                                                 au_value_t right) {
+    au_value_ref(left);
+    au_value_ref(right);
+    return (struct au_interpreter_result){
+        .type = AU_INT_ERR_INCOMPAT_BIN_OP,
+        .data.incompat_bin_op.left = left,
+        .data.incompat_bin_op.right = right,
+        .pos = 0,
+    };
 }
 
-static void call_error(const struct au_program_data *p_data,
-                       struct au_vm_frame *frame) {
-    au_vm_error(
-        (struct au_interpreter_result){
-            .type = AU_INT_ERR_INCOMPAT_CALL,
-            .pos = 0,
-        },
-        p_data, frame);
+static struct au_interpreter_result call_error() {
+    return (struct au_interpreter_result){
+        .type = AU_INT_ERR_INCOMPAT_CALL,
+        .pos = 0,
+    };
 }
 
-static void
-indexing_non_collection_error(au_value_t value,
-                              const struct au_program_data *p_data,
-                              struct au_vm_frame *frame) {
-    au_vm_error(
-        (struct au_interpreter_result){
-            .type = AU_INT_ERR_INDEXING_NON_COLLECTION,
-            .data.invalid_collection.value = value,
-            .pos = 0,
-        },
-        p_data, frame);
+static struct au_interpreter_result
+indexing_non_collection_error(au_value_t value) {
+    au_value_ref(value);
+    return (struct au_interpreter_result){
+        .type = AU_INT_ERR_INDEXING_NON_COLLECTION,
+        .data.invalid_collection.value = value,
+        .pos = 0,
+    };
 }
 
-static void invalid_index_error(au_value_t collection, au_value_t idx,
-                                const struct au_program_data *p_data,
-                                struct au_vm_frame *frame) {
-    au_vm_error(
-        (struct au_interpreter_result){
-            .type = AU_INT_ERR_INVALID_INDEX,
-            .data.invalid_index.collection = collection,
-            .data.invalid_index.idx = idx,
-            .pos = 0,
-        },
-        p_data, frame);
+static struct au_interpreter_result
+invalid_index_error(au_value_t collection, au_value_t idx) {
+    au_value_ref(collection);
+    au_value_ref(idx);
+    return (struct au_interpreter_result){
+        .type = AU_INT_ERR_INVALID_INDEX,
+        .data.invalid_index.collection = collection,
+        .data.invalid_index.idx = idx,
+        .pos = 0,
+    };
 }
 
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
@@ -232,7 +226,35 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #define FLUSH_BC()                                                        \
     do {                                                                  \
         frame.bc = bc;                                                    \
-    } while (0);
+    } while (0)
+
+#define RAISE(ERROR)                                                      \
+    do {                                                                  \
+        FLUSH_BC();                                                       \
+        tl->error.file = p_data->file;                                    \
+        tl->error.result = (ERROR);                                       \
+        tl->error.result.pos = au_vm_locate_error(&frame, bcs, p_data);   \
+        frame.retval = au_value_error();                                  \
+        goto end;                                                         \
+    } while (0)
+
+#define RAISE_BT()                                                        \
+    do {                                                                  \
+        FLUSH_BC();                                                       \
+        if (tl->error.result.type == 0) {                                 \
+            tl->error.file = p_data->file;                                \
+            tl->error.result.type = AU_INT_ERR_INCOMPAT_CALL;             \
+            tl->error.result.pos =                                        \
+                au_vm_locate_error(&frame, bcs, p_data);                  \
+        } else {                                                          \
+            struct au_vm_trace_item item;                                 \
+            item.file = p_data->file;                                     \
+            item.pos = au_vm_locate_error(&frame, bcs, p_data);           \
+            au_vm_trace_item_array_add(&tl->backtrace, item);             \
+        }                                                                 \
+        frame.retval = au_value_error();                                  \
+        goto end;                                                         \
+    } while (0)
 
     while (1) {
 #ifdef DEBUG_VM
@@ -530,9 +552,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                                                           \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
-            FLUSH_BC();                                                   \
-            bin_op_error(lhs, rhs, p_data, &frame);                       \
+        if (au_value_is_error(result)) {                                  \
+            RAISE(bin_op_error(lhs, rhs));                                \
         }                                                                 \
         frame.regs[res] = result;                                         \
         /* INVARIANT(GC): value operations always return an RC'd result   \
@@ -552,9 +573,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                                                           \
         SPECIALIZER                                                       \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
-            FLUSH_BC();                                                   \
-            bin_op_error(lhs, rhs, p_data, &frame);                       \
+        if (au_value_is_error(result)) {                                  \
+            RAISE(bin_op_error(lhs, rhs));                                \
         }                                                                 \
         MOVE_VALUE(frame.regs[res], result);                              \
                                                                           \
@@ -744,9 +764,8 @@ _AU_OP_JNIF:;
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
-            FLUSH_BC();                                                   \
-            bin_op_error(lhs, rhs, p_data, &frame);                       \
+        if (au_value_is_error(result)) {                                  \
+            RAISE(bin_op_error(lhs, rhs));                                \
         }                                                                 \
         frame.locals[local] = result;                                     \
         au_value_deref(result);                                           \
@@ -765,9 +784,8 @@ _AU_OP_JNIF:;
         const au_value_t lhs = frame.locals[local];                       \
         const au_value_t rhs = frame.regs[reg];                           \
         const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (AU_UNLIKELY(au_value_is_op_error(result))) {                  \
-            FLUSH_BC();                                                   \
-            bin_op_error(lhs, rhs, p_data, &frame);                       \
+        if (au_value_is_error(result)) {                                  \
+            RAISE(bin_op_error(lhs, rhs));                                \
         }                                                                 \
         MOVE_VALUE(frame.locals[local], result);                          \
                                                                           \
@@ -801,13 +819,13 @@ _AU_OP_JNIF:;
                     &frame.arg_stack.data[frame.arg_stack.len - n_regs];
 
                 FLUSH_BC();
+
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, args, &is_native);
-                if (AU_UNLIKELY(au_value_is_op_error(callee_retval))) {
-                    FLUSH_BC();
-                    call_error(p_data, &frame);
-                }
+                if (au_value_is_error(callee_retval))
+                    RAISE_BT();
+
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[ret_reg] = callee_retval;
                 // INVARIANT(GC): native functions always return
@@ -839,13 +857,12 @@ _AU_OP_JNIF:;
                 au_value_ref(arg_reg);
 
                 FLUSH_BC();
+
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, &arg_reg, &is_native);
-                if (AU_UNLIKELY(au_value_is_op_error(callee_retval))) {
-                    FLUSH_BC();
-                    call_error(p_data, &frame);
-                }
+                if (au_value_is_error(callee_retval))
+                    RAISE_BT();
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[ret_reg] = callee_retval;
@@ -912,7 +929,7 @@ _AU_OP_JNIF:;
                     int is_native = 0;
                     const au_value_t callee_retval = au_fn_value_call_vm(
                         fn_value, tl, args, num_args, &is_native);
-                    if (AU_UNLIKELY(au_value_is_op_error(callee_retval))) {
+                    if (au_value_is_error(callee_retval)) {
                         FLUSH_BC();
                         call_error(p_data, &frame);
                     }
@@ -1005,14 +1022,11 @@ _AU_OP_JNIF:;
                     au_value_t value;
                     if (!collection->vdata->idx_get_fn(collection, idx_val,
                                                        &value)) {
-                        FLUSH_BC();
-                        invalid_index_error(col_val, idx_val, p_data,
-                                            &frame);
+                        RAISE(invalid_index_error(col_val, idx_val));
                     }
                     COPY_VALUE(frame.regs[ret_reg], value);
                 } else {
-                    FLUSH_BC();
-                    indexing_non_collection_error(col_val, p_data, &frame);
+                    RAISE(indexing_non_collection_error(col_val));
                 }
 
                 DISPATCH;
@@ -1028,13 +1042,10 @@ _AU_OP_JNIF:;
                     if (AU_UNLIKELY(collection->vdata->idx_set_fn(
                                         collection, idx_val, value_val) ==
                                     0)) {
-                        FLUSH_BC();
-                        invalid_index_error(col_val, idx_val, p_data,
-                                            &frame);
+                        RAISE(invalid_index_error(col_val, idx_val));
                     }
                 } else {
-                    FLUSH_BC();
-                    indexing_non_collection_error(col_val, p_data, &frame);
+                    RAISE(indexing_non_collection_error(col_val));
                 }
 
                 DISPATCH;
@@ -1073,13 +1084,10 @@ _AU_OP_JNIF:;
                     if (AU_UNLIKELY(collection->vdata->idx_set_fn(
                                         collection, idx_val, value_val) ==
                                     0)) {
-                        FLUSH_BC();
-                        invalid_index_error(col_val, idx_val, p_data,
-                                            &frame);
+                        RAISE(invalid_index_error(col_val, idx_val));
                     }
                 } else {
-                    FLUSH_BC();
-                    indexing_non_collection_error(col_val, p_data, &frame);
+                    RAISE(indexing_non_collection_error(col_val));
                 }
 
                 DISPATCH;

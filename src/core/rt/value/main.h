@@ -30,7 +30,7 @@ enum au_vtype {
     AU_VALUE_STR = 5,
     AU_VALUE_STRUCT = 6,
     // ...
-    AU_VALUE_OP_ERROR = 15,
+    AU_VALUE_ERROR = 15,
 };
 
 struct au_string;
@@ -56,8 +56,7 @@ typedef struct _au_value au_value_t;
 
 static enum au_vtype au_value_get_type(const au_value_t v);
 static au_value_t au_value_none();
-static au_value_t au_value_op_error();
-static int au_value_is_op_error(au_value_t v);
+static au_value_t au_value_error();
 static au_value_t au_value_int(int32_t n);
 static int32_t au_value_get_int(const au_value_t v);
 static au_value_t au_value_double(double n);
@@ -83,7 +82,7 @@ static struct au_struct *au_value_get_struct(const au_value_t v);
      ((((uint64_t)TAG) << 48) | ((POINTER)&INT64_C(0xffffffffffff))))
 #define AU_REPR_GET_POINTER(x) ((x)&INT64_C(0x0000ffffffffffff))
 
-#define AU_REPR_OP_ERROR INT64_C(0x7ff0ffffffffffff)
+#define AU_REPR_ERROR INT64_C(0x7ff0ffffffffffff)
 #define AU_REPR_CANONICAL_NAN INT64_C(0x7ff0000000000001)
 
 #define AU_REPR_MAGIC_BITMASK INT64_C(0x7fffffffffffffff)
@@ -99,14 +98,14 @@ au_value_get_type(const au_value_t v) {
     return (enum au_vtype)((magic >> 48) & (0xf * is_not_float));
 }
 
-static AU_ALWAYS_INLINE au_value_t au_value_op_error() {
+static AU_ALWAYS_INLINE au_value_t au_value_error() {
     au_value_t v;
-    v.raw = AU_REPR_OP_ERROR;
+    v.raw = AU_REPR_ERROR;
     return v;
 }
 
-static AU_ALWAYS_INLINE int au_value_is_op_error(au_value_t v) {
-    return v.raw == AU_REPR_OP_ERROR;
+static AU_ALWAYS_INLINE int au_value_is_error(au_value_t v) {
+    return AU_UNLIKELY(v.raw == AU_REPR_ERROR);
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_none() {
@@ -206,14 +205,14 @@ static AU_ALWAYS_INLINE au_value_t au_value_none() {
     return v;
 }
 
-static AU_ALWAYS_INLINE au_value_t au_value_op_error() {
+static AU_ALWAYS_INLINE au_value_t AU_VALUE_ERROR() {
     au_value_t v = {0};
-    v._type = AU_VALUE_OP_ERROR;
+    v._type = AU_VALUE_ERROR;
     return v;
 }
 
-static AU_ALWAYS_INLINE int au_value_is_op_error(au_value_t v) {
-    return v._type == AU_VALUE_OP_ERROR;
+static AU_ALWAYS_INLINE int au_value_is_error(au_value_t v) {
+    return AU_UNLIKELY(v._type == AU_VALUE_ERROR);
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_int(int32_t n) {
@@ -337,7 +336,7 @@ static AU_ALWAYS_INLINE au_value_t au_value_add(au_value_t lhs,
             return au_value_double((double)au_value_get_int(lhs) +
                                    au_value_get_double(rhs));
         default:
-            return au_value_op_error();
+            return au_value_error();
         }
     }
     case AU_VALUE_DOUBLE: {
@@ -349,19 +348,19 @@ static AU_ALWAYS_INLINE au_value_t au_value_add(au_value_t lhs,
             return au_value_double(au_value_get_double(lhs) +
                                    au_value_get_double(rhs));
         default:
-            return au_value_op_error();
+            return au_value_error();
         }
     }
     case AU_VALUE_STR: {
         if (AU_UNLIKELY(au_value_get_type(rhs) != AU_VALUE_STR))
-            return au_value_op_error();
+            return au_value_error();
         return au_value_string(au_string_add(au_value_get_string(lhs),
                                              au_value_get_string(rhs)));
     }
     default:
         break;
     }
-    return au_value_op_error();
+    return au_value_error();
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_sub(au_value_t lhs,
@@ -376,7 +375,7 @@ static AU_ALWAYS_INLINE au_value_t au_value_sub(au_value_t lhs,
             return au_value_double((double)au_value_get_int(lhs) -
                                    au_value_get_double(rhs));
         default:
-            return au_value_op_error();
+            return au_value_error();
         }
     }
     case AU_VALUE_DOUBLE: {
@@ -388,13 +387,13 @@ static AU_ALWAYS_INLINE au_value_t au_value_sub(au_value_t lhs,
             return au_value_double(au_value_get_double(lhs) -
                                    au_value_get_double(rhs));
         default:
-            return au_value_op_error();
+            return au_value_error();
         }
     }
     default:
         break;
     }
-    return au_value_op_error();
+    return au_value_error();
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_mul(au_value_t lhs,
@@ -409,7 +408,7 @@ static AU_ALWAYS_INLINE au_value_t au_value_mul(au_value_t lhs,
             return au_value_double((double)au_value_get_int(lhs) *
                                    au_value_get_double(rhs));
         default:
-            return au_value_op_error();
+            return au_value_error();
         }
     }
     case AU_VALUE_DOUBLE: {
@@ -421,13 +420,13 @@ static AU_ALWAYS_INLINE au_value_t au_value_mul(au_value_t lhs,
             return au_value_double(au_value_get_double(lhs) *
                                    au_value_get_double(rhs));
         default:
-            return au_value_op_error();
+            return au_value_error();
         }
     }
     default:
         break;
     }
-    return au_value_op_error();
+    return au_value_error();
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_div(au_value_t lhs,
@@ -442,7 +441,7 @@ static AU_ALWAYS_INLINE au_value_t au_value_div(au_value_t lhs,
             return au_value_double((double)au_value_get_int(lhs) /
                                    au_value_get_double(rhs));
         default:
-            return au_value_op_error();
+            return au_value_error();
         }
     }
     case AU_VALUE_DOUBLE: {
@@ -454,19 +453,19 @@ static AU_ALWAYS_INLINE au_value_t au_value_div(au_value_t lhs,
             return au_value_double(au_value_get_double(lhs) /
                                    au_value_get_double(rhs));
         default:
-            return au_value_op_error();
+            return au_value_error();
         }
     }
     default:
         break;
     }
-    return au_value_op_error();
+    return au_value_error();
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_mod(au_value_t lhs,
                                                 au_value_t rhs) {
     if (AU_UNLIKELY(au_value_get_type(lhs) != au_value_get_type(rhs)))
-        return au_value_op_error();
+        return au_value_error();
     switch (au_value_get_type(lhs)) {
     case AU_VALUE_INT: {
         return au_value_int(au_value_get_int(lhs) % au_value_get_int(rhs));
@@ -474,7 +473,7 @@ static AU_ALWAYS_INLINE au_value_t au_value_mod(au_value_t lhs,
     default:
         break;
     }
-    return au_value_op_error();
+    return au_value_error();
 }
 
 #define _BIN_OP_BOOL_GENERIC(NAME, OP)                                    \

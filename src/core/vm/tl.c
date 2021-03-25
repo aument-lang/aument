@@ -49,6 +49,7 @@ void au_vm_thread_local_del(struct au_vm_thread_local *tl) {
         au_data_free(ptr);
     }
     au_data_free(tl->loaded_modules.data);
+    au_data_free(tl->backtrace.data);
     memset(tl, 0, sizeof(struct au_vm_thread_local));
 }
 

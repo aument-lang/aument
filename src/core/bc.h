@@ -116,6 +116,7 @@ struct au_bc_storage {
     /// At which index does the source map representation of the function
     /// start
     size_t source_map_start;
+    size_t func_idx;
 };
 
 /// [func] Initializes an au_bc_storage instance

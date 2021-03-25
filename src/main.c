@@ -16,6 +16,7 @@
 #include "platform/tmpfile.h"
 
 #include "core/bc.h"
+#include "core/int_error/error_printer.h"
 #include "core/parser/parser.h"
 #include "core/program.h"
 #include "core/rt/exception.h"
@@ -196,9 +197,40 @@ int main(int argc, char **argv) {
         tl.stack_max = AU_STACK_MAX;
 
         au_vm_thread_local_install_stdlib(&tl);
-
         au_malloc_set_collect(1);
-        au_vm_exec_unverified_main(&tl, &program);
+
+        au_value_t retval = au_vm_exec_unverified_main(&tl, &program);
+        if (au_value_is_error(retval)) {
+            struct au_mmap_info mmap;
+            if (!au_mmap_read(tl.error.file, &mmap))
+                au_perror("mmap");
+            au_print_interpreter_error(tl.error.result,
+                                       (struct au_error_location){
+                                           .src = mmap.bytes,
+                                           .len = mmap.size,
+                                           .path = tl.error.file,
+                                       });
+            au_mmap_del(&mmap);
+
+            for (size_t i = 0; i < tl.backtrace.len; i++) {
+                const struct au_vm_trace_item item = tl.backtrace.data[i];
+                struct au_mmap_info mmap;
+                if (!au_mmap_read(item.file, &mmap))
+                    au_perror("mmap");
+                au_print_interpreter_error(
+                    (struct au_interpreter_result){
+                        .type = AU_INT_ERR_INCOMPAT_CALL,
+                        .pos = item.pos,
+                    },
+                    (struct au_error_location){
+                        .src = mmap.bytes,
+                        .len = mmap.size,
+                        .path = item.file,
+                    });
+                au_mmap_del(&mmap);
+            }
+            return 1;
+        }
 
 #ifndef AU_FEAT_LEAK_MEM
 #ifdef AU_FEAT_DELAYED_RC

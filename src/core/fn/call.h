@@ -40,7 +40,7 @@ self_call:
             if (AU_UNLIKELY((obj_class == 0) ||
                             (fn->as.bc_func.class_interface_cache !=
                              obj_class->interface))) {
-                return au_value_op_error();
+                return au_value_error();
             }
             return au_vm_exec_unverified(tl, &fn->as.bc_func, p_data,
                                          args);
@@ -57,7 +57,7 @@ self_call:
         const struct au_obj_class *obj_class =
             au_obj_class_coerce(args[0]);
         if (AU_UNLIKELY(obj_class == 0)) {
-            return au_value_op_error();
+            return au_value_error();
         }
         const struct au_class_interface *class_interface =
             obj_class->interface;
@@ -71,7 +71,7 @@ self_call:
         }
         const size_t fallback_fn = fn->as.dispatch_func.fallback_fn;
         if (fallback_fn == AU_DISPATCH_FUNC_NO_FALLBACK) {
-            return au_value_op_error();
+            return au_value_error();
         } else {
             fn = &p_data->fns.data[fallback_fn];
             goto self_call;
