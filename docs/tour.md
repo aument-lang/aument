@@ -6,7 +6,9 @@ Like many scripting languages, Aument supports the usual core data types: intege
 
 For strings, standard escape sequences work (only `\n` is implemented however).
 
-You can also do some binary operations, add `+`, subtraction `-`, multiply `*`, division `/` and modulo `%` are currently supported.
+## Operators
+
+Aument supports the binary operations: add `+`, subtraction `-`, multiply `*`, division `/` and modulo `%`:
 
 ```
 1 + 1; // Results in 2
@@ -18,10 +20,22 @@ Comparisons (`<`, `>`, `<=`, `>=`, `==`, `!=` operators) work as you'd expect:
 1 < 2; // (true)
 ```
 
-You can also use boolean operators (logical and `&&` and logical or `||`):
+You can also use boolean operators: logical AND (`&&`) and logical OR (`||`):
 
 ```
 true && false; // false
+```
+
+Aument also supports unary operators: bitwise NOT (`~`), logical NOT (`!`), and negation (`-`):
+
+```
+~1; // => -2
+```
+
+The negation operator can only be used inside brackets:
+
+```
+(-1); // -1
 ```
 
 ## Arrays and tuples
