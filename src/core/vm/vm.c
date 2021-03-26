@@ -342,11 +342,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_LOAD_CONST),
             &&CASE(AU_OP_MOV_BOOL),
             &&CASE(AU_OP_NOP),
-            &&CASE(AU_OP_MUL_ASG),
-            &&CASE(AU_OP_DIV_ASG),
-            &&CASE(AU_OP_ADD_ASG),
-            &&CASE(AU_OP_SUB_ASG),
-            &&CASE(AU_OP_MOD_ASG),
             &&CASE(AU_OP_PUSH_ARG),
             &&CASE(AU_OP_CALL),
             &&CASE(AU_OP_RET_LOCAL),
@@ -816,51 +811,6 @@ _AU_OP_JNIF:;
                     DISPATCH;
                 }
             }
-            // Binary operation into local instructions
-#ifdef AU_FEAT_DELAYED_RC
-#define BIN_AU_OP_ASG(NAME, FUN)                                          \
-    CASE(NAME) : {                                                        \
-        const uint8_t reg = bc[1];                                        \
-        const uint8_t local = bc[2];                                      \
-        PREFETCH_INSN;                                                    \
-                                                                          \
-        const au_value_t lhs = frame.locals[local];                       \
-        const au_value_t rhs = frame.regs[reg];                           \
-        const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (au_value_is_error(result)) {                                  \
-            RAISE(bin_op_error(lhs, rhs));                                \
-        }                                                                 \
-        frame.locals[local] = result;                                     \
-        au_value_deref(result);                                           \
-        /* INVARIANT(GC): value operations always return an RC'd result   \
-         */                                                               \
-                                                                          \
-        DISPATCH;                                                         \
-    }
-#else
-#define BIN_AU_OP_ASG(NAME, FUN)                                          \
-    CASE(NAME) : {                                                        \
-        const uint8_t reg = bc[1];                                        \
-        const uint8_t local = bc[2];                                      \
-        PREFETCH_INSN;                                                    \
-                                                                          \
-        const au_value_t lhs = frame.locals[local];                       \
-        const au_value_t rhs = frame.regs[reg];                           \
-        const au_value_t result = au_value_##FUN(lhs, rhs);               \
-        if (au_value_is_error(result)) {                                  \
-            RAISE(bin_op_error(lhs, rhs));                                \
-        }                                                                 \
-        MOVE_VALUE(frame.locals[local], result);                          \
-                                                                          \
-        DISPATCH;                                                         \
-    }
-#endif
-            BIN_AU_OP_ASG(AU_OP_MUL_ASG, mul)
-            BIN_AU_OP_ASG(AU_OP_DIV_ASG, div)
-            BIN_AU_OP_ASG(AU_OP_ADD_ASG, add)
-            BIN_AU_OP_ASG(AU_OP_SUB_ASG, sub)
-            BIN_AU_OP_ASG(AU_OP_MOD_ASG, mod)
-#undef BIN_AU_OP_ASG
             // Call instructions
             CASE(AU_OP_PUSH_ARG) : {
                 const uint8_t reg = bc[1];

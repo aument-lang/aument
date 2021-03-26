@@ -1284,52 +1284,81 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                 return 1;
             }
 
-            au_hm_var_value_t var_value = p->num_locals;
-
-            int is_modify_asg = 0;
-
             if (!(op.len == 1 && op.src[0] == '=')) {
-                is_modify_asg = 1;
-                switch (op.src[0]) {
-#define BIN_OP_ASG(OP, OPCODE)                                            \
-    case OP: {                                                            \
-        parser_emit_bc_u8(p, OPCODE);                                     \
-        break;                                                            \
-    }
-                    BIN_OP_ASG('*', AU_OP_MUL_ASG)
-                    BIN_OP_ASG('/', AU_OP_DIV_ASG)
-                    BIN_OP_ASG('+', AU_OP_ADD_ASG)
-                    BIN_OP_ASG('-', AU_OP_SUB_ASG)
-                    BIN_OP_ASG('%', AU_OP_MOD_ASG)
-#undef BIN_OP_ASG
+                const au_hm_var_value_t *local_value =
+                    au_hm_vars_get(&p->vars, t.src, t.len);
+                if(local_value == 0) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_UNKNOWN_VAR,
+                        .data.unknown_id.name_token = t,
+                    };
+                    return 0;
                 }
-            } else {
+                    
+                const au_hm_var_value_t local = *local_value;
+
+                const uint8_t modifier_reg = parser_last_reg(p);
+                
+                uint8_t result_reg;
+                if (local < p->local_to_reg.len) {
+                    result_reg = p->local_to_reg.data[local];
+                } else {
+                    EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+                    for (size_t i = p->local_to_reg.len;
+                         i < (size_t)local + 1; i++) {
+                        reg_array_add(&p->local_to_reg, CACHED_REG_NONE);
+                    }
+                    p->local_to_reg.data[local] = result_reg;
+                }
+
+                parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
+                parser_emit_bc_u8(p, result_reg);
+                parser_emit_bc_u16(p, local);
+
+                if(op.src[0] == '*')
+                    parser_emit_bc_u8(p, AU_OP_MUL);
+                else if(op.src[0] == '/')
+                    parser_emit_bc_u8(p, AU_OP_DIV);
+                else if(op.src[0] == '+')
+                    parser_emit_bc_u8(p, AU_OP_ADD);
+                else if(op.src[0] == '-')
+                    parser_emit_bc_u8(p, AU_OP_SUB);
+                else if(op.src[0] == '%')
+                    parser_emit_bc_u8(p, AU_OP_MOD);
+                else
+                    au_fatal("unimplemented op '%.*s'\n", (int)op.len, op.src);
+                parser_emit_bc_u8(p, result_reg);
+                parser_emit_bc_u8(p, modifier_reg);
+                parser_emit_bc_u8(p, result_reg);
+                
                 parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
+                parser_emit_bc_u8(p, result_reg);
+                parser_emit_bc_u16(p, local);
+
+                return 1;
             }
+            
+            parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
 
             const uint8_t new_reg = parser_last_reg(p);
             parser_emit_bc_u8(p, new_reg);
-
+    
+            const au_hm_var_value_t new_value = p->num_locals;
             const au_hm_var_value_t *old_value =
-                au_hm_vars_add(&p->vars, t.src, t.len, var_value);
+                au_hm_vars_add(&p->vars, t.src, t.len, new_value);
             if (old_value) {
                 if (*old_value < p->local_to_reg.len) {
                     const uint8_t old_reg =
                         p->local_to_reg.data[*old_value];
-                    if (is_modify_asg) {
-                        AU_BA_RESET_BIT(p->pinned_regs, old_reg);
-                        p->local_to_reg.data[*old_value] = CACHED_REG_NONE;
-                    } else {
-                        AU_BA_RESET_BIT(p->pinned_regs, old_reg);
-                        p->local_to_reg.data[*old_value] = new_reg;
-                        AU_BA_SET_BIT(p->pinned_regs, new_reg);
-                    }
+                    AU_BA_RESET_BIT(p->pinned_regs, old_reg);
+                    p->local_to_reg.data[*old_value] = new_reg;
+                    AU_BA_SET_BIT(p->pinned_regs, new_reg);
                 }
                 parser_emit_bc_u16(p, *old_value);
             } else {
                 p->num_locals++;
                 EXPECT_BYTECODE(p->num_locals <= AU_MAX_LOCALS);
-                parser_emit_bc_u16(p, var_value);
+                parser_emit_bc_u16(p, new_value);
             }
             return 1;
         }

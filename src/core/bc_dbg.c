@@ -34,11 +34,6 @@ const char *au_opcode_dbg[256] = {"load_self",
                                   "loadc",
                                   "mov",
                                   "nop",
-                                  "mul",
-                                  "div",
-                                  "add",
-                                  "sub",
-                                  "mod",
                                   "push_arg",
                                   "call",
                                   "ret",
@@ -172,18 +167,6 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             uint8_t rhs = bc(pos + 1);
             uint8_t res = bc(pos + 2);
             printf(" r%d, r%d -> r%d\n", lhs, rhs, res);
-            pos += 3;
-            break;
-        }
-        // Binary operations on local variables
-        case AU_OP_MUL_ASG:
-        case AU_OP_DIV_ASG:
-        case AU_OP_MOD_ASG:
-        case AU_OP_ADD_ASG:
-        case AU_OP_SUB_ASG: {
-            uint8_t reg = bc(pos);
-            DEF_BC16(local, 1);
-            printf(" r%d -> [%d]\n", reg, local);
             pos += 3;
             break;
         }

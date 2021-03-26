@@ -621,27 +621,6 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case AU_OP_BXOR:
             BIN_OP("bxor")
 #undef BIN_OP
-            // Binary operations on local variables
-#define BIN_AU_OP_ASG(NAME)                                               \
-    {                                                                     \
-        uint8_t reg = bc(pos);                                            \
-        DEF_BC16(local, 1)                                                \
-        comp_printf(state,                                                \
-                    "MOVE_VALUE(l%d,au_value_" NAME "(l%d,r%d));\n",      \
-                    local, local, reg);                                   \
-        break;                                                            \
-    }
-        case AU_OP_MUL_ASG:
-            BIN_AU_OP_ASG("mul")
-        case AU_OP_DIV_ASG:
-            BIN_AU_OP_ASG("div")
-        case AU_OP_ADD_ASG:
-            BIN_AU_OP_ASG("add")
-        case AU_OP_SUB_ASG:
-            BIN_AU_OP_ASG("sub")
-        case AU_OP_MOD_ASG:
-            BIN_AU_OP_ASG("mod")
-#undef BIN_AU_OP_ASG
         // Unary instructions
         case AU_OP_NOT: {
             uint8_t reg = bc(pos);
