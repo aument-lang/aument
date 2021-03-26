@@ -34,7 +34,6 @@ AU_EXTERN_FUNC_DECL(au_std_str_into) {
         int32_t abs_num = au_value_get_int(value);
         struct au_string *header =
             au_obj_malloc(sizeof(struct au_string) + 1, 0);
-        header->rc = 1;
         header->len = 1;
         uint32_t pos = 0, cap = 1;
         int is_neg = 0;

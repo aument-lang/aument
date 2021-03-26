@@ -112,7 +112,6 @@ AU_EXTERN_FUNC_DECL(au_std_io_stdout) {
         au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
     io_vdata_init();
     io->header = (struct au_struct){
-        .rc = 1,
         .vdata = &io_vdata,
     };
     io->f = stdout;
@@ -125,7 +124,6 @@ AU_EXTERN_FUNC_DECL(au_std_io_stdin) {
         au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
     io_vdata_init();
     io->header = (struct au_struct){
-        .rc = 1,
         .vdata = &io_vdata,
     };
     io->f = stdin;
@@ -138,7 +136,6 @@ AU_EXTERN_FUNC_DECL(au_std_io_stderr) {
         au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
     io_vdata_init();
     io->header = (struct au_struct){
-        .rc = 1,
         .vdata = &io_vdata,
     };
     io->f = stderr;
@@ -197,7 +194,6 @@ AU_EXTERN_FUNC_DECL(au_std_io_open) {
         au_obj_malloc(sizeof(struct au_std_io), (au_obj_del_fn_t)io_close);
     io_vdata_init();
     io->header = (struct au_struct){
-        .rc = 1,
         .vdata = &io_vdata,
     };
     io->f = f;

@@ -16,7 +16,6 @@
 #endif
 
 struct au_string {
-    uint32_t rc;
     uint32_t len;
     char data[];
 };

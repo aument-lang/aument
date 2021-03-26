@@ -13,7 +13,6 @@
 struct au_string *au_string_from_const(const char *s, size_t len) {
     struct au_string *header =
         au_obj_malloc(sizeof(struct au_string) + len, 0);
-    header->rc = 1;
     header->len = len;
     memcpy(header->data, s, len);
     return header;
@@ -24,7 +23,6 @@ struct au_string *au_string_add(const struct au_string *left,
     const size_t len = left->len + right->len;
     struct au_string *header =
         au_obj_malloc(sizeof(struct au_string) + len, 0);
-    header->rc = 1;
     header->len = len;
     memcpy(header->data, left->data, left->len);
     memcpy(&header->data[left->len], right->data, right->len);

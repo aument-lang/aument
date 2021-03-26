@@ -14,6 +14,5 @@
 #endif
 
 struct au_struct {
-    uint32_t rc;
     const struct au_struct_vdata *vdata;
 };

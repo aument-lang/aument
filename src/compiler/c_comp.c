@@ -168,8 +168,8 @@ try_continue:;
 
 static void comp_cleanup(struct au_c_comp_state *state,
                          const struct au_bc_storage *bcs,
-                         size_t module_idx, int except_register,
-                         int except_local, int has_self) {
+                         int except_register, int except_local,
+                         int has_self) {
     for (int i = 0; i < bcs->num_registers; i++)
         if (i != except_register)
             comp_printf(state, "au_value_deref(r%d);", i);
@@ -177,10 +177,7 @@ static void comp_cleanup(struct au_c_comp_state *state,
         if (i != except_local)
             comp_printf(state, "au_value_deref(l%d);", i);
     if (has_self) {
-        comp_printf(
-            state,
-            "if((--self->header.rc)==0)_struct_M%d_%d_del_fn(self);",
-            (int)module_idx, (int)bcs->class_idx);
+        comp_printf(state, "au_obj_deref(self);");
     }
 }
 
@@ -509,7 +506,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 INDENT
                 "struct _M%d_%d*self=(void*)au_struct_coerce(args[0]);"
                 "if(self->header.vdata!=&_struct_M%d_%d_vdata){abort();}"
-                "self->header.rc++;"
+                "au_obj_ref(self);"
                 "\n",
                 (int)module_idx, (int)bcs->class_idx, (int)module_idx,
                 (int)bcs->class_idx);
@@ -591,9 +588,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         uint8_t rhs = bc(pos + 1);                                        \
         uint8_t res = bc(pos + 2);                                        \
         comp_printf(state,                                                \
-                    "MOVE_VALUE(r%d,au_value_force(au_value_" NAME        \
-                    "(r%d,r%d)));\n",                                     \
-                    res, lhs, rhs);                                       \
+                    "MOVE_VALUE(r%d,au_value_" NAME "(r%d,r%d));\n", res, \
+                    lhs, rhs);                                            \
         break;                                                            \
     }
         case AU_OP_MUL:
@@ -631,8 +627,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         uint8_t reg = bc(pos);                                            \
         DEF_BC16(local, 1)                                                \
         comp_printf(state,                                                \
-                    "MOVE_VALUE(l%d,au_value_force(au_value_" NAME        \
-                    "(l%d,r%d)));\n",                                     \
+                    "MOVE_VALUE(l%d,au_value_" NAME "(l%d,r%d));\n",      \
                     local, local, reg);                                   \
         break;                                                            \
     }
@@ -660,19 +655,15 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case AU_OP_BNOT: {
             uint8_t reg = bc(pos);
             uint8_t ret = bc(pos + 1);
-            comp_printf(
-                state,
-                "COPY_VALUE(r%d,au_value_force(au_value_bnot(r%d)));", ret,
-                reg);
+            comp_printf(state, "COPY_VALUE(r%d,au_value_bnot(r%d));", ret,
+                        reg);
             break;
         }
         case AU_OP_NEG: {
             uint8_t reg = bc(pos);
             uint8_t ret = bc(pos + 1);
-            comp_printf(
-                state,
-                "COPY_VALUE(r%d,au_value_force(au_value_neg(r%d)));", ret,
-                reg);
+            comp_printf(state, "COPY_VALUE(r%d,au_value_neg(r%d));", ret,
+                        reg);
             break;
         }
         // Jump instructions
@@ -864,18 +855,18 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         // Return instructions
         case AU_OP_RET: {
             uint8_t reg = bc(pos);
-            comp_cleanup(state, bcs, module_idx, reg, -1, has_self);
+            comp_cleanup(state, bcs, reg, -1, has_self);
             comp_printf(state, "return r%d;\n", reg);
             break;
         }
         case AU_OP_RET_LOCAL: {
             DEF_BC16(local, 1)
-            comp_cleanup(state, bcs, module_idx, -1, local, has_self);
+            comp_cleanup(state, bcs, -1, local, has_self);
             comp_printf(state, "return l%d;\n", local);
             break;
         }
         case AU_OP_RET_NULL: {
-            comp_cleanup(state, bcs, module_idx, -1, -1, has_self);
+            comp_cleanup(state, bcs, -1, -1, has_self);
             comp_printf(state, "return au_value_none();\n");
             break;
         }
@@ -1460,7 +1451,6 @@ _decl_fn_lib:;
                            "(au_obj_del_fn_t)_struct_M%d_%d_del_fn);\n",
                     (int)module_idx, (int)i, (int)module_idx, (int)i,
                     (int)module_idx, (int)i);
-        comp_printf(&g_state->header_file, INDENT "k->header.rc=1;\n");
         comp_printf(&g_state->header_file,
                     INDENT "k->header.vdata=_struct_M%d_%d_vdata_get();\n",
                     (int)module_idx, (int)i);

@@ -420,7 +420,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 // INVARIANT(GC): no need to increment the rc
 #else
-                frame.self->header.rc++;
+                au_obj_ref(frame.self);
 #endif // clang-format on
 
                 DISPATCH;
@@ -1033,7 +1033,7 @@ _AU_OP_JNIF:;
                     (struct au_struct *)au_obj_array_new(capacity);
                 frame.regs[reg] = au_value_struct(s);
                 // INVARIANT(GC): from au_obj_array_new
-                s->rc = 0;
+                au_obj_deref(s);
 #else
                 MOVE_VALUE(
                     frame.regs[reg],
@@ -1108,7 +1108,7 @@ _AU_OP_JNIF:;
                     (struct au_struct *)au_obj_tuple_new(length);
                 frame.regs[reg] = au_value_struct(s);
                 // INVARIANT(GC): from au_obj_tuple_new
-                s->rc = 0;
+                au_obj_deref(s);
 #else
                 MOVE_VALUE(
                     frame.regs[reg],
@@ -1152,7 +1152,7 @@ _AU_OP_JNIF:;
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[reg] = new_value;
                 // INVARIANT(GC): from au_obj_class_new
-                obj_class->rc = 0;
+                au_obj_deref(obj_class);
 #else
                 MOVE_VALUE(frame.regs[reg], new_value);
 #endif // clang-format on
@@ -1384,7 +1384,7 @@ end:
     // INVARIANT(GC): we don't hold a ref to self
 #else
     if (frame.self != 0)
-        frame.self->header.rc--;
+        au_obj_deref(frame.self);
 #endif
 
     if (frame.arg_stack.data != 0)

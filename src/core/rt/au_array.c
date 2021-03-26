@@ -35,7 +35,6 @@ struct au_obj_array *au_obj_array_new(size_t capacity) {
         sizeof(struct au_obj_array), (au_obj_del_fn_t)au_obj_array_del);
     au_obj_array_vdata_init();
     obj_array->header = (struct au_struct){
-        .rc = 1,
         .vdata = &au_obj_array_vdata,
     };
     obj_array->array.data = au_value_calloc(capacity);

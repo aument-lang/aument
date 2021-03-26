@@ -3,38 +3,41 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
-#include "core/rt/value/ref.h"
-#include "core/vm/vm.h"
-#include "malloc.h"
-#include "platform/platform.h"
-
 #include <assert.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#define PTR_TO_OBJ_HEADER(PTR)                                            \
-    (struct au_obj_malloc_header *)((uintptr_t)PTR -                      \
-                                    sizeof(struct au_obj_malloc_header))
+#include "core/rt/value/ref.h"
+#include "core/vm/vm.h"
+#include "malloc.h"
+#include "platform/platform.h"
 
 struct au_obj_malloc_header {
     struct au_obj_malloc_header *next;
     au_obj_del_fn_t del_fn;
-    size_t marked;
     size_t size;
+    int32_t marked;
+    uint32_t rc;
     char data[];
 };
 
-#define PTR_TO_DATA_HEADER(PTR)                                           \
-    (struct au_data_malloc_header *)((uintptr_t)PTR -                     \
-                                     sizeof(                              \
-                                         struct au_data_malloc_header))
+#define MAX_RC (UINT32_MAX)
 
 struct au_data_malloc_header {
     size_t size;
     size_t _align;
     char data[];
 };
+
+#define PTR_TO_OBJ_HEADER(PTR)                                            \
+    (struct au_obj_malloc_header *)((uintptr_t)PTR -                      \
+                                    sizeof(struct au_obj_malloc_header))
+
+#define PTR_TO_DATA_HEADER(PTR)                                           \
+    (struct au_data_malloc_header *)((uintptr_t)PTR -                     \
+                                     sizeof(                              \
+                                         struct au_data_malloc_header))
 
 #ifdef AU_DEBUG_GC
 #define INITIAL_HEAP_THRESHOLD 0
@@ -53,20 +56,14 @@ struct malloc_data {
 static AU_THREAD_LOCAL struct malloc_data malloc_data;
 
 void au_malloc_init() {
-#if __STDC_VERSION__ >= 201112L
-    static_assert(
+    AU_STATIC_ASSERT(
         sizeof(struct au_obj_malloc_header) % alignof(max_align_t) == 0,
         "struct au_obj_malloc_header must divisible by the maximum "
         "alignment");
-    static_assert(
+    AU_STATIC_ASSERT(
         sizeof(struct au_data_malloc_header) % alignof(max_align_t) == 0,
         "struct au_data_malloc_header must divisible by the maximum "
         "alignment");
-#else
-    // FIXME: Implement the equivalent of static_assert for C99.
-    // Right now, we trusting the developer to define the header structs
-    // correctly.
-#endif
     malloc_data = (struct malloc_data){0};
     malloc_data.heap_threshold = INITIAL_HEAP_THRESHOLD;
     malloc_data.do_collect = 0;
@@ -88,15 +85,18 @@ static void collect_if_needed(size_t size) {
     }
 }
 
+// ** objects **
+
 void *au_obj_malloc(size_t size, au_obj_del_fn_t del_fn) {
     collect_if_needed(size);
 
     struct au_obj_malloc_header *header =
         malloc(sizeof(struct au_obj_malloc_header) + size);
     header->next = 0;
-    header->marked = 0;
-    header->size = size;
     header->del_fn = del_fn;
+    header->size = size;
+    header->marked = 0;
+    header->rc = 1;
     malloc_data.heap_size += size;
 
     header->next = malloc_data.obj_list;
@@ -117,7 +117,7 @@ void *au_obj_realloc(void *ptr, size_t size) {
 
     void *reallocated = au_obj_malloc(size, old_header->del_fn);
     memcpy(reallocated, old_header->data, old_header->size);
-    ((struct au_obj_rc *)(old_header->data))->rc = 0;
+    old_header->rc = 0;
     return reallocated;
 }
 
@@ -148,7 +148,7 @@ static void mark(au_value_t value) {
 static int should_free(struct au_obj_malloc_header *header) {
     if (header->marked)
         return 0;
-    return ((struct au_obj_rc *)(header->data))->rc == 0;
+    return header->rc == 0;
 }
 
 void au_obj_malloc_collect() {
@@ -201,6 +201,22 @@ void au_obj_malloc_collect() {
     }
     // fprintf(stderr, "heap is now %ld bytes\n", malloc_data.heap_size);
 }
+
+void au_obj_ref(void *ptr) {
+    struct au_obj_malloc_header *header = PTR_TO_OBJ_HEADER(ptr);
+    if (AU_UNLIKELY(header->rc == MAX_RC))
+        abort();
+    header->rc++;
+}
+
+void au_obj_deref(void *ptr) {
+    struct au_obj_malloc_header *header = PTR_TO_OBJ_HEADER(ptr);
+    if (header->rc != 0) {
+        header->rc--;
+    }
+}
+
+// ** data **
 
 void *au_data_malloc(size_t size) {
     collect_if_needed(size);

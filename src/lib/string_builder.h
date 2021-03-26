@@ -20,7 +20,6 @@ static AU_UNUSED inline void
 au_string_builder_init(struct au_string_builder *builder) {
     builder->_string =
         (struct au_string *)au_obj_malloc(sizeof(struct au_string) + 1, 0);
-    builder->_string->rc = 1;
     builder->_string->len = 1;
     builder->pos = 0;
     builder->cap = 1;
@@ -28,11 +27,7 @@ au_string_builder_init(struct au_string_builder *builder) {
 
 static AU_UNUSED inline void
 au_string_builder_del(struct au_string_builder *builder) {
-    if (builder->_string->rc != 0) {
-        builder->_string->rc--;
-        if (builder->_string->rc == 0)
-            au_obj_free(builder->_string);
-    }
+    au_obj_deref(builder->_string);
     builder->_string = 0;
 }
 

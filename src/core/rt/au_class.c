@@ -53,7 +53,6 @@ au_obj_class_new(const struct au_class_interface *interface) {
         (au_obj_del_fn_t)au_obj_class_del);
     au_obj_class_vdata_init();
     obj_class->header = (struct au_struct){
-        .rc = 1,
         .vdata = &au_obj_class_vdata,
     };
     obj_class->interface = interface;
