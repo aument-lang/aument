@@ -14,11 +14,14 @@ struct au_vm_frame;
 
 #define X(NAME) AU_INT_ERR_##NAME
 enum au_interpreter_result_type {
-    X(OK),
-    X(INCOMPAT_BIN_OP),
-    X(INCOMPAT_CALL),
-    X(INDEXING_NON_COLLECTION),
-    X(INVALID_INDEX),
+    X(OK) = 0,
+    X(INCOMPAT_BIN_OP) = 1,
+    X(INCOMPAT_CALL) = 2,
+    X(INDEXING_NON_COLLECTION) = 3,
+    X(INVALID_INDEX) = 4,
+    X(IMPORT_PATH) = 5,
+    X(CIRCULAR_IMPORT) = 6,
+    X(BACKTRACE) = 7,
 };
 #undef X
 

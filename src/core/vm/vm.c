@@ -163,6 +163,22 @@ invalid_index_error(au_value_t collection, au_value_t idx) {
     };
 }
 
+static struct au_interpreter_result import_path_resolve_error() {
+    return (struct au_interpreter_result){
+        .type = AU_INT_ERR_IMPORT_PATH,
+        .pos = 0,
+    };
+}
+
+static struct au_interpreter_result circular_import_error() {
+    return (struct au_interpreter_result){
+        .type = AU_INT_ERR_CIRCULAR_IMPORT,
+        .pos = 0,
+    };
+}
+
+// * Implementation *
+
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
                                  const struct au_bc_storage *bcs,
                                  const struct au_program_data *p_data,
@@ -1188,7 +1204,7 @@ _AU_OP_JNIF:;
 
                 struct au_module_resolve_result resolve_res;
                 if (!au_module_resolve(&resolve_res, relpath, p_data->cwd))
-                    au_fatal("unable to resolve path '%s'\n", relpath);
+                    RAISE(import_path_resolve_error());
 
                 const char *module_path = resolve_res.abspath;
 
@@ -1234,9 +1250,8 @@ _AU_OP_JNIF:;
                     au_data_free(module_path_with_subpath);
                 module_path = 0;
 
-                if (rmod_retval == AU_TL_RESMOD_RETVAL_FAIL) {
-                    au_fatal("circular import detected\n");
-                }
+                if (rmod_retval == AU_TL_RESMOD_RETVAL_FAIL)
+                    RAISE(circular_import_error());
 
                 struct au_module module;
                 switch (au_module_import(&module, &resolve_res)) {
@@ -1246,15 +1261,9 @@ _AU_OP_JNIF:;
                 case AU_MODULE_IMPORT_SUCCESS_NO_MODULE: {
                     goto _import_dispatch;
                 }
-                case AU_MODULE_IMPORT_FAIL: {
-                    au_fatal("unable to import '%s'\n",
-                             resolve_res.abspath);
-                    break;
-                }
+                case AU_MODULE_IMPORT_FAIL:
                 case AU_MODULE_IMPORT_FAIL_DL: {
-                    au_module_lib_perror();
-                    au_fatal("unable to import '%s'\n",
-                             resolve_res.abspath);
+                    RAISE(import_path_resolve_error());
                     break;
                 }
                 }
@@ -1273,7 +1282,7 @@ _AU_OP_JNIF:;
                                            .len = mmap.size,
                                            .path = resolve_res.abspath,
                                        });
-                        abort();
+                        RAISE_BT();
                     }
 
                     program.data.tl_constant_start = tl->const_len;
@@ -1283,13 +1292,15 @@ _AU_OP_JNIF:;
                     if (!au_split_path(resolve_res.abspath,
                                        &program.data.file,
                                        &program.data.cwd))
-                        au_perror("au_split_path");
+                        RAISE(import_path_resolve_error());
 
                     au_module_resolve_result_del(&resolve_res);
 
                     if (rmod_retval !=
                         AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
-                        au_vm_exec_unverified_main(tl, &program);
+                        if (au_value_is_error(
+                                au_vm_exec_unverified_main(tl, &program)))
+                            RAISE_BT();
                     }
 
                     if (relative_module_idx ==

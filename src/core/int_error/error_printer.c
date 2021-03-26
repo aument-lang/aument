@@ -180,6 +180,18 @@ void au_print_interpreter_error(struct au_interpreter_result res,
         fprintf(stderr, "trying to index a value that isn't a collection");
         break;
     }
+    case X(IMPORT_PATH): {
+        fprintf(stderr, "unable to resolve import path");
+        break;
+    }
+    case X(CIRCULAR_IMPORT): {
+        fprintf(stderr, "circular import detected");
+        break;
+    }
+    case X(BACKTRACE): {
+        fprintf(stderr, "came from here");
+        break;
+    }
     default:
         break;
     }

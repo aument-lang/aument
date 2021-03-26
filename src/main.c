@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
                     au_perror("mmap");
                 au_print_interpreter_error(
                     (struct au_interpreter_result){
-                        .type = AU_INT_ERR_INCOMPAT_CALL,
+                        .type = AU_INT_ERR_BACKTRACE,
                         .pos = item.pos,
                     },
                     (struct au_error_location){

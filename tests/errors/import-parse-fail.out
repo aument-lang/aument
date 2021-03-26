@@ -1,3 +1,5 @@
 parser error(1) in -: unexpected token '?', expected value
 1 | ?
     ^
+interpreter error(2) in -: incompatible call
+1 | import "./unknown-token.au";

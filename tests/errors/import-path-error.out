@@ -1,0 +1,2 @@
+interpreter error(5) in -: unable to resolve import path
+1 | import "";

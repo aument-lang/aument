@@ -1,0 +1,4 @@
+interpreter error(1) in -: incompatible values for binary operation
+1 | print "A" + 1;
+interpreter error(7) in -: came from here
+1 | import "./error-in-imported-module-1.au";
