@@ -283,7 +283,7 @@ static int parser_exec_addsub(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_muldiv(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_unary_expr(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_index_expr(struct au_parser *p, struct au_lexer *l);
-static int parser_exec_val(struct au_parser *p, struct au_lexer *l);
+static int parser_exec_value(struct au_parser *p, struct au_lexer *l);
 static int parser_resolve_fn(struct au_parser *p,
                              struct au_token module_tok,
                              struct au_token id_tok, int num_args,
@@ -1632,7 +1632,7 @@ static int parser_exec_unary_expr(struct au_parser *p,
 
 static int parser_exec_index_expr(struct au_parser *p,
                                   struct au_lexer *l) {
-    if (!parser_exec_val(p, l))
+    if (!parser_exec_value(p, l))
         return 0;
     uint8_t left_reg = 0;
     while (1) {
@@ -1907,28 +1907,20 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
     return 1;
 }
 
-static int parser_exec_val(struct au_parser *p, struct au_lexer *l) {
+static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
     struct au_token t = au_lexer_next(l);
 
     switch (t.type) {
     case AU_TOK_INT: {
         int32_t num = 0;
-        int32_t sign = 1;
-
-        size_t i = 0;
-        if (t.src[0] == '-') {
-            i += 1;
-            sign = -1;
-        }
-        for (; i < t.len; i++) {
+        for (size_t i = 0; i < t.len; i++) {
             num = num * 10 + (t.src[i] - '0');
         }
-        num *= sign;
 
         uint8_t result_reg;
         EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
 
-        if (-0x7fff <= num && num <= 0x8000) {
+        if (num <= 0x8000) {
             parser_emit_bc_u8(p, AU_OP_MOV_U16);
             parser_emit_bc_u8(p, result_reg);
             parser_emit_bc_u16(p, num);
