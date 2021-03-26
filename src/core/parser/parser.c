@@ -292,6 +292,10 @@ static int parser_exec_eq(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_cmp(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_addsub(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_muldiv(struct au_parser *p, struct au_lexer *l);
+static int parser_exec_bitwise_logic(struct au_parser *p,
+                                     struct au_lexer *l);
+static int parser_exec_bitwise_shift(struct au_parser *p,
+                                     struct au_lexer *l);
 static int parser_exec_unary_expr(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_index_expr(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_value(struct au_parser *p, struct au_lexer *l);
@@ -1565,7 +1569,9 @@ BIN_EXPR(
     parser_exec_cmp)
 
 BIN_EXPR(
-    parser_exec_cmp, t.len >= 1 && (t.src[0] == '<' || t.src[0] == '>'),
+    parser_exec_cmp,
+    ((t.src[0] == '<' || t.src[0] == '>') &&
+     (t.len == 1 || (t.len == 2 && t.src[1] == '='))),
     {
         if (t.len == 1)
             if (t.src[0] == '<')
@@ -1603,6 +1609,35 @@ BIN_EXPR(
             parser_emit_bc_u8(p, AU_OP_DIV);
         else if (t.src[0] == '%')
             parser_emit_bc_u8(p, AU_OP_MOD);
+        if (!parser_emit_bc_binary_expr(p))
+            return 0;
+    },
+    parser_exec_bitwise_logic)
+
+BIN_EXPR(
+    parser_exec_bitwise_logic,
+    t.len == 1 && (t.src[0] == '&' || t.src[0] == '|' || t.src[0] == '^'),
+    {
+        if (t.src[0] == '&')
+            parser_emit_bc_u8(p, AU_OP_BAND);
+        else if (t.src[0] == '|')
+            parser_emit_bc_u8(p, AU_OP_BOR);
+        else if (t.src[0] == '^')
+            parser_emit_bc_u8(p, AU_OP_BXOR);
+        if (!parser_emit_bc_binary_expr(p))
+            return 0;
+    },
+    parser_exec_bitwise_shift)
+
+BIN_EXPR(
+    parser_exec_bitwise_shift,
+    t.len == 2 && (t.src[0] == '<' || t.src[0] == '>') &&
+        t.src[1] == t.src[0],
+    {
+        if (t.src[0] == '<')
+            parser_emit_bc_u8(p, AU_OP_BSHL);
+        else if (t.src[0] == '>')
+            parser_emit_bc_u8(p, AU_OP_BSHR);
         if (!parser_emit_bc_binary_expr(p))
             return 0;
     },

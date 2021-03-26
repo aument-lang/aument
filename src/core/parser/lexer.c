@@ -195,6 +195,7 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
     else X("+=") else X("-=") else X("*=") else X("/=")
     else X("%=") else X("!=") else X("<=") else X(">=")
     else X("==")
+    else X(">>") else X("<<")
     else X("&&") else X("||") else X("&=") else X("|=")
     // Other
     else X("#[") else X("::")
@@ -205,7 +206,7 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
     else X("%")  else X("!")  else X("<")  else X(">")
     else X("=")
     // Bitwise operators
-    else X("&")  else X("|")  else X("~")
+    else X("&")  else X("|")  else X("^")  else X("~")
     // Other
     else X("(")  else X(")")  else X("{")  else X("}")
     else X(";")  else X(",")  else X(".")  else X(":")
