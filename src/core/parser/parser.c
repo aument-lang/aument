@@ -4,9 +4,20 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #include <assert.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#define LC_NUMERIC_MASK LC_NUMERIC
+typedef _locale_t locale_t;
+static inline locale_t newlocale(int category_mask, const char *locale,
+                                 locale_t _locale) {
+    (void)_locale;
+    return _create_locale(category_mask, locale);
+}
+#endif
 
 #include "core/array.h"
 #include "core/bit_array.h"
@@ -1287,19 +1298,18 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
             if (!(op.len == 1 && op.src[0] == '=')) {
                 const au_hm_var_value_t *local_value =
                     au_hm_vars_get(&p->vars, t.src, t.len);
-                if(local_value == 0) {
+                if (local_value == 0) {
                     p->res = (struct au_parser_result){
                         .type = AU_PARSER_RES_UNKNOWN_VAR,
                         .data.unknown_id.name_token = t,
                     };
                     return 0;
                 }
-                    
-                const au_hm_var_value_t local = *local_value;
 
+                const au_hm_var_value_t local = *local_value;
                 const uint8_t modifier_reg = parser_last_reg(p);
-                
                 uint8_t result_reg;
+
                 if (local < p->local_to_reg.len) {
                     result_reg = p->local_to_reg.data[local];
                 } else {
@@ -1315,34 +1325,35 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
                 parser_emit_bc_u8(p, result_reg);
                 parser_emit_bc_u16(p, local);
 
-                if(op.src[0] == '*')
+                if (op.src[0] == '*')
                     parser_emit_bc_u8(p, AU_OP_MUL);
-                else if(op.src[0] == '/')
+                else if (op.src[0] == '/')
                     parser_emit_bc_u8(p, AU_OP_DIV);
-                else if(op.src[0] == '+')
+                else if (op.src[0] == '+')
                     parser_emit_bc_u8(p, AU_OP_ADD);
-                else if(op.src[0] == '-')
+                else if (op.src[0] == '-')
                     parser_emit_bc_u8(p, AU_OP_SUB);
-                else if(op.src[0] == '%')
+                else if (op.src[0] == '%')
                     parser_emit_bc_u8(p, AU_OP_MOD);
                 else
-                    au_fatal("unimplemented op '%.*s'\n", (int)op.len, op.src);
+                    au_fatal("unimplemented op '%.*s'\n", (int)op.len,
+                             op.src);
                 parser_emit_bc_u8(p, result_reg);
                 parser_emit_bc_u8(p, modifier_reg);
                 parser_emit_bc_u8(p, result_reg);
-                
+
                 parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
                 parser_emit_bc_u8(p, result_reg);
                 parser_emit_bc_u16(p, local);
 
                 return 1;
             }
-            
+
             parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
 
             const uint8_t new_reg = parser_last_reg(p);
             parser_emit_bc_u8(p, new_reg);
-    
+
             const au_hm_var_value_t new_value = p->num_locals;
             const au_hm_var_value_t *old_value =
                 au_hm_vars_add(&p->vars, t.src, t.len, new_value);
@@ -1912,10 +1923,9 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
 
     switch (t.type) {
     case AU_TOK_INT: {
-        int32_t num = 0;
-        for (size_t i = 0; i < t.len; i++) {
-            num = num * 10 + (t.src[i] - '0');
-        }
+        // We've already parsed the token as an integer literal in
+        // the lexer so calling atoi should not cause a buffer overflow
+        int32_t num = atoi(t.src);
 
         uint8_t result_reg;
         EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
@@ -1934,20 +1944,10 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
         break;
     }
     case AU_TOK_DOUBLE: {
-        double value = 0.0;
-        for (size_t i = 0; i < t.len; i++) {
-            if (t.src[i] == '.') {
-                i++;
-                uint64_t fractional = 0, power = 1;
-                for (; i < t.len; i++) {
-                    fractional = (fractional * 10) + (t.src[i] - '0');
-                    power *= 10;
-                }
-                value += ((double)fractional / (double)power);
-                break;
-            }
-            value = (value * 10.0) + (t.src[i] - '0');
-        }
+        // We've already parsed the token as a floating-point literal in
+        // the lexer so calling strtod_l should not cause a buffer overflow
+        locale_t locale = newlocale(LC_NUMERIC_MASK, "C", NULL);
+        double value = _strtod_l(t.src, 0, locale);
 
         uint8_t result_reg;
         EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
