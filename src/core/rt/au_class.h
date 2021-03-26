@@ -38,14 +38,15 @@ au_class_interface_init(struct au_class_interface *interface, char *name);
 /// This struct is owned by a au_class_interface_ptr_array and should
 /// only be called when initializing it inside a
 /// au_class_interface_ptr_array.
-AU_PUBLIC void
+AU_PRIVATE void
 au_class_interface_ref(struct au_class_interface *interface);
 
 /// [func] Decreases reference count of an au_class_interface instance.
 /// This struct is owned by a au_class_interface_ptr_array and should
 /// only be called when destroying it inside a
 /// au_class_interface_ptr_array.
-void au_class_interface_deref(struct au_class_interface *interface);
+AU_PRIVATE void
+au_class_interface_deref(struct au_class_interface *interface);
 
 struct au_obj_class;
 
@@ -59,7 +60,8 @@ AU_PUBLIC int au_obj_class_get(struct au_obj_class *obj_class,
 
 AU_PUBLIC int au_obj_class_set(struct au_obj_class *obj_class,
                                au_value_t idx, au_value_t value);
-int32_t au_obj_class_len(struct au_obj_class *obj_class);
+
+AU_PUBLIC int32_t au_obj_class_len(struct au_obj_class *obj_class);
 
 #ifdef _AUMENT_H
 AU_PUBLIC struct au_obj_class *au_obj_class_coerce(const au_value_t value);
