@@ -857,7 +857,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             const uint8_t ret_reg = bc(pos + 2);
             pos += 3;
 
-            comp_printf(state,"{"); 
+            comp_printf(state, "{");
 
             if (num_args > 0) {
                 struct reg_array params = {0};

@@ -2370,6 +2370,13 @@ static int parser_exec_array_or_tuple(struct au_parser *p,
     return 1;
 }
 
+struct new_initializer {
+    uint16_t local;
+    uint8_t reg;
+};
+
+AU_ARRAY_COPY(struct new_initializer, new_initializer_array, 1)
+
 static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
     const struct au_token id_tok = au_lexer_next(l);
     EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
@@ -2386,12 +2393,93 @@ static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
 
     size_t class_idx = *class_value;
 
-    uint8_t result_reg;
-    EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+    struct au_token tok = au_lexer_peek(l, 0);
+    if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == '{') {
+        au_lexer_next(l);
 
-    parser_emit_bc_u8(p, AU_OP_CLASS_NEW);
-    parser_emit_bc_u8(p, result_reg);
-    parser_emit_bc_u16(p, class_idx);
+        struct new_initializer_array array = {0};
+
+        struct au_class_interface *interface =
+            au_class_interface_ptr_array_at(&p->p_data->classes,
+                                            class_idx);
+        if (interface == 0) {
+            abort(); // TODO
+        }
+
+        while (1) {
+            tok = au_lexer_next(l);
+            if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
+                tok.src[0] == '}') {
+                break;
+            } else if (tok.type == AU_TOK_IDENTIFIER) {
+                struct au_token name_tok = tok;
+                const au_hm_var_value_t *key_value = au_hm_vars_get(
+                    &interface->map, name_tok.src, name_tok.len);
+                if (key_value == 0) {
+                    p->res = (struct au_parser_result){
+                        .type = AU_PARSER_RES_UNKNOWN_VAR,
+                        .data.unknown_id.name_token = name_tok,
+                    };
+                    return 0;
+                }
+
+                tok = au_lexer_next(l);
+                EXPECT_TOKEN(tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
+                                 tok.src[0] == ':',
+                             tok, "':'");
+
+                if (!parser_exec_expr(p, l))
+                    return 0;
+                const uint8_t right_reg = parser_pop_reg(p);
+                new_initializer_array_add(&array, (struct new_initializer){
+                                                      .local = *key_value,
+                                                      .reg = right_reg,
+                                                  });
+                AU_BA_SET_BIT(p->used_regs, right_reg);
+
+                tok = au_lexer_next(l);
+                EXPECT_TOKEN(tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
+                                 tok.src[0] == ',',
+                             tok, "','");
+            } else {
+                EXPECT_TOKEN(0, tok, "'}' or identifier");
+            }
+        }
+
+        if (array.len == 0) {
+            uint8_t result_reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+            parser_emit_bc_u8(p, AU_OP_CLASS_NEW);
+            parser_emit_bc_u8(p, result_reg);
+            parser_emit_bc_u16(p, class_idx);
+        } else {
+            uint8_t result_reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+            parser_emit_bc_u8(p, AU_OP_CLASS_NEW_INITIALZIED);
+            parser_emit_bc_u8(p, result_reg);
+            parser_emit_bc_u16(p, class_idx);
+
+            for (size_t i = 0; i < array.len; i++) {
+                struct new_initializer init = array.data[i];
+                parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
+                parser_emit_bc_u8(p, init.reg);
+                parser_emit_bc_u16(p, init.local);
+                AU_BA_RESET_BIT(p->used_regs, init.reg);
+            }
+            au_data_free(array.data);
+
+            parser_emit_bc_u8(p, AU_OP_NOP);
+            parser_emit_pad8(p);
+            parser_emit_pad8(p);
+            parser_emit_pad8(p);
+        }
+    } else {
+        uint8_t result_reg;
+        EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+        parser_emit_bc_u8(p, AU_OP_CLASS_NEW);
+        parser_emit_bc_u8(p, result_reg);
+        parser_emit_bc_u16(p, class_idx);
+    }
 
     return 1;
 }

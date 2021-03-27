@@ -369,6 +369,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_BSHR),
             &&CASE(AU_OP_BNOT),
             &&CASE(AU_OP_NEG),
+            &&CASE(AU_OP_CLASS_NEW_INITIALZIED),
             &&CASE(AU_OP_MUL_INT),
             &&CASE(AU_OP_DIV_INT),
             &&CASE(AU_OP_ADD_INT),
@@ -1172,6 +1173,33 @@ _AU_OP_JNIF:;
 #endif // clang-format on
 
                 DISPATCH;
+            }
+            CASE(AU_OP_CLASS_NEW_INITIALZIED) : {
+                const uint8_t reg = bc[1];
+                const uint16_t class_id = *(uint16_t *)(&bc[2]);
+
+                struct au_obj_class *obj_class =
+                    au_obj_class_new(p_data->classes.data[class_id]);
+                const au_value_t new_value =
+                    au_value_struct((struct au_struct *)obj_class);
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
+                frame.regs[reg] = new_value;
+                // INVARIANT(GC): from au_obj_class_new
+                au_obj_deref(obj_class);
+#else
+                MOVE_VALUE(frame.regs[reg], new_value);
+#endif // clang-format on
+
+                while (*bc != AU_OP_NOP) {
+                    const uint8_t reg = bc[1];
+                    const uint16_t inner = *(uint16_t *)(&bc[2]);
+                    bc += 4;
+                    au_value_ref(frame.regs[reg]);
+                    obj_class->data[inner] = frame.regs[reg];
+                }
+
+                bc += 4; // skip AU_OP_NOP
+                DISPATCH_JMP;
             }
             CASE(AU_OP_CLASS_GET_INNER) : {
                 const uint8_t reg = bc[1];

@@ -62,7 +62,8 @@ const char *au_opcode_dbg[256] = {"load_self",
                                   "bshl",
                                   "bshr",
                                   "bnot",
-                                  "neg"};
+                                  "neg",
+                                  "new"};
 
 #ifdef AU_COVERAGE
 void au_bc_dbg(const struct au_bc_storage *bcs,

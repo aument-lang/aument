@@ -1,0 +1,12 @@
+class A{
+    var prop;
+}
+
+def (self: A) get_prop() {
+    return @prop;
+}
+
+a = new A {
+    prop: 10,
+};
+print get_prop(a);
