@@ -42,7 +42,7 @@ esac
 done
 
 if [[ "x$buildtype" = "x" ]]; then
-	buildtype = "debug"
+	buildtype="debug"
 fi
 
 MESONARG="$MESONARG --buildtype=$buildtype"
