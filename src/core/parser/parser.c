@@ -3,10 +3,17 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
-#include <assert.h>
+
+#ifdef _WIN32
 #include <locale.h>
-#include <stdio.h>
+#else
+#define _GNU_SOURCE
 #include <stdlib.h>
+#include <locale.h>
+#endif
+
+#include <assert.h>
+#include <stdio.h>
 #include <string.h>
 
 #ifdef _WIN32
