@@ -183,9 +183,11 @@ AU_EXTERN_FUNC_DECL(au_std_str_code_points) {
     struct au_obj_array *array = au_obj_array_new(1);
     const char *str_cur = &str->data[0];
     int str_cur_size = 0;
+    const char *str_next = 0;
+
     const char *str_max = &str->data[str->len];
 
-    while ((str_cur = utf8_next(str_cur, str_max, &str_cur_size)) != 0) {
+    while ((str_next = utf8_next(str_cur, str_max, &str_cur_size)) != 0) {
         struct au_string_builder builder = {0};
         au_string_builder_init(&builder);
         for (int i = 0; i < str_cur_size; i++) {
@@ -194,6 +196,7 @@ AU_EXTERN_FUNC_DECL(au_std_str_code_points) {
         struct au_string *newstr = au_string_builder_into_string(&builder);
         au_value_t newstr_value = au_value_string(newstr);
         au_obj_array_push(array, newstr_value);
+        str_cur = str_next;
     }
 
     return au_value_struct((struct au_struct *)array);
