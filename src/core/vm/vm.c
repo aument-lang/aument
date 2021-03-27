@@ -812,32 +812,51 @@ _AU_OP_JNIF:;
                 }
             }
             // Call instructions
-            CASE(AU_OP_PUSH_ARG) : {
-                const uint8_t reg = bc[1];
-                PREFETCH_INSN;
-
-                au_value_array_add(&frame.arg_stack, frame.regs[reg]);
-                au_value_ref(frame.regs[reg]);
-
-                DISPATCH;
-            }
             CASE(AU_OP_CALL) : {
                 const uint8_t ret_reg = bc[1];
                 const uint16_t func_id = *((uint16_t *)(&bc[2]));
-                PREFETCH_INSN;
+                bc += 4;
 
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
-                int n_regs = au_fn_num_args(call_fn);
-                const au_value_t *args =
-                    &frame.arg_stack.data[frame.arg_stack.len - n_regs];
+                int n_args = au_fn_num_args(call_fn);
+                au_value_t *args = au_value_calloc(n_args);
+                for(int i = 0; i < n_args;) {
+                    bc++; // OP_PUSH_ARG
+                    if(i < n_args) {
+                        args[i] = frame.regs[*bc];
+                        bc++;
+                        i++;
+                    } else {
+                        bc += 3;
+                        break;
+                    }
+                    if(i < n_args) {
+                        args[i] = frame.regs[*bc];
+                        bc++;
+                        i++;
+                    } else {
+                        bc += 2;
+                        break;
+                    }
+                    if(i < n_args) {
+                        args[i] = frame.regs[*bc];
+                        bc++;
+                        i++;
+                    } else {
+                        bc += 1;
+                        break;
+                    }
+                }
 
                 FLUSH_BC();
 
                 int is_native = 0;
                 const au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, args, &is_native);
-                if (au_value_is_error(callee_retval))
+                if (au_value_is_error(callee_retval)) {
+                    au_data_free(args);
                     RAISE_BT();
+                }
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[ret_reg] = callee_retval;
@@ -851,13 +870,13 @@ _AU_OP_JNIF:;
                 if (is_native) {
                     // Native functions do not clean up the argument stack
                     // for us, we have to do it manually.
-                    for (int i = 0; i < n_regs; i++) {
-                        au_value_deref(frame.arg_stack.data[i]);
+                    for (int i = 0; i < n_args; i++) {
+                        au_value_deref(args[i]);
                     }
                 }
-                frame.arg_stack.len -= n_regs;
+                au_data_free(args);
 
-                DISPATCH;
+                DISPATCH_JMP;
             }
             CASE(AU_OP_CALL1) : {
                 const uint8_t ret_reg = bc[1];
@@ -1297,6 +1316,9 @@ _import_dispatch:;
                 tl->print_fn(reg);
 
                 DISPATCH;
+            }
+            CASE(AU_OP_PUSH_ARG) : {
+                // fallthrough
             }
             CASE(AU_OP_NOP) : {
                 PREFETCH_INSN;
