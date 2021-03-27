@@ -354,7 +354,7 @@ static int parser_exec_with_semicolon(struct au_parser *p,
         return 1;
     EXPECT_TOKEN(t.type == AU_TOK_OPERATOR && t.len == 1 &&
                      t.src[0] == ';',
-                 t, "')'");
+                 t, "';'");
     return 1;
 }
 
