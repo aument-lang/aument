@@ -50,6 +50,6 @@ MESONARG="$MESONARG --buildtype=$buildtype"
 echo "MESONARG: $MESONARG"
 echo "CCFLAGS: $CCFLAGS"
 
-meson setup build $MESONARG -Dc_args="$CCFLAGS"
+meson setup build $MESONARG -Dc_args="$CCFLAGS" || exit 1
 cd build
-ninja
+ninja || exit 1

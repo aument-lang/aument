@@ -17,6 +17,7 @@ static inline locale_t newlocale(int category_mask, const char *locale,
     (void)_locale;
     return _create_locale(category_mask, locale);
 }
+#define strtod_l _strtod_l
 #endif
 
 #include "core/array.h"
@@ -2029,7 +2030,7 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
         // We've already parsed the token as a floating-point literal in
         // the lexer so calling strtod_l should not cause a buffer overflow
         locale_t locale = newlocale(LC_NUMERIC_MASK, "C", NULL);
-        double value = _strtod_l(t.src, 0, locale);
+        double value = strtod_l(t.src, 0, locale);
 
         uint8_t result_reg;
         EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
