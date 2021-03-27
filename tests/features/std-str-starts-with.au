@@ -1,0 +1,3 @@
+print str::starts_with("abc", "b");
+print str::starts_with("abc", "ab");
+print str::starts_with("", "ab");

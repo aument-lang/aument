@@ -1,0 +1,2 @@
+print str::index_of("abcdef", "def");
+print str::index_of("", "a");

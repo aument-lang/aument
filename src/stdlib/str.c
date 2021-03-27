@@ -67,6 +67,8 @@ static const char *utf8_str(const char *h, const char *h_max,
             // starting from the current character
             int throwaway;
             h = (const char *)utf8_next(h, h_max, &throwaway);
+            if (h == 0)
+                return 0;
         }
     }
 
@@ -223,7 +225,7 @@ AU_EXTERN_FUNC_DECL(au_std_str_index_of) {
     } else {
         au_value_deref(haystack_value);
         au_value_deref(needle_value);
-        uintptr_t haystack_intptr = (uintptr_t)haystack;
+        uintptr_t haystack_intptr = (uintptr_t)(haystack->data);
         uintptr_t found_intptr = (uintptr_t)found;
         return au_value_int(found_intptr - haystack_intptr);
     }

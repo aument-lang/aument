@@ -1,0 +1,2 @@
+print str::contains("abcdef", "def");
+print str::contains("", "a");
