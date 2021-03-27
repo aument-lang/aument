@@ -210,8 +210,8 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         // Call instructions
         case AU_OP_PUSH_ARG: {
             uint8_t reg1 = bc(pos);
-            uint8_t reg2 = bc(pos+1);
-            uint8_t reg3 = bc(pos+2);
+            uint8_t reg2 = bc(pos + 1);
+            uint8_t reg3 = bc(pos + 2);
             printf(" r%d, r%d, r%d\n", reg1, reg2, reg3);
             pos += 3;
             break;

@@ -24,7 +24,6 @@ struct au_vm_frame {
     const uint8_t *bc;
     const uint8_t *bc_start;
     struct au_obj_class *self;
-    struct au_value_array arg_stack;
     struct au_vm_frame_link link;
     au_value_t retval;
 };

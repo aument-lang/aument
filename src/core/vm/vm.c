@@ -230,8 +230,6 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 
     frame.bc = 0;
     frame.bc_start = bcs->bc.data;
-
-    frame.arg_stack = (struct au_value_array){0};
     frame.self = 0;
 
     /// This pointer is mutable because we want to do bytecode optimization
@@ -818,11 +816,11 @@ _AU_OP_JNIF:;
                 bc += 4;
 
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
-                int n_args = au_fn_num_args(call_fn);
-                au_value_t *args = au_value_calloc(n_args);
-                for(int i = 0; i < n_args;) {
+                int num_args = au_fn_num_args(call_fn);
+                au_value_t *args = au_value_calloc(num_args);
+                for (int i = 0; i < num_args;) {
                     bc++; // OP_PUSH_ARG
-                    if(i < n_args) {
+                    if (i < num_args) {
                         args[i] = frame.regs[*bc];
                         bc++;
                         i++;
@@ -830,7 +828,7 @@ _AU_OP_JNIF:;
                         bc += 3;
                         break;
                     }
-                    if(i < n_args) {
+                    if (i < num_args) {
                         args[i] = frame.regs[*bc];
                         bc++;
                         i++;
@@ -838,7 +836,7 @@ _AU_OP_JNIF:;
                         bc += 2;
                         break;
                     }
-                    if(i < n_args) {
+                    if (i < num_args) {
                         args[i] = frame.regs[*bc];
                         bc++;
                         i++;
@@ -847,6 +845,8 @@ _AU_OP_JNIF:;
                         break;
                     }
                 }
+                for (int i = 0; i < num_args; i++)
+                    au_value_ref(args[i]);
 
                 FLUSH_BC();
 
@@ -870,7 +870,7 @@ _AU_OP_JNIF:;
                 if (is_native) {
                     // Native functions do not clean up the argument stack
                     // for us, we have to do it manually.
-                    for (int i = 0; i < n_args; i++) {
+                    for (int i = 0; i < num_args; i++) {
                         au_value_deref(args[i]);
                     }
                 }
@@ -950,20 +950,49 @@ _AU_OP_JNIF:;
                 const uint8_t func_reg = bc[1];
                 const uint8_t num_args = bc[2];
                 const uint8_t ret_reg = bc[3];
-                PREFETCH_INSN;
+                bc += 4;
+
+                au_value_t *args = au_value_calloc(num_args);
+                for (int i = 0; i < num_args;) {
+                    bc++; // OP_PUSH_ARG
+                    if (i < num_args) {
+                        args[i] = frame.regs[*bc];
+                        bc++;
+                        i++;
+                    } else {
+                        bc += 3;
+                        break;
+                    }
+                    if (i < num_args) {
+                        args[i] = frame.regs[*bc];
+                        bc++;
+                        i++;
+                    } else {
+                        bc += 2;
+                        break;
+                    }
+                    if (i < num_args) {
+                        args[i] = frame.regs[*bc];
+                        bc++;
+                        i++;
+                    } else {
+                        bc += 1;
+                        break;
+                    }
+                }
+                for (int i = 0; i < num_args; i++)
+                    au_value_ref(args[i]);
 
                 struct au_fn_value *fn_value =
                     au_fn_value_coerce(frame.regs[func_reg]);
                 if (AU_LIKELY(fn_value != 0)) {
-                    au_value_t *args =
-                        &frame.arg_stack
-                             .data[frame.arg_stack.len - num_args];
                     int is_native = 0;
                     const au_value_t callee_retval = au_fn_value_call_vm(
                         fn_value, tl, args, num_args, &is_native);
                     if (au_value_is_error(callee_retval)) {
+                        au_data_free(args);
                         FLUSH_BC();
-                        call_error(p_data, &frame);
+                        RAISE(call_error(p_data, &frame));
                     }
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -979,15 +1008,15 @@ _AU_OP_JNIF:;
                         // Native functions do not clean up the argument
                         // stack for us, we have to do it manually.
                         for (int i = 0; i < num_args; i++) {
-                            au_value_deref(frame.arg_stack.data[i]);
+                            au_value_deref(args[i]);
                         }
                     }
-                    frame.arg_stack.len -= num_args;
+                    au_data_free(args);
                 } else {
-                    assert(0);
+                    abort(); // TODO
                 }
 
-                DISPATCH;
+                DISPATCH_JMP;
             }
             // Return instructions
             CASE(AU_OP_RET_LOCAL) : {
@@ -1369,9 +1398,6 @@ end:
     if (frame.self != 0)
         au_obj_deref(frame.self);
 #endif
-
-    if (frame.arg_stack.data != 0)
-        au_data_free(frame.arg_stack.data);
 
     tl->current_frame = frame.link;
     return frame.retval;

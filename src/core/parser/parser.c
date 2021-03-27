@@ -1723,18 +1723,39 @@ static int parser_exec_index_expr(struct au_parser *p,
             struct au_token id_tok = au_lexer_next(l);
             if (id_tok.type == AU_TOK_OPERATOR && id_tok.len == 1 &&
                 id_tok.src[0] == '(') {
-                abort(); // TODO
-                /* int num_args = 0;
-                if (!parser_exec_call_args(p, l, &num_args))
+                struct reg_array params = {0};
+                if (!parser_exec_call_args(p, l, &params)) {
+                    au_data_free(params.data);
                     return 0;
-                EXPECT_BYTECODE(num_args < 256);
+                }
+                EXPECT_BYTECODE(params.len < 256);
 
                 parser_emit_bc_u8(p, AU_OP_CALL_FUNC_VALUE);
                 parser_emit_bc_u8(p, parser_pop_reg(p));
-                parser_emit_bc_u8(p, num_args);
+                parser_emit_bc_u8(p, params.len);
                 uint8_t return_reg;
                 EXPECT_BYTECODE(parser_new_reg(p, &return_reg));
-                parser_emit_bc_u8(p, return_reg); */
+                parser_emit_bc_u8(p, return_reg);
+
+                for (size_t i = 0; i < params.len;) {
+                    uint8_t reg = 0;
+
+                    parser_emit_bc_u8(p, AU_OP_PUSH_ARG);
+
+                    reg = i < params.len ? params.data[i] : 0;
+                    i++;
+                    parser_emit_bc_u8(p, reg);
+
+                    reg = i < params.len ? params.data[i] : 0;
+                    i++;
+                    parser_emit_bc_u8(p, reg);
+
+                    reg = i < params.len ? params.data[i] : 0;
+                    i++;
+                    parser_emit_bc_u8(p, reg);
+                }
+
+                au_data_free(params.data);
             } else {
                 EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok,
                              "identifier or arguments");
@@ -1872,7 +1893,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
                             struct au_token module_tok,
                             struct au_token id_tok,
                             int has_self_argument) {
-    struct reg_array params = { 0 };
+    struct reg_array params = {0};
 
     if (has_self_argument)
         reg_array_add(&params, parser_pop_reg(p));
@@ -1915,7 +1936,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
 
     size_t call_fn_offset = 0;
 
-    if(params.len == 1) {
+    if (params.len == 1) {
         // OPTIMIZE: optimization for function calls with 1 argument
         parser_emit_bc_u8(p, AU_OP_CALL1);
         parser_emit_bc_u8(p, params.data[0]);
@@ -1934,7 +1955,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
         parser_emit_pad8(p);
         parser_emit_pad8(p);
 
-        for(size_t i = 0; i < params.len;) {
+        for (size_t i = 0; i < params.len;) {
             uint8_t reg = 0;
 
             parser_emit_bc_u8(p, AU_OP_PUSH_ARG);
