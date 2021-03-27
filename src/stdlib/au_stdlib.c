@@ -138,8 +138,13 @@ static const struct std_module_fn math_fns[] = {
 // * str.h *
 static const struct std_module_fn str_fns[] = {
     AU_MODULE_FN("into", au_std_str_into, 1),
-    AU_MODULE_FN("chars", au_std_str_chars, 1),
     AU_MODULE_FN("char", au_std_str_char, 1),
+    AU_MODULE_FN("bytes", au_std_str_bytes, 1),
+    AU_MODULE_FN("code_points", au_std_str_code_points, 1),
+    AU_MODULE_FN("index_of", au_std_str_index_of, 2),
+    AU_MODULE_FN("contains", au_std_str_contains, 2),
+    AU_MODULE_FN("starts_with", au_std_str_starts_with, 2),
+    AU_MODULE_FN("ends_with", au_std_str_ends_with, 2),
 };
 
 #ifdef AU_TEST

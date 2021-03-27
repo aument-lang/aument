@@ -1,2 +1,10 @@
+=== Contributors ===
+
 Thank you to all of the 1 people who have contributed:
-fermian (previous username: @chm8d): project lead
+
+  * fermian (previous username: @chm8d): project lead
+
+=== Libraries ===
+
+  * UTF-8-related code is adopted from utf8.h
+    https://github.com/sheredom/utf8.h
