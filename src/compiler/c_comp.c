@@ -26,6 +26,8 @@
 
 #define INDENT "    "
 
+AU_ARRAY_COPY(uint8_t, reg_array, 1)
+
 struct line_info {
     size_t source_start;
     int line;
@@ -332,9 +334,6 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         au_data_malloc(AU_BA_LEN(bcs->bc.len / 4));
     memset(labelled_lines, 0, AU_BA_LEN(bcs->bc.len / 4));
 
-    int arg_stack_max = 0;
-    int arg_stack_len = 0;
-
     for (size_t pos = 0; pos < bcs->bc.len;) {
         uint8_t opcode = bc(pos);
         pos++;
@@ -356,29 +355,10 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             AU_BA_SET_BIT(labelled_lines, (abs_offset / 4));
             break;
         }
-        case AU_OP_PUSH_ARG: {
-            arg_stack_len++;
-            arg_stack_max = arg_stack_max > arg_stack_len ? arg_stack_max
-                                                          : arg_stack_len;
-            break;
-        }
-        case AU_OP_CALL: {
-            DEF_BC16(func_id, 1)
-            const struct au_fn *fn =
-                au_fn_array_at_ptr(&p_data->fns, func_id);
-            arg_stack_len -= au_fn_num_args(fn);
-            break;
-        }
         default:
             break;
         }
         pos += 3;
-    }
-
-    if (arg_stack_max > 0) {
-        comp_printf(state,
-                    INDENT "au_value_t s_data[%d]; size_t s_len=0;\n",
-                    arg_stack_max);
     }
 
     const struct au_program_source_map *current_source_map = 0;
@@ -511,6 +491,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 (int)module_idx, (int)bcs->class_idx, (int)module_idx,
                 (int)bcs->class_idx);
             has_self = 1;
+            pos += 3;
             break;
         }
         // Move instructions
@@ -519,29 +500,34 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(n, 1)
             comp_printf(state, "COPY_VALUE(r%d, au_value_int(%d));\n", reg,
                         n);
+            pos += 3;
             break;
         }
         case AU_OP_MOV_REG_LOCAL: {
             uint8_t reg = bc(pos);
             DEF_BC16(local, 1)
             comp_printf(state, "COPY_VALUE(l%d,r%d);\n", local, reg);
+            pos += 3;
             break;
         }
         case AU_OP_MOV_LOCAL_REG: {
             uint8_t reg = bc(pos);
             DEF_BC16(local, 1)
             comp_printf(state, "COPY_VALUE(r%d,l%d);\n", reg, local);
+            pos += 3;
             break;
         }
         case AU_OP_MOV_BOOL: {
             uint8_t n = bc(pos), reg = bc(pos + 1);
             comp_printf(state, "COPY_VALUE(r%d,au_value_bool(%d));\n", reg,
                         n);
+            pos += 3;
             break;
         }
         case AU_OP_LOAD_NIL: {
             uint8_t reg = bc(pos);
             comp_printf(state, "COPY_VALUE(r%d,au_value_none());\n", reg);
+            pos += 3;
             break;
         }
         // Constants
@@ -550,6 +536,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(c, 1)
             comp_printf(state, "MOVE_VALUE(r%d,_M%d_c%d());\n", reg,
                         (int)module_idx, c);
+            pos += 3;
             break;
         }
         case AU_OP_SET_CONST: {
@@ -579,6 +566,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         (int)module_idx, c, reg);
             comp_printf(state, "_M%d_c%d_val_init=1;\n", (int)module_idx,
                         c);
+            pos += 3;
             break;
         }
         // Binary operations
@@ -590,6 +578,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         comp_printf(state,                                                \
                     "MOVE_VALUE(r%d,au_value_" NAME "(r%d,r%d));\n", res, \
                     lhs, rhs);                                            \
+        pos += 3;                                                         \
         break;                                                            \
     }
         case AU_OP_MUL:
@@ -629,6 +618,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 state,
                 "COPY_VALUE(r%d,au_value_bool(!au_value_is_truthy(r%d)));",
                 ret, reg);
+            pos += 3;
             break;
         }
         case AU_OP_BNOT: {
@@ -636,6 +626,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             uint8_t ret = bc(pos + 1);
             comp_printf(state, "COPY_VALUE(r%d,au_value_bnot(r%d));", ret,
                         reg);
+            pos += 3;
             break;
         }
         case AU_OP_NEG: {
@@ -643,6 +634,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             uint8_t ret = bc(pos + 1);
             comp_printf(state, "COPY_VALUE(r%d,au_value_neg(r%d));", ret,
                         reg);
+            pos += 3;
             break;
         }
         // Jump instructions
@@ -660,6 +652,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 comp_printf(state,
                             "if(!au_value_is_truthy(r%d)) goto L%d;\n",
                             (int)reg, (int)abs_offset);
+            pos += 3;
             break;
         }
         case AU_OP_JREL: {
@@ -667,6 +660,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
             comp_printf(state, "goto L%d;\n", (int)abs_offset);
+            pos += 3;
             break;
         }
         case AU_OP_JRELB: {
@@ -674,32 +668,73 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 - offset;
             comp_printf(state, "goto L%d;\n", (int)abs_offset);
+            pos += 3;
             break;
         }
-        // Call instructions
-        case AU_OP_PUSH_ARG: {
-            uint8_t reg = bc(pos);
-            comp_printf(state,
-                        "au_value_ref(r%d);"
-                        "s_data[s_len++]=r%d;\n",
-                        reg, reg);
-            break;
-        }
+            // Call instructions
+            {
+                uint8_t reg = bc(pos);
+                comp_printf(state,
+                            "au_value_ref(r%d);"
+                            "s_data[s_len++]=r%d;\n",
+                            reg, reg);
+                break;
+            }
         case AU_OP_CALL: {
             uint8_t reg = bc(pos);
             DEF_BC16(func_id, 1)
+            pos += 3;
+
             const struct au_fn *fn =
                 au_fn_array_at_ptr(&p_data->fns, func_id);
-            int n_args = 0;
+            const int num_args = au_fn_num_args(fn);
+
+            comp_printf(state, "{");
+
+            if (num_args > 0) {
+                struct reg_array params = {0};
+                comp_printf(state, "au_value_t _args[]={");
+                for (int i = 0; i < num_args;) {
+                    pos++; // OP_PUSH_ARG
+                    if (i < num_args) {
+                        reg_array_add(&params, bc(pos));
+                        pos++;
+                        i++;
+                    } else {
+                        pos += 3;
+                        break;
+                    }
+                    if (i < num_args) {
+                        reg_array_add(&params, bc(pos));
+                        pos++;
+                        i++;
+                    } else {
+                        pos += 2;
+                        break;
+                    }
+                    if (i < num_args) {
+                        reg_array_add(&params, bc(pos));
+                        pos++;
+                        i++;
+                    } else {
+                        pos += 1;
+                        break;
+                    }
+                }
+                for (size_t i = 0; i < params.len; i++) {
+                    comp_printf(state, "r%d,", params.data[i]);
+                }
+                au_data_free(params.data);
+                comp_printf(state, "};");
+            }
+
             switch (fn->type) {
             case AU_FN_DISPATCH:
             case AU_FN_BC: {
-                const struct au_bc_storage *bcs = &fn->as.bc_func;
-                n_args = bcs->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
-                if (n_args > 0) {
-                    comp_printf(state, "_M%d_f%d(&s_data[s_len-%d])",
-                                (int)module_idx, func_id, n_args);
+                if (num_args > 0) {
+                    comp_printf(state, "_M%d_f%d(_args)", (int)module_idx,
+                                func_id);
                 } else {
                     comp_printf(state, "_M%d_f%d()", (int)module_idx,
                                 func_id);
@@ -709,11 +744,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             }
             case AU_FN_LIB: {
                 const struct au_lib_func *lib_func = &fn->as.lib_func;
-                n_args = lib_func->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
-                if (n_args > 0) {
-                    comp_printf(state, "%s(0,&s_data[s_len-%d])",
-                                lib_func->symbol, n_args);
+                if (num_args > 0) {
+                    comp_printf(state, "%s(0,_args)", lib_func->symbol);
                 } else {
                     comp_printf(state, "%s(0,0)", lib_func->symbol);
                 }
@@ -721,14 +754,10 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 break;
             }
             case AU_FN_IMPORTER: {
-                const struct au_imported_func *imported_func =
-                    &fn->as.imported_func;
-                n_args = imported_func->num_args;
                 comp_printf(state, "MOVE_VALUE(r%d,", reg);
-                if (n_args > 0) {
-                    comp_printf(state, "(*_M%d_f%d)(&s_data[s_len-%d])",
-                                (int)module_idx, (int)func_id,
-                                (int)n_args);
+                if (num_args > 0) {
+                    comp_printf(state, "(*_M%d_f%d)(_args)",
+                                (int)module_idx, (int)func_id);
                 } else {
                     comp_printf(state, "(*_M%d_f%d)()", (int)module_idx,
                                 (int)func_id);
@@ -740,10 +769,8 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 au_fatal("generating none function");
             }
             }
-            if (n_args > 0) {
-                comp_printf(state, "s_len-=%d;", n_args);
-            }
-            comp_printf(state, "\n");
+
+            comp_printf(state, "}\n");
             break;
         }
         case AU_OP_CALL1: {
@@ -779,6 +806,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             }
             }
             comp_printf(state, "\n");
+            pos += 3;
             break;
         }
         // Function values
@@ -811,6 +839,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             }
             }
             comp_printf(state, ",%d));\n", au_fn_num_args(fn));
+            pos += 3;
             break;
         }
         case AU_OP_BIND_ARG_TO_FUNC: {
@@ -819,16 +848,58 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             comp_printf(state,
                         "if(!au_fn_value_add_arg_rt(r%d, r%d)) abort();\n",
                         func_reg, arg_reg);
+            pos += 3;
             break;
         }
         case AU_OP_CALL_FUNC_VALUE: {
             const uint8_t func_reg = bc(pos);
             const uint8_t num_args = bc(pos + 1);
             const uint8_t ret_reg = bc(pos + 2);
+            pos += 3;
+
+            comp_printf(state,"{"); 
+
+            if (num_args > 0) {
+                struct reg_array params = {0};
+                comp_printf(state, "au_value_t _args[]={");
+                for (int i = 0; i < num_args;) {
+                    pos++; // OP_PUSH_ARG
+                    if (i < num_args) {
+                        reg_array_add(&params, bc(pos));
+                        pos++;
+                        i++;
+                    } else {
+                        pos += 3;
+                        break;
+                    }
+                    if (i < num_args) {
+                        reg_array_add(&params, bc(pos));
+                        pos++;
+                        i++;
+                    } else {
+                        pos += 2;
+                        break;
+                    }
+                    if (i < num_args) {
+                        reg_array_add(&params, bc(pos));
+                        pos++;
+                        i++;
+                    } else {
+                        pos += 1;
+                        break;
+                    }
+                }
+                for (size_t i = 0; i < params.len; i++) {
+                    comp_printf(state, "r%d,", params.data[i]);
+                }
+                au_data_free(params.data);
+                comp_printf(state, "};");
+            }
+
             comp_printf(state,
-                        "MOVE_VALUE(r%d,au_fn_value_call_rt(r%d,&s_data[s_"
-                        "len-%d],%d));\n",
-                        ret_reg, func_reg, num_args, num_args);
+                        "MOVE_VALUE(r%d,"
+                        "au_fn_value_call_rt(r%d,_args,%d));}\n",
+                        ret_reg, func_reg, num_args);
             break;
         }
         // Return instructions
@@ -836,17 +907,20 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             uint8_t reg = bc(pos);
             comp_cleanup(state, bcs, reg, -1, has_self);
             comp_printf(state, "return r%d;\n", reg);
+            pos += 3;
             break;
         }
         case AU_OP_RET_LOCAL: {
             DEF_BC16(local, 1)
             comp_cleanup(state, bcs, -1, local, has_self);
             comp_printf(state, "return l%d;\n", local);
+            pos += 3;
             break;
         }
         case AU_OP_RET_NULL: {
             comp_cleanup(state, bcs, -1, -1, has_self);
             comp_printf(state, "return au_value_none();\n");
+            pos += 3;
             break;
         }
         // Modules
@@ -1092,6 +1166,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 
             if (module_path_with_subpath != 0)
                 au_data_free(module_path_with_subpath);
+            pos += 3;
             break;
         }
         // Array instructions
@@ -1103,6 +1178,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         "au_value_struct("
                         "(struct au_struct*)au_obj_array_new(%d)));\n",
                         reg, capacity);
+            pos += 3;
             break;
         }
         case AU_OP_ARRAY_PUSH: {
@@ -1112,6 +1188,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 state,
                 "au_obj_array_push(au_obj_array_coerce(r%d),r%d);\n", reg,
                 value);
+            pos += 3;
             break;
         }
         case AU_OP_IDX_GET: {
@@ -1121,6 +1198,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             comp_printf(state,
                         "COPY_VALUE(r%d,au_struct_idx_get(r%d,r%d));\n",
                         ret, reg, idx);
+            pos += 3;
             break;
         }
         case AU_OP_IDX_SET: {
@@ -1131,6 +1209,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         "au_value_ref(r%d);"
                         "au_struct_idx_set(r%d,r%d,r%d);\n",
                         ret, reg, idx, ret);
+            pos += 3;
             break;
         }
         // Tuple instructions
@@ -1142,6 +1221,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         "au_value_struct("
                         "(struct au_struct*)au_obj_tuple_new(%d)));\n",
                         reg, len);
+            pos += 3;
             break;
         }
         case AU_OP_IDX_SET_STATIC: {
@@ -1152,6 +1232,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         "au_value_ref(r%d);"
                         "au_struct_idx_set(r%d,au_value_int(%d),r%d);\n",
                         ret, reg, idx, ret);
+            pos += 3;
             break;
         }
         // Class instructions
@@ -1163,6 +1244,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                         "(struct au_struct*)_struct_M%d_%d_new()"
                         "));\n",
                         (int)reg, (int)module_idx, (int)class_idx);
+            pos += 3;
             break;
         }
         case AU_OP_CLASS_GET_INNER: {
@@ -1177,9 +1259,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(inner, 1);
             comp_printf(state, "COPY_VALUE(self->v[%d],r%d);\n", inner,
                         reg);
+            pos += 3;
             break;
         }
         // Other
+        case AU_OP_PUSH_ARG:
         case AU_OP_NOP:
             break;
         case AU_OP_PRINT: {
@@ -1189,6 +1273,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 #else
             comp_printf(state, "au_value_print(r%d);\n", lhs);
 #endif
+            pos += 3;
             break;
         }
         default: {
@@ -1196,7 +1281,6 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         }
         }
-        pos += 3;
     }
 
     au_data_free(labelled_lines);

@@ -1199,7 +1199,9 @@ static int parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
         }
         if (!parser_exec_expr(p, l))
             return 0;
-        reg_array_add(regs, parser_pop_reg(p));
+        const uint8_t reg = parser_pop_reg(p);
+        reg_array_add(regs, reg);
+        AU_BA_SET_BIT(p->used_regs, reg);
     }
     while (1) {
         const struct au_token t = au_lexer_next(l);
@@ -1210,7 +1212,9 @@ static int parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
                    t.src[0] == ',') {
             if (!parser_exec_expr(p, l))
                 return 0;
-            reg_array_add(regs, parser_pop_reg(p));
+            const uint8_t reg = parser_pop_reg(p);
+            reg_array_add(regs, reg);
+            AU_BA_SET_BIT(p->used_regs, reg);
             continue;
         } else {
             EXPECT_TOKEN(0, t, "',' or ')'");
@@ -1755,6 +1759,10 @@ static int parser_exec_index_expr(struct au_parser *p,
                     parser_emit_bc_u8(p, reg);
                 }
 
+                for (size_t i = 0; i < params.len; i++) {
+                    AU_BA_RESET_BIT(p->used_regs, i);
+                }
+
                 au_data_free(params.data);
             } else {
                 EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok,
@@ -1971,6 +1979,10 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
             reg = i < params.len ? params.data[i] : 0;
             i++;
             parser_emit_bc_u8(p, reg);
+        }
+
+        for (size_t i = 0; i < params.len; i++) {
+            AU_BA_RESET_BIT(p->used_regs, i);
         }
     }
 
