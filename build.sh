@@ -41,7 +41,7 @@ case $i in
 esac
 done
 
-if [[ "$buildtype" = "" ]]; then
+if [[ "x$buildtype" = "x" ]]; then
 	buildtype = "debug"
 fi
 
