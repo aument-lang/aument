@@ -8,8 +8,8 @@
 #include <locale.h>
 #else
 #define _GNU_SOURCE
-#include <stdlib.h>
 #include <locale.h>
+#include <stdlib.h>
 #endif
 
 #include <assert.h>

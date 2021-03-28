@@ -1247,6 +1247,25 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             pos += 3;
             break;
         }
+        case AU_OP_CLASS_NEW_INITIALZIED: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(class_idx, 1);
+            pos += 3;
+            comp_printf(state, "{struct _M%d_%d*_s=_struct_M%d_%d_new();",
+                        (int)module_idx, (int)class_idx, (int)module_idx,
+                        (int)class_idx);
+            while (bc(pos) != AU_OP_NOP) {
+                uint8_t reg = bc(pos + 1);
+                DEF_BC16(inner, 2);
+                pos += 4;
+                comp_printf(state, "COPY_VALUE(_s->v[%d],r%d);", inner,
+                            reg);
+            }
+            pos += 4; // skip AU_OP_NOP
+            comp_printf(state, "MOVE_VALUE(r%d,au_value_struct(_s));}\n",
+                        reg);
+            break;
+        }
         case AU_OP_CLASS_GET_INNER: {
             uint8_t reg = bc(pos);
             DEF_BC16(inner, 1);
