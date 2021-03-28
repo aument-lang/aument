@@ -42,6 +42,12 @@ endif
 
 # Flag configs
 
+if target_machine.system() == 'windows'
+    # GCC in GitHub Actions doesn't define the _WIN32 macro
+    add_project_arguments('-D_WIN32', language : ['c'])
+    au_hdr_cflags += ['D_WIN32']
+endif
+
 if target_machine.system() != 'windows'
     code = '''#include <sys/mman.h>
     void main() { mmap(0, 0, 0, 0, 0, 0); }
