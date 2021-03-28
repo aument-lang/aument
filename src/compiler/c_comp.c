@@ -674,15 +674,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             pos += 3;
             break;
         }
-            // Call instructions
-            {
-                uint8_t reg = bc(pos);
-                comp_printf(state,
-                            "au_value_ref(r%d);"
-                            "s_data[s_len++]=r%d;\n",
-                            reg, reg);
-                break;
-            }
+        // Call instructions
         case AU_OP_CALL: {
             uint8_t reg = bc(pos);
             DEF_BC16(func_id, 1);
