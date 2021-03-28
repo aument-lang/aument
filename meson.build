@@ -201,6 +201,7 @@ if has_compile_feature
         'src/core/vm/module.h',
         'src/core/rt/struct/helper.h',
         'src/core/rt/value/print.c',
+        'src/core/rt/malloc/static.c',
     )
     stdlib_begin_hdr = files('src/core/rt/includes/stdlib_begin.h')
     rt_hdr_src = custom_target(
@@ -259,7 +260,6 @@ endif
 
 au_runtime_sources = [
     'src/core/rt/exception.c',
-    'src/core/rt/malloc/static.c',
     'src/core/hash.c',
     'src/core/hm_vars.c',
     'src/core/rt/au_class.c',

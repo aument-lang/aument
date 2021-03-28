@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdalign.h>
+#include <stddef.h>
 
 #ifdef AU_FEAT_LIBDL
 #include <dlfcn.h>

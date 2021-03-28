@@ -53,8 +53,12 @@
 #define AU_PRIVATE __attribute__((visibility("hidden")))
 #endif
 
+#ifdef AU_IS_INTERPRETER
 #ifdef static_assert
 #define AU_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
 #else
 #define AU_STATIC_ASSERT(cond, msg) assert(cond, msg)
+#endif
+#else
+#define AU_STATIC_ASSERT(cond, msg)
 #endif
