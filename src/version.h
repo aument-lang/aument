@@ -5,5 +5,5 @@
 // See LICENSE.txt for license information
 #pragma once
 
-#define AU_VERSION "0.4.0 (alpha)"
-#define AU_VERSION_NUMERIC 20210321ULL
+#define AU_VERSION "0.5.0 (alpha)"
+#define AU_VERSION_NUMERIC 20210328ULL
