@@ -40,6 +40,40 @@ static inline locale_t newlocale(int category_mask, const char *locale,
 #include "lexer.h"
 #include "parser.h"
 
+static const char *utf8_codepoint(const char *s, const size_t max_len,
+                                  int32_t *out_codepoint) {
+    if (max_len == 0)
+        return 0;
+
+    if (0xf0 == (0xf8 & s[0])) {
+        // 4 byte utf8 codepoint
+        if (max_len < 4)
+            return 0;
+        *out_codepoint = ((0x07 & s[0]) << 18) | ((0x3f & s[1]) << 12) |
+                         ((0x3f & s[2]) << 6) | (0x3f & s[3]);
+        s += 4;
+    } else if (0xe0 == (0xf0 & s[0])) {
+        // 3 byte utf8 codepoint
+        if (max_len < 3)
+            return 0;
+        *out_codepoint =
+            ((0x0f & s[0]) << 12) | ((0x3f & s[1]) << 6) | (0x3f & s[2]);
+        s += 3;
+    } else if (0xc0 == (0xe0 & s[0])) {
+        // 2 byte utf8 codepoint
+        if (max_len < 2)
+            return 0;
+        *out_codepoint = ((0x1f & s[0]) << 6) | (0x3f & s[1]);
+        s += 2;
+    } else {
+        // 1 byte utf8 codepoint otherwise
+        *out_codepoint = s[0];
+        s += 1;
+    }
+
+    return (void *)s;
+}
+
 #define CLASS_ID_NONE ((size_t)-1)
 #define CACHED_REG_NONE ((uint8_t)-1)
 
@@ -2217,8 +2251,11 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
         }
         break;
     }
-    case AU_TOK_STRING: {
-        // Perform string escaping
+    case AU_TOK_STRING:
+    case AU_TOK_CHAR_STRING: {
+        const int is_char_string = t.type == AU_TOK_CHAR_STRING;
+
+        // Perform string escape
         char *formatted_string = 0;
         size_t formatted_string_len = 0;
         int in_escape = 0;
@@ -2246,14 +2283,27 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
         }
 
         int idx = -1;
-        if (formatted_string) {
-            idx = au_program_data_add_data(p->p_data, au_value_string(0),
-                                           (uint8_t *)formatted_string,
-                                           formatted_string_len);
-            au_data_free(formatted_string);
+        if (is_char_string) {
+            int32_t codepoint = 0;
+            if (utf8_codepoint(t.src, t.len, &codepoint) == 0)
+                abort(); // TODO
+
+            idx = au_program_data_add_data(p->p_data,
+                                           au_value_int(codepoint), 0, 0);
+
+            if (formatted_string)
+                au_data_free(formatted_string);
         } else {
-            idx = au_program_data_add_data(p->p_data, au_value_string(0),
-                                           (uint8_t *)t.src, t.len);
+            if (formatted_string) {
+                idx = au_program_data_add_data(
+                    p->p_data, au_value_string(0),
+                    (uint8_t *)formatted_string, formatted_string_len);
+                au_data_free(formatted_string);
+            } else {
+                idx =
+                    au_program_data_add_data(p->p_data, au_value_string(0),
+                                             (uint8_t *)t.src, t.len);
+            }
         }
 
         uint8_t reg;

@@ -98,12 +98,35 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
         l->pos++;
         size_t len = 0;
         while (!L_EOF()) {
-            if (l->src[l->pos] == start_ch) {
+            if (l->src[l->pos] == '\\') {
+                l->pos++;
+                len++;
+                if (L_EOF()) {
+                    return (struct au_token){
+                        .type = AU_TOK_UNKNOWN,
+                        .src = l->src + start,
+                        .len = 1,
+                    };
+                } else {
+                    l->pos++;
+                    len++;
+                }
+                continue;
+            } else if (l->src[l->pos] == start_ch) {
                 l->pos++;
                 break;
             }
             l->pos++;
             len++;
+        }
+        if (!L_EOF() && l->src[l->pos] == 'c') {
+            l->pos++;
+            len++;
+            return (struct au_token){
+                .type = AU_TOK_CHAR_STRING,
+                .src = l->src + start + 1,
+                .len = len,
+            };
         }
         return (struct au_token){
             .type = AU_TOK_STRING,

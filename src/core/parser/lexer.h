@@ -17,7 +17,8 @@
 #define AU_TOK_STRING 4
 #define AU_TOK_OPERATOR 5
 #define AU_TOK_AT_IDENTIFIER 6
-#define AU_TOK_UNKNOWN 7
+#define AU_TOK_CHAR_STRING 7
+#define AU_TOK_UNKNOWN 8
 
 struct au_token {
     uint32_t type;
