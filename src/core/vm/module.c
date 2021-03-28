@@ -188,7 +188,7 @@ au_module_import(struct au_module *module,
             if (native_lib == 0) {
                 return AU_MODULE_IMPORT_FAIL;
             } else {
-                module->data.lib.dl_handle = LoadLibraryA(native_lib);
+                handle = LoadLibraryA(native_lib);
                 au_data_free(native_lib);
             }
         } else {
