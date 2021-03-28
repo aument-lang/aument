@@ -2,7 +2,7 @@
 
 *(This document is a draft.)*
 
-Although at its core, Aument is meant to be a dynamic scripting language, it does not try to sacrifice speed for ease of usability. Below are a few design decisions (language or implementation wise), that will (hopefully) make Aument fast.
+Although at its core, Aument is meant to be a dynamic scripting language, it does not try to sacrifice speed solely for the sake of being dynamic. Below are a few design decisions (language or implementation wise), which makes Aument fast.
 
 ## Language design
 
@@ -10,7 +10,7 @@ Although at its core, Aument is meant to be a dynamic scripting language, it doe
 
 All names in Aument (identifiers, functions and classes) are static, they are resolved at parse time and constant at runtime. You cannot define new functions or classes at runtime, of course, but in practice, it isn't a big limitation.
 
-### [Classes](docs/architecture.md#classes)
+### [Classes](/docs/architecture.md#classes)
 
 Classes in Aument are flat structures, they are laid out in memory like an array of values with named keys. Accessing private values is as fast as a pointer dereference.
 
