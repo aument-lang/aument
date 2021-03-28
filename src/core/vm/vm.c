@@ -242,6 +242,9 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         frame.bc = bc;                                                    \
     } while (0)
 
+#define DEF_BC16(VAR, OFFSET)                                             \
+    const uint16_t VAR = *((uint16_t *)(&bc[OFFSET]))
+
 #define RAISE(ERROR)                                                      \
     do {                                                                  \
         FLUSH_BC();                                                       \
@@ -438,7 +441,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             // Register/local move operations
             CASE(AU_OP_MOV_U16) : {
                 const uint8_t reg = bc[1];
-                const uint16_t n = *(uint16_t *)(&bc[2]);
+                DEF_BC16(n, 2);
                 PREFETCH_INSN;
 
                 COPY_VALUE(frame.regs[reg], au_value_int(n));
@@ -447,7 +450,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             CASE(AU_OP_MOV_REG_LOCAL) : {
                 const uint8_t reg = bc[1];
-                const uint16_t local = *(uint16_t *)(&bc[2]);
+                DEF_BC16(local, 2);
                 PREFETCH_INSN;
 
                 COPY_VALUE(frame.locals[local], frame.regs[reg]);
@@ -456,7 +459,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             CASE(AU_OP_MOV_LOCAL_REG) : {
                 const uint8_t reg = bc[1];
-                const uint16_t local = *(uint16_t *)(&bc[2]);
+                DEF_BC16(local, 2);
                 PREFETCH_INSN;
 
                 COPY_VALUE(frame.regs[reg], frame.locals[local]);
@@ -482,7 +485,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             CASE(AU_OP_LOAD_CONST) : {
                 const uint8_t reg = bc[1];
-                const uint16_t rel_c = *(uint16_t *)(&bc[2]);
+                DEF_BC16(rel_c, 2);
                 PREFETCH_INSN;
 
                 const size_t abs_c = rel_c + p_data->tl_constant_start;
@@ -513,7 +516,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             }
             CASE(AU_OP_SET_CONST) : {
                 const uint8_t reg = bc[1];
-                const uint16_t rel_c = *(uint16_t *)(&bc[2]);
+                DEF_BC16(rel_c, 2);
                 PREFETCH_INSN;
 
                 const size_t abs_c = rel_c + p_data->tl_constant_start;
@@ -732,7 +735,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             CASE(AU_OP_JIF) : {
 _AU_OP_JIF:;
                 const au_value_t cmp = frame.regs[bc[1]];
-                const uint16_t n = *(uint16_t *)(&bc[2]);
+                DEF_BC16(n, 2);
                 PREFETCH_INSN;
 
                 const size_t offset = ((size_t)n) * 4;
@@ -749,7 +752,7 @@ _AU_OP_JIF:;
             CASE(AU_OP_JNIF) : {
 _AU_OP_JNIF:;
                 const au_value_t cmp = frame.regs[bc[1]];
-                const uint16_t n = *(uint16_t *)(&bc[2]);
+                DEF_BC16(n, 2);
                 PREFETCH_INSN;
 
                 const size_t offset = ((size_t)n) * 4;
@@ -764,13 +767,13 @@ _AU_OP_JNIF:;
                 }
             }
             CASE(AU_OP_JREL) : {
-                const uint16_t n = *(uint16_t *)(&bc[2]);
+                DEF_BC16(n, 2);
                 const size_t offset = ((size_t)n) * 4;
                 bc += offset;
                 DISPATCH_JMP;
             }
             CASE(AU_OP_JRELB) : {
-                const uint16_t n = *(uint16_t *)(&bc[2]);
+                DEF_BC16(n, 2);
                 const size_t offset = ((size_t)n) * 4;
                 bc -= offset;
                 DISPATCH_JMP;
@@ -778,7 +781,7 @@ _AU_OP_JNIF:;
             // Jump instructions optimized on bools
             CASE(AU_OP_JIF_BOOL) : {
                 const au_value_t cmp = frame.regs[bc[1]];
-                const uint16_t n = *(uint16_t *)(&bc[2]);
+                DEF_BC16(n, 2);
                 PREFETCH_INSN;
 
                 const size_t offset = ((size_t)n) * 4;
@@ -795,7 +798,7 @@ _AU_OP_JNIF:;
             }
             CASE(AU_OP_JNIF_BOOL) : {
                 const au_value_t cmp = frame.regs[bc[1]];
-                const uint16_t n = *(uint16_t *)(&bc[2]);
+                DEF_BC16(n, 2);
                 PREFETCH_INSN;
 
                 const size_t offset = ((size_t)n) * 4;
@@ -813,7 +816,7 @@ _AU_OP_JNIF:;
             // Call instructions
             CASE(AU_OP_CALL) : {
                 const uint8_t ret_reg = bc[1];
-                const uint16_t func_id = *((uint16_t *)(&bc[2]));
+                DEF_BC16(func_id, 2);
                 bc += 4;
 
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
@@ -881,7 +884,7 @@ _AU_OP_JNIF:;
             }
             CASE(AU_OP_CALL1) : {
                 const uint8_t ret_reg = bc[1];
-                const uint16_t func_id = *((uint16_t *)(&bc[2]));
+                DEF_BC16(func_id, 2);
                 PREFETCH_INSN;
 
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
@@ -914,7 +917,7 @@ _AU_OP_JNIF:;
             // Function values
             CASE(AU_OP_LOAD_FUNC): {
                 const uint8_t reg = bc[1];
-                const uint16_t func_id = *((uint16_t *)(&bc[2]));
+                DEF_BC16(func_id, 2);
                 PREFETCH_INSN;
 
                 const struct au_fn *fn = &p_data->fns.data[func_id];
@@ -1021,7 +1024,7 @@ _AU_OP_JNIF:;
             }
             // Return instructions
             CASE(AU_OP_RET_LOCAL) : {
-                const uint16_t local = *((uint16_t *)(&bc[2]));
+                DEF_BC16(local, 2);
                 // Move ownership of value in ret_local -> return reg in
                 // prev. frame
                 frame.retval = frame.locals[local];
@@ -1040,7 +1043,7 @@ _AU_OP_JNIF:;
             // Array instructions
             CASE(AU_OP_ARRAY_NEW) : {
                 const uint8_t reg = bc[1];
-                const uint16_t capacity = *((uint16_t *)(&bc[2]));
+                DEF_BC16(capacity, 2);
                 PREFETCH_INSN;
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -1115,7 +1118,7 @@ _AU_OP_JNIF:;
             // Tuple instructions
             CASE(AU_OP_TUPLE_NEW) : {
                 const uint8_t reg = bc[1];
-                const uint16_t length = *((uint16_t *)(&bc[2]));
+                DEF_BC16(length, 2);
                 PREFETCH_INSN;
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -1157,7 +1160,7 @@ _AU_OP_JNIF:;
             // Class instructions
             CASE(AU_OP_CLASS_NEW) : {
                 const uint8_t reg = bc[1];
-                const uint16_t class_id = *(uint16_t *)(&bc[2]);
+                DEF_BC16(class_id, 2);
                 PREFETCH_INSN;
 
                 struct au_struct *obj_class =
@@ -1176,7 +1179,7 @@ _AU_OP_JNIF:;
             }
             CASE(AU_OP_CLASS_NEW_INITIALZIED) : {
                 const uint8_t reg = bc[1];
-                const uint16_t class_id = *(uint16_t *)(&bc[2]);
+                DEF_BC16(class_id, 2);
 
                 struct au_obj_class *obj_class =
                     au_obj_class_new(p_data->classes.data[class_id]);
@@ -1192,7 +1195,7 @@ _AU_OP_JNIF:;
 
                 while (*bc != AU_OP_NOP) {
                     const uint8_t reg = bc[1];
-                    const uint16_t inner = *(uint16_t *)(&bc[2]);
+                    DEF_BC16(inner, 2);
                     bc += 4;
                     au_value_ref(frame.regs[reg]);
                     obj_class->data[inner] = frame.regs[reg];
@@ -1203,7 +1206,7 @@ _AU_OP_JNIF:;
             }
             CASE(AU_OP_CLASS_GET_INNER) : {
                 const uint8_t reg = bc[1];
-                const uint16_t inner = *(uint16_t *)(&bc[2]);
+                DEF_BC16(inner, 2);
                 PREFETCH_INSN;
 
                 COPY_VALUE(frame.regs[reg], frame.self->data[inner]);
@@ -1212,7 +1215,7 @@ _AU_OP_JNIF:;
             }
             CASE(AU_OP_CLASS_SET_INNER) : {
                 const uint8_t reg = bc[1];
-                const uint16_t inner = *(uint16_t *)(&bc[2]);
+                DEF_BC16(inner, 2);
                 PREFETCH_INSN;
 
                 COPY_VALUE(frame.self->data[inner], frame.regs[reg]);
@@ -1221,7 +1224,7 @@ _AU_OP_JNIF:;
             }
             // Module instructions
             CASE(AU_OP_IMPORT) : {
-                const uint16_t idx = *((uint16_t *)(&bc[2]));
+                DEF_BC16(idx, 2);
                 PREFETCH_INSN;
 
                 const size_t relative_module_idx =

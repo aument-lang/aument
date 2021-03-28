@@ -90,8 +90,11 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         pos++;
 
 #define DEF_BC16(VAR, OFFSET)                                             \
-    assert(pos + OFFSET + 2 <= bcs->bc.len);                              \
-    uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));
+    uint16_t VAR;                                                         \
+    do {                                                                  \
+        assert(pos + OFFSET + 2 <= bcs->bc.len);                          \
+        VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));               \
+    } while (0)
 
         switch (opcode) {
         case AU_OP_LOAD_SELF: {
@@ -102,7 +105,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         // Move instructions
         case AU_OP_MOV_U16: {
             uint8_t reg = bc(pos);
-            DEF_BC16(n, 1)
+            DEF_BC16(n, 1);
             printf(" #%d -> r%d\n", n, reg);
             pos += 3;
             break;
@@ -136,14 +139,14 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         // Load/store constants
         case AU_OP_LOAD_CONST: {
             uint8_t reg = bc(pos);
-            DEF_BC16(c, 1)
+            DEF_BC16(c, 1);
             printf(" c%d -> r%d\n", c, reg);
             pos += 3;
             break;
         }
         case AU_OP_SET_CONST: {
             uint8_t reg = bc(pos);
-            DEF_BC16(c, 1)
+            DEF_BC16(c, 1);
             printf(" r%d -> c%d\n", reg, c);
             pos += 3;
             break;
@@ -185,7 +188,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         case AU_OP_JIF:
         case AU_OP_JNIF: {
             uint8_t reg = bc(pos);
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
             printf(" r%d, &%" PRIdPTR "\n", reg, abs_offset);
@@ -193,7 +196,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             break;
         }
         case AU_OP_JREL: {
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
             printf(" &%" PRIdPTR "\n", abs_offset);
@@ -201,7 +204,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             break;
         }
         case AU_OP_JRELB: {
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 - offset;
             printf(" &%" PRIdPTR "\n", abs_offset);
@@ -219,14 +222,14 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         }
         case AU_OP_CALL: {
             uint8_t retval = bc(pos);
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             printf(" (%d) -> r%d\n", x, retval);
             pos += 3;
             break;
         }
         case AU_OP_CALL1: {
             uint8_t retval = bc(pos);
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             printf(" (%d) -> r%d\n", x, retval);
             pos += 3;
             break;
@@ -246,7 +249,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         }
         // Modules
         case AU_OP_IMPORT: {
-            DEF_BC16(idx, 1)
+            DEF_BC16(idx, 1);
             assert(idx < data->imports.len);
             printf(
                 " \"%s\"\n",
@@ -257,7 +260,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         // Array instructions
         case AU_OP_ARRAY_NEW: {
             uint8_t reg = bc(pos);
-            DEF_BC16(capacity, 1)
+            DEF_BC16(capacity, 1);
             printf(" %d [capacity %d]\n", reg, capacity);
             pos += 3;
             break;
@@ -288,7 +291,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         // Tuple instructions
         case AU_OP_TUPLE_NEW: {
             uint8_t reg = bc(pos);
-            DEF_BC16(len, 1)
+            DEF_BC16(len, 1);
             printf(" %d [length %d]\n", reg, len);
             pos += 3;
             break;

@@ -327,8 +327,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
 
 #define bc(x) au_bc_buf_at(&bcs->bc, x)
 #define DEF_BC16(VAR, OFFSET)                                             \
-    assert(pos + OFFSET + 2 <= bcs->bc.len);                              \
-    uint16_t VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));
+    uint16_t VAR;                                                         \
+    do {                                                                  \
+        assert(pos + OFFSET + 2 <= bcs->bc.len);                          \
+        VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));               \
+    } while (0)
 
     au_bit_array labelled_lines =
         au_data_malloc(AU_BA_LEN(bcs->bc.len / 4));
@@ -342,14 +345,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case AU_OP_JIF:
         case AU_OP_JNIF:
         case AU_OP_JREL: {
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
             AU_BA_SET_BIT(labelled_lines, (abs_offset / 4));
             break;
         }
         case AU_OP_JRELB: {
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 - offset;
             AU_BA_SET_BIT(labelled_lines, (abs_offset / 4));
@@ -497,7 +500,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         // Move instructions
         case AU_OP_MOV_U16: {
             uint8_t reg = bc(pos);
-            DEF_BC16(n, 1)
+            DEF_BC16(n, 1);
             comp_printf(state, "COPY_VALUE(r%d, au_value_int(%d));\n", reg,
                         n);
             pos += 3;
@@ -505,14 +508,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
         case AU_OP_MOV_REG_LOCAL: {
             uint8_t reg = bc(pos);
-            DEF_BC16(local, 1)
+            DEF_BC16(local, 1);
             comp_printf(state, "COPY_VALUE(l%d,r%d);\n", local, reg);
             pos += 3;
             break;
         }
         case AU_OP_MOV_LOCAL_REG: {
             uint8_t reg = bc(pos);
-            DEF_BC16(local, 1)
+            DEF_BC16(local, 1);
             comp_printf(state, "COPY_VALUE(r%d,l%d);\n", reg, local);
             pos += 3;
             break;
@@ -533,7 +536,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         // Constants
         case AU_OP_LOAD_CONST: {
             uint8_t reg = bc(pos);
-            DEF_BC16(c, 1)
+            DEF_BC16(c, 1);
             comp_printf(state, "MOVE_VALUE(r%d,_M%d_c%d());\n", reg,
                         (int)module_idx, c);
             pos += 3;
@@ -541,7 +544,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
         case AU_OP_SET_CONST: {
             uint8_t reg = bc(pos);
-            DEF_BC16(c, 1)
+            DEF_BC16(c, 1);
 
             comp_printf(&g_state->header_file,
                         "static au_value_t _M%d_c%d_val;\n",
@@ -641,7 +644,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         case AU_OP_JIF:
         case AU_OP_JNIF: {
             uint8_t reg = bc(pos);
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
             if (opcode == AU_OP_JIF)
@@ -656,7 +659,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         }
         case AU_OP_JREL: {
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 + offset;
             comp_printf(state, "goto L%d;\n", (int)abs_offset);
@@ -664,7 +667,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         }
         case AU_OP_JRELB: {
-            DEF_BC16(x, 1)
+            DEF_BC16(x, 1);
             const size_t offset = x * 4;
             const size_t abs_offset = pos - 1 - offset;
             comp_printf(state, "goto L%d;\n", (int)abs_offset);
@@ -682,7 +685,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             }
         case AU_OP_CALL: {
             uint8_t reg = bc(pos);
-            DEF_BC16(func_id, 1)
+            DEF_BC16(func_id, 1);
             pos += 3;
 
             const struct au_fn *fn =
@@ -775,7 +778,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
         case AU_OP_CALL1: {
             uint8_t reg = bc(pos);
-            DEF_BC16(func_id, 1)
+            DEF_BC16(func_id, 1);
             const struct au_fn *fn =
                 au_fn_array_at_ptr(&p_data->fns, func_id);
             switch (fn->type) {
@@ -812,7 +815,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         // Function values
         case AU_OP_LOAD_FUNC: {
             const uint8_t reg = bc(pos);
-            DEF_BC16(func_id, 1)
+            DEF_BC16(func_id, 1);
             const struct au_fn *fn =
                 au_fn_array_at_ptr(&p_data->fns, func_id);
             comp_printf(state, "MOVE_VALUE(r%d,", reg);
@@ -911,7 +914,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             break;
         }
         case AU_OP_RET_LOCAL: {
-            DEF_BC16(local, 1)
+            DEF_BC16(local, 1);
             comp_cleanup(state, bcs, -1, local, has_self);
             comp_printf(state, "return l%d;\n", local);
             pos += 3;
@@ -925,7 +928,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         }
         // Modules
         case AU_OP_IMPORT: {
-            DEF_BC16(idx, 1)
+            DEF_BC16(idx, 1);
             const struct au_program_import *import =
                 au_program_import_array_at_ptr(&p_data->imports, idx);
             const size_t relative_module_idx = import->module_idx;
@@ -1172,7 +1175,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         // Array instructions
         case AU_OP_ARRAY_NEW: {
             uint8_t reg = bc(pos);
-            DEF_BC16(capacity, 1)
+            DEF_BC16(capacity, 1);
             comp_printf(state,
                         "MOVE_VALUE(r%d,"
                         "au_value_struct("
@@ -1215,7 +1218,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
         // Tuple instructions
         case AU_OP_TUPLE_NEW: {
             uint8_t reg = bc(pos);
-            DEF_BC16(len, 1)
+            DEF_BC16(len, 1);
             comp_printf(state,
                         "MOVE_VALUE(r%d,"
                         "au_value_struct("
