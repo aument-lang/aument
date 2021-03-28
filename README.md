@@ -79,15 +79,27 @@ You can use the `install.sh` script to install aument into `/usr/local`.
 
 If your build machine is Windows, install [Python](https://www.python.org/downloads/) and [Meson](https://mesonbuild.com/SimpleStart.html#windows1).
 
+Run `build-release.bat` for release mode or `build-debug.bat` for debug mode.
+
+**For MinGW users,** install MinGW tools from Chocolatey:
+
+```
+choco install mingw
+```
+
+Then run one of the build scripts. To clean up the build directory, use `clean.bat` or remove the `build` directory.
+
 **For Cygwin users,** install gcc on Cygwin, open a Cygwin shell in the current directory and follow Linux instructions.
 
-**For MSVC users,** run `build-release.bat` for release mode or `build-debug.bat` for debug mode.
-
-If you're cross-compiling for Windows (64-bit), use the command:
+**For non-Windows users,** If you're cross-compiling for Windows (64-bit), use the command:
 
 ```
 ./build.sh --cross-win64
 ```
+
+#### Install
+
+You can use the `install.bat` script to install aument your `C:\` drive. This will install the Aument binary, library and the include files into `C:\bin`, `C:\lib` and `C:\include` respectively.
 
 ## Documentation
 
