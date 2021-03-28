@@ -200,8 +200,10 @@ if has_compile_feature
         'src/core/rt/extern_fn.h',
         'src/core/rt/au_fn_value.h',
         'src/core/vm/frame_link.h',
-
         'src/core/rt/struct/helper.h',
+        'src/platform/mmap.h',
+        'src/core/vm/module.h',
+
         'src/core/rt/value/print.c',
         'src/core/rt/malloc/static.c',
         'src/core/rt/exception.c',

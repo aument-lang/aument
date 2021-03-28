@@ -1265,7 +1265,9 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                             reg);
             }
             pos += 4; // skip AU_OP_NOP
-            comp_printf(state, "MOVE_VALUE(r%d,au_value_struct(_s));}\n",
+            comp_printf(state,
+                        "MOVE_VALUE(r%d,"
+                        "au_value_struct((struct au_struct*)_s));}\n",
                         reg);
             break;
         }
@@ -1274,6 +1276,7 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             DEF_BC16(inner, 1);
             comp_printf(state, "COPY_VALUE(r%d,self->v[%d]);\n", reg,
                         inner);
+            pos += 3;
             break;
         }
         case AU_OP_CLASS_SET_INNER: {
