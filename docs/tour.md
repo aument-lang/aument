@@ -186,10 +186,20 @@ You can define a empty class like so:
 class EmptyClass;
 ```
 
-Classes are like any other value. You can create an empty one using the `new` keyword:
+### Creating a new instance
+
+You can create an empty instance of a class using the `new` keyword:
 
 ```
 alice = new Human;
+```
+
+You can pre-initialize an instance's private variables:
+
+```
+alice = new Human {
+    name: "Alice"
+};
 ```
 
 Just like functions, if you try to use a undeclared class, it will error out after parsing.
