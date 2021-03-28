@@ -1,4 +1,4 @@
-# Writing a C library for Aument
+# Writing a C library for Aument (wip)
 
 First, download the [library template](https://github.com/aument-lang/library-template) and try to build it. This tutorial assumes that you're using this build system.
 
