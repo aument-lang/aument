@@ -5,9 +5,67 @@ Please don't modify it by hand!
 
 ## Functions
 
-### bool
+### array::is
 
-Defined in *src/stdlib/types.h*.
+Defined in *src/stdlib/array.h*.
+
+Checks if a value is an array
+
+#### Arguments
+
+ * **value:** the value you want to check
+
+#### Return value
+
+true if the value is an array, else, returns false
+
+### array::pop
+
+Defined in *src/stdlib/array.h*.
+
+Pops an element from an array and returns it
+
+#### Arguments
+
+ * **array:** array
+
+#### Return value
+
+The popped element from the array. If the array is empty, then it returns nil.
+
+### array::push
+
+Defined in *src/stdlib/array.h*.
+
+Pushes an element into an array
+
+#### Arguments
+
+ * **array:** the array
+ * **element:** the element
+
+#### Return value
+
+The array
+
+### array::repeat
+
+Defined in *src/stdlib/array.h*.
+
+Repeats an element and stores that list of elements into an array
+
+#### Arguments
+
+ * **element:** the element to be repeated
+ * **times:** the number of times the element is repeated
+
+#### Return value
+
+The array
+
+### bool::into
+
+Defined in *src/stdlib/bool.h*.
 
 Converts an object into a boolean
 
@@ -23,6 +81,54 @@ Converts an object into a boolean
 #### Return value
 
 The boolean equivalent of the `input` object.
+
+### bool::is
+
+Defined in *src/stdlib/bool.h*.
+
+Checks if a value is a boolean
+
+#### Arguments
+
+ * **value:** the value you want to check
+
+#### Return value
+
+true if the value is a boolean, else, returns false
+
+### float::into
+
+Defined in *src/stdlib/float.h*.
+
+Converts an object into a float.
+
+ * For *int* inputs, the result is its float equivalent.
+ * For *float* inputs, the result is exactly the same as the input.
+ * For *string* inputs, the result is the base-10 conversion of the string.
+ * For *boolean* inputs, the result is 1.0 if `true`, 0.0 if `false`.
+ * For all other inputs, the result is 0.0.
+
+#### Arguments
+
+ * **input:** Object to be converted into float
+
+#### Return value
+
+The floating-point equivalent of the `input` object.
+
+### float::is
+
+Defined in *src/stdlib/float.h*.
+
+Checks if a value is a float
+
+#### Arguments
+
+ * **value:** the value you want to check
+
+#### Return value
+
+true if the value is an float, else, returns false
 
 ### gc::heap_size
 
@@ -52,9 +158,9 @@ Read a string from standard input without a newline character
 
 string read from stdin
 
-### int
+### int::into
 
-Defined in *src/stdlib/types.h*.
+Defined in *src/stdlib/int.h*.
 
 Converts an object into an integer.
 
@@ -72,25 +178,19 @@ Converts an object into an integer.
 
 The integer equivalent of the `input` object.
 
-### int
+### int::is
 
-Defined in *src/stdlib/types.h*.
+Defined in *src/stdlib/int.h*.
 
-Converts an object into an float.
-
- * For *int* inputs, the result is its float equivalent.
- * For *float* inputs, the result is exactly the same as the input.
- * For *string* inputs, the result is the base-10 conversion of the string.
- * For *boolean* inputs, the result is 1 if `true`, 0 if `false`.
- * For all other inputs, the result is 0.
+Checks if a value is an integer
 
 #### Arguments
 
- * **input:** Object to be converted into integer
+ * **value:** the value you want to check
 
 #### Return value
 
-The integer equivalent of the `input` object.
+true if the value is an integer, else, returns false
 
 ### io::close
 
@@ -221,9 +321,9 @@ Writes a string to a file
 
 string bytes written
 
-### len
+### list::len
 
-Defined in *src/stdlib/collection.h*.
+Defined in *src/stdlib/list.h*.
 
 Gets the length of a collection
 
@@ -745,9 +845,37 @@ Defined in *src/stdlib/math.h*.
 
 *none*
 
-### str
+### str::char
 
-Defined in *src/stdlib/types.h*.
+Defined in *src/stdlib/str.h*.
+
+Convert an integer-typed Unicode code point into a string.
+
+#### Arguments
+
+ * **input:** Object to be converted into string
+
+#### Return value
+
+The string equivalent of the `input` object.
+
+### str::code_points
+
+Defined in *src/stdlib/str.h*.
+
+Splits a string into an array of UTF-8 code points
+
+#### Arguments
+
+ * **input:** Object to split
+
+#### Return value
+
+The array of code points inside the string
+
+### str::into
+
+Defined in *src/stdlib/str.h*.
 
 Converts an object into a string
 
