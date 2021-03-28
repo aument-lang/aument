@@ -107,6 +107,7 @@ You can use the `install.bat` script to install aument your `C:\` drive. This wi
   * [Command line reference](./docs/cmdline.md)
   * [Standard library reference](./docs/au-stdlib.md)
   * [C API reference](./docs/c-api.md)
+  * [Writing a C library for Aument](./docs/writing-c-libs.md) (wip)
   * [Internal architecture](./docs/architecture.md)
 
 ## Contributing
