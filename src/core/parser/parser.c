@@ -143,6 +143,15 @@ static inline int is_return_op(uint8_t op) {
            op == AU_OP_RET_NULL;
 }
 
+static int is_assign_tok(struct au_token op) {
+    return op.type == AU_TOK_OPERATOR &&
+           ((op.len == 1 && op.src[0] == '=') ||
+            (op.len == 2 &&
+             (op.src[0] == '+' || op.src[0] == '-' || op.src[0] == '*' ||
+              op.src[0] == '/' || op.src[0] == '%') &&
+             op.src[1] == '='));
+}
+
 static void parser_flush_free_regs(struct au_parser *p) {
     p->rstack_len = 0;
     for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
@@ -1273,12 +1282,7 @@ static int parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
     const struct au_token t = au_lexer_peek(l, 0);
     if (t.type == AU_TOK_IDENTIFIER || t.type == AU_TOK_AT_IDENTIFIER) {
         const struct au_token op = au_lexer_peek(l, 1);
-        if (op.type == AU_TOK_OPERATOR &&
-            ((op.len == 1 && op.src[0] == '=') ||
-             (op.len == 2 &&
-              (op.src[0] == '+' || op.src[0] == '-' || op.src[0] == '*' ||
-               op.src[0] == '/' || op.src[0] == '%') &&
-              op.src[1] == '='))) {
+        if (is_assign_tok(op)) {
             au_lexer_next(l);
             au_lexer_next(l);
 
@@ -1732,19 +1736,64 @@ static int parser_exec_index_expr(struct au_parser *p,
                              tok.src[0] == ']',
                          tok, "']'");
             tok = au_lexer_peek(l, 0);
-            if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
-                tok.src[0] == '=') {
+            if (is_assign_tok(tok)) {
                 au_lexer_next(l);
                 if (!parser_exec_expr(p, l))
                     return 0;
                 const uint8_t right_reg = parser_last_reg(p);
-                parser_emit_bc_u8(p, AU_OP_IDX_SET);
-                parser_emit_bc_u8(p, left_reg);
-                parser_emit_bc_u8(p, idx_reg);
-                parser_emit_bc_u8(p, right_reg);
-                // Right now, the free register stack is:
+
+                if (!(tok.len == 1 && tok.src[0] == '=')) {
+                    uint8_t result_reg;
+                    EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+                    parser_emit_bc_u8(p, AU_OP_IDX_GET);
+                    parser_emit_bc_u8(p, left_reg);
+                    parser_emit_bc_u8(p, idx_reg);
+                    parser_emit_bc_u8(p, result_reg);
+
+                    const struct au_token op = tok;
+                    if (op.src[0] == '*')
+                        parser_emit_bc_u8(p, AU_OP_MUL);
+                    else if (op.src[0] == '/')
+                        parser_emit_bc_u8(p, AU_OP_DIV);
+                    else if (op.src[0] == '+')
+                        parser_emit_bc_u8(p, AU_OP_ADD);
+                    else if (op.src[0] == '-')
+                        parser_emit_bc_u8(p, AU_OP_SUB);
+                    else if (op.src[0] == '%')
+                        parser_emit_bc_u8(p, AU_OP_MOD);
+                    else
+                        au_fatal("unimplemented op '%.*s'\n", (int)op.len,
+                                 op.src);
+                    parser_emit_bc_u8(p, result_reg);
+                    parser_emit_bc_u8(p, right_reg);
+                    parser_emit_bc_u8(p, result_reg);
+
+                    parser_emit_bc_u8(p, AU_OP_IDX_SET);
+                    parser_emit_bc_u8(p, left_reg);
+                    parser_emit_bc_u8(p, idx_reg);
+                    parser_emit_bc_u8(p, result_reg);
+
+                    // The register stack is:
+                    // ... [right reg (-2)] [result reg (-1)]
+                    // This operation transforms the stack to this:
+                    // ... [result reg (-1)]
+                    parser_swap_top_regs(p);
+                    parser_pop_reg(p);
+                } else {
+                    parser_emit_bc_u8(p, AU_OP_IDX_SET);
+                    parser_emit_bc_u8(p, left_reg);
+                    parser_emit_bc_u8(p, idx_reg);
+                    parser_emit_bc_u8(p, right_reg);
+                }
+                // Right now, the used register stack is:
                 // ... [array reg (-3)] [idx reg (-2)] [right reg (-1)]
-                // Remove array and idx regs because they aren't used
+                // Remove array and idx regs because they aren't used,
+                // leaving us with:
+                // ... [right reg(-1)]
+                AU_BA_RESET_BIT(p->used_regs,
+                                p->rstack[p->rstack_len - 3]);
+                AU_BA_RESET_BIT(p->used_regs,
+                                p->rstack[p->rstack_len - 2]);
                 p->rstack[p->rstack_len - 3] =
                     p->rstack[p->rstack_len - 1];
                 p->rstack_len -= 2;
@@ -1756,8 +1805,12 @@ static int parser_exec_index_expr(struct au_parser *p,
                 parser_emit_bc_u8(p, left_reg);
                 parser_emit_bc_u8(p, idx_reg);
                 parser_emit_bc_u8(p, result_reg);
-                // ... [array reg (-3)] [idx reg (-2)] [array value reg
-                // (-1)] We also want to remove array/idx regs here
+                // ... [array reg (-3)] [idx reg (-2)] [value reg (-1)]
+                // We also want to remove array/idx regs here
+                AU_BA_RESET_BIT(p->used_regs,
+                                p->rstack[p->rstack_len - 3]);
+                AU_BA_RESET_BIT(p->used_regs,
+                                p->rstack[p->rstack_len - 2]);
                 p->rstack[p->rstack_len - 3] =
                     p->rstack[p->rstack_len - 1];
                 p->rstack_len -= 2;
