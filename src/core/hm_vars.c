@@ -3,6 +3,7 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+#ifdef AU_IS_INTERPRETER
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,7 @@
 #include "hash.h"
 #include "hm_vars.h"
 #include "rt/exception.h"
+#endif
 
 void au_hm_vars_init(struct au_hm_vars *vars) {
     vars->buckets = 0;

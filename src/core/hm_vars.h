@@ -3,12 +3,14 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+#ifdef AU_IS_INTERPRETER
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
 
 #include "hash.h"
 #include "platform/platform.h"
+#endif
 
 typedef uint32_t au_hm_var_value_t;
 #define AU_HM_VAR_VALUE_NONE ((au_hm_var_value_t)-1)

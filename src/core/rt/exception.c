@@ -3,11 +3,13 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+#ifdef AU_IS_INTERPRETER
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "exception.h"
+#endif
 
 void au_fatal(const char *fmt, ...) {
     va_list args;

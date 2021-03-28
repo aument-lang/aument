@@ -192,16 +192,28 @@ if has_compile_feature
         'src/core/rt/struct/vdata.h',
         'src/core/rt/struct/coerce.h',
         'src/core/rt/value/ref.h',
+        'src/core/rt/au_class.h',
         'src/core/rt/au_array.h',
         'src/core/rt/au_tuple.h',
         'src/core/rt/extern_fn.h',
         'src/core/rt/au_fn_value.h',
         'src/core/vm/frame_link.h',
         'src/platform/mmap.h',
+        'src/core/hash.h',
+        'src/core/hm_vars.h',
         'src/core/vm/module.h',
+
         'src/core/rt/struct/helper.h',
         'src/core/rt/value/print.c',
         'src/core/rt/malloc/static.c',
+        'src/core/rt/exception.c',
+        'src/core/hash.c',
+        'src/core/hm_vars.c',
+        'src/core/rt/au_class.c',
+        'src/core/rt/au_string.c',
+        'src/core/rt/au_array.c',
+        'src/core/rt/au_tuple.c',
+        'src/core/rt/fn_value/comp_impl.c',
     )
     stdlib_begin_hdr = files('src/core/rt/includes/stdlib_begin.h')
     rt_hdr_src = custom_target(
@@ -259,16 +271,8 @@ if has_sanitizer
 endif
 
 au_runtime_sources = [
-    'src/core/rt/exception.c',
-    'src/core/hash.c',
-    'src/core/hm_vars.c',
-    'src/core/rt/au_class.c',
-    'src/core/rt/au_string.c',
-    'src/core/rt/au_array.c',
-    'src/core/rt/au_tuple.c',
-    'src/core/rt/fn_value/comp_impl.c',
     'src/core/vm/module.c',
-    
+
     'src/stdlib/array.c',
     'src/stdlib/bool.c',
     'src/stdlib/float.c',

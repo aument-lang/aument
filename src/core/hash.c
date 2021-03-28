@@ -3,10 +3,12 @@
 //
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
+#ifdef AU_IS_INTERPRETER
 #include <stdint.h>
 #include <stdlib.h>
 
 #include "hash.h"
+#endif
 
 au_hash_t au_hash(const uint8_t *str, const size_t len) {
     uint32_t hash = 2166136261;
