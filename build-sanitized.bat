@@ -1,5 +1,5 @@
 mkdir build\
-meson setup build --buildtype=debug -Db_sanitize=address
+meson setup build --buildtype=debug -Db_sanitize=address || exit 1
 cd build
-ninja
+ninja || exit 1
 cd ..

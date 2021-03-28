@@ -1,5 +1,5 @@
 mkdir build\
-meson setup build --buildtype=debug
+meson setup build --buildtype=debug || exit 1
 cd build
-ninja
+ninja || exit 1
 cd ..

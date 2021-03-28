@@ -1,5 +1,5 @@
 mkdir build\
-meson setup build --buildtype=release
+meson setup build --buildtype=release || exit 1
 cd build
-ninja
+ninja || exit 1
 cd ..
