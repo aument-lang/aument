@@ -192,7 +192,7 @@ au_module_import(struct au_module *module,
                 au_data_free(native_lib);
             }
         } else {
-            handle = LoadLibraryA(resolved->abspath);
+            handle = LoadLibraryExA(resolved->abspath, 0, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
         }
         if (handle == 0) {
             return AU_MODULE_IMPORT_FAIL_DL;
