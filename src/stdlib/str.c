@@ -321,3 +321,44 @@ not_found:
     au_value_deref(needle_value);
     return au_value_bool(0);
 }
+
+AU_EXTERN_FUNC_DECL(au_std_str_is_space) {
+    const au_value_t str_value = _args[0];
+    const struct au_string *str = 0;
+    if (au_value_get_type(str_value) != AU_VALUE_STR)
+        goto not_space;
+
+    str = au_value_get_string(str_value);
+    if(str->len < 1)
+        goto not_space;
+
+    if(str->data[0] == ' ' || str->data[0] == '\t' || str->data[0] == '\r' || str->data[0] == '\n') {
+        au_value_deref(str_value);
+        return au_value_bool(1);
+    }
+
+not_space:
+    au_value_deref(str_value);
+    return au_value_bool(0);
+}
+
+AU_EXTERN_FUNC_DECL(au_std_str_is_digit) {
+    const au_value_t str_value = _args[0];
+    const struct au_string *str = 0;
+    if (au_value_get_type(str_value) != AU_VALUE_STR)
+        goto not_digit;
+
+    str = au_value_get_string(str_value);
+    if(str->len < 1)
+        goto not_digit;
+    int character = (int)str->data[0];
+    if(character >= '0' && character <= '9') {
+        au_value_deref(str_value);
+        return au_value_bool(1);
+    }
+not_digit:
+    au_value_deref(str_value);
+    return au_value_bool(0);
+}
+
+

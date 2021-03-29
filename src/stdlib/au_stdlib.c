@@ -145,6 +145,8 @@ static const struct std_module_fn str_fns[] = {
     AU_MODULE_FN("contains", au_std_str_contains, 2),
     AU_MODULE_FN("starts_with", au_std_str_starts_with, 2),
     AU_MODULE_FN("ends_with", au_std_str_ends_with, 2),
+    AU_MODULE_FN("is_space", au_std_str_is_space, 1),
+    AU_MODULE_FN("is_digit", au_std_str_is_digit, 1),
 };
 
 #ifdef AU_TEST
