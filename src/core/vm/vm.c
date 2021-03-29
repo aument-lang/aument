@@ -119,7 +119,7 @@ static void link_to_imported(struct au_vm_thread_local *tl,
             au_hm_vars_get(&loaded_module->exported_consts, key, key_len);
         if (const_idx == 0)
             au_fatal("unknown or unexported constant %.*s", key_len, key);
-        tl->const_cache[entry] =
+        tl->const_cache[p_data->tl_constant_start + entry] =
             tl->const_cache[loaded_module->tl_constant_start + *const_idx];
     })
     if (relative_module->class_map.entries_occ > 0) {
