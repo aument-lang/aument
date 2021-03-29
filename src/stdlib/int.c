@@ -10,6 +10,8 @@
 #include "core/rt/value.h"
 #include "core/vm/vm.h"
 
+#define MAX_SMALL_STRING 256
+
 AU_EXTERN_FUNC_DECL(au_std_int_is) {
     const au_value_t value = _args[0];
     const au_value_t retval =
@@ -29,27 +31,17 @@ AU_EXTERN_FUNC_DECL(au_std_int_into) {
     }
     case AU_VALUE_STR: {
         const struct au_string *header = au_value_get_string(value);
-
-        int32_t num = 0;
-        int32_t sign = 1;
-
-        size_t i = 0;
-        if (header->data[i] == '-') {
-            sign = -1;
-            i++;
-        } else if (header->data[i] == '+') {
-            i++;
+        int32_t num;
+        if(header->len < MAX_SMALL_STRING) {
+            char string[MAX_SMALL_STRING] = {0};
+            memcpy(string, header->data, header->len);
+            string[header->len] = 0;
+            num = atoi(string);
+        } else {
+            char *string = au_data_strndup(header->data, header->len);
+            num = atoi(string);
+            au_data_free(string);
         }
-        for (; i < header->len; i++) {
-            if (header->data[i] >= '0' && header->data[i] <= '9') {
-                num = num * 10 + (header->data[i] - '0');
-            } else {
-                break;
-            }
-        }
-        num *= sign;
-
-        au_value_deref(value);
         return au_value_int(num);
     }
     default: {
