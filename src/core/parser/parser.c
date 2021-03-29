@@ -2372,6 +2372,10 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
                     formatted_string[formatted_string_len++] = '\n';
                     break;
                 }
+                default: {
+                    formatted_string[formatted_string_len++] = t.src[i];
+                    break;
+                }
                 }
                 in_escape = 0;
             } else if (formatted_string != 0) {

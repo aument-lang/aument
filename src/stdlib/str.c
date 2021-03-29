@@ -281,7 +281,7 @@ not_found:
         if (au_value_get_type(str_value) != AU_VALUE_STR)                 \
             goto is_false;                                                \
         str = au_value_get_string(str_value);                             \
-        if (str->len < 1)                                                 \
+        if (str->len == 0)                                                \
             goto is_false;                                                \
         if ((COND)) {                                                     \
             au_value_deref(str_value);                                    \
