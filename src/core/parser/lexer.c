@@ -140,14 +140,12 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
             .len = len,
         };
     } else if (start_ch == '0') {
-        l->pos++;
-        size_t len = 1;
-        if (!L_EOF() && l->src[l->pos] == 'x') {
-            l->pos++;
-            len++;
+        if (!L_EOF() && l->src[l->pos + 1] == 'x') {
+            l->pos += 2;
         } else {
-            goto fail;
+            goto parse_decimal;
         }
+        size_t len = 2;
         while (!L_EOF() && l_ishex(l->src[l->pos])) {
             l->pos++;
             len++;
@@ -158,6 +156,7 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
             .len = len,
         };
     } else if (l_isdigit(start_ch)) {
+parse_decimal:
         l->pos++;
         size_t len = 1;
         while (!L_EOF()) {
