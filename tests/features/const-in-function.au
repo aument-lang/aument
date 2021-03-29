@@ -1,0 +1,7 @@
+const A = 0;
+
+def constant() {
+    return A;
+}
+
+print constant();

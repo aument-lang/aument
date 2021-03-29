@@ -134,6 +134,9 @@ struct au_parser {
     /// Function ID
     size_t func_idx;
 
+    /// Top level parser
+    struct au_parser *top_level;
+
     /// Result of the parser
     struct au_parser_result res;
 };
@@ -183,6 +186,8 @@ static void parser_init(struct au_parser *p,
     p->self_keyword_len = 0;
 
     parser_flush_free_regs(p);
+
+    p->top_level = 0;
 }
 
 static void parser_del(struct au_parser *p) {
@@ -836,6 +841,7 @@ static int parser_exec_def_statement(struct au_parser *p,
 
     struct au_parser func_p = {0};
     parser_init(&func_p, p->p_data);
+    func_p.top_level = p;
     func_p.self_name = id_tok.src;
     func_p.self_len = id_tok.len;
     func_p.func_idx = func_value;
@@ -1008,7 +1014,7 @@ static int parser_exec_const_statement(struct au_parser *p,
             return 0;
         }
     } else {
-        assert(0);
+        abort(); // TODO
     }
 
     return 1;
@@ -2265,8 +2271,13 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             const au_hm_var_value_t *val =
                 au_hm_vars_get(&p->vars, t.src, t.len);
             if (val == NULL) {
-                const au_hm_var_value_t *const_val =
-                    au_hm_vars_get(&p->consts, t.src, t.len);
+                const au_hm_var_value_t *const_val = 0;
+
+                const_val = au_hm_vars_get(&p->consts, t.src, t.len);
+                if (const_val == NULL && p->top_level != 0) {
+                    const_val = au_hm_vars_get(&p->top_level->consts, t.src, t.len);
+                }
+
                 if (const_val == NULL) {
                     p->res = (struct au_parser_result){
                         .type = AU_PARSER_RES_UNKNOWN_VAR,
