@@ -17,6 +17,7 @@
 #include "list.h"
 #include "math.h"
 #include "str.h"
+#include "sys.h"
 
 #ifdef AU_TEST
 #include "test_fns.h"
@@ -150,6 +151,11 @@ static const struct std_module_fn str_fns[] = {
     AU_MODULE_FN("is_digit", au_std_str_is_digit, 1),
 };
 
+// * sys.h *
+static const struct std_module_fn sys_fns[] = {
+    AU_MODULE_FN("abort", au_std_sys_abort, 0),
+};
+
 #ifdef AU_TEST
 static const struct std_module_fn test_fns[] = {
     AU_MODULE_FN("test1", au_std_test_1, 1),
@@ -178,6 +184,7 @@ static const struct std_module au_stdlib_modules_data[] = {
     LIBRARY(math),
 #endif
     LIBRARY(str),
+    LIBRARY(sys),
 #ifdef AU_TEST
     LIBRARY(test),
 #endif

@@ -279,6 +279,7 @@ au_runtime_sources = [
     'src/stdlib/int.c',
     'src/stdlib/list.c',
     'src/stdlib/str.c',
+    'src/stdlib/sys.c',
 ]
 if has_io_library
     au_runtime_sources += ['src/stdlib/io.c']
