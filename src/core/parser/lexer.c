@@ -20,12 +20,22 @@ static inline int l_isalpha(int ch) {
     return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
 }
 
-static inline int is_id_start(int ch) {
+static inline int l_is_id_start(int ch) {
     return l_isalpha(ch) || ch == '_';
 }
 
-static inline int is_id_cont(int ch) {
-    return is_id_start(ch) || l_isdigit(ch);
+static inline int l_is_id_cont(int ch) {
+    return l_is_id_start(ch) || l_isdigit(ch);
+}
+
+static inline int l_ishex(int ch) {
+    if ('0' <= ch && ch <= '9')
+        return 1;
+    if ('a' <= ch && ch <= 'f')
+        return 1;
+    if ('A' <= ch && ch <= 'F')
+        return 1;
+    return 0;
 }
 
 #ifdef DEBUG_LEXER
@@ -102,11 +112,7 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
                 l->pos++;
                 len++;
                 if (L_EOF()) {
-                    return (struct au_token){
-                        .type = AU_TOK_UNKNOWN,
-                        .src = l->src + start,
-                        .len = 1,
-                    };
+                    goto fail;
                 } else {
                     l->pos++;
                     len++;
@@ -131,6 +137,24 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
         return (struct au_token){
             .type = AU_TOK_STRING,
             .src = l->src + start + 1,
+            .len = len,
+        };
+    } else if (start_ch == '0') {
+        l->pos++;
+        size_t len = 1;
+        if (!L_EOF() && l->src[l->pos] == 'x') {
+            l->pos++;
+            len++;
+        } else {
+            goto fail;
+        }
+        while (!L_EOF() && l_ishex(l->src[l->pos])) {
+            l->pos++;
+            len++;
+        }
+        return (struct au_token){
+            .type = AU_TOK_INT,
+            .src = l->src + start,
             .len = len,
         };
     } else if (l_isdigit(start_ch)) {
@@ -164,11 +188,11 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
             .src = l->src + start,
             .len = len,
         };
-    } else if (is_id_start(start_ch)) {
+    } else if (l_is_id_start(start_ch)) {
         l->pos++;
         size_t len = 1;
         while (!L_EOF()) {
-            if (!is_id_cont(l->src[l->pos])) {
+            if (!l_is_id_cont(l->src[l->pos])) {
                 break;
             }
             l->pos++;
@@ -182,11 +206,11 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
     } else if (start_ch == '@') {
         l->pos++;
         size_t len = 1;
-        if (!L_EOF() && is_id_start(l->src[l->pos])) {
+        if (!L_EOF() && l_is_id_start(l->src[l->pos])) {
             l->pos++;
             len++;
             while (!L_EOF()) {
-                if (!is_id_cont(l->src[l->pos])) {
+                if (!l_is_id_cont(l->src[l->pos])) {
                     break;
                 }
                 l->pos++;
@@ -244,6 +268,7 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
 
 #undef X // clang-format on
 
+fail:
     return (struct au_token){
         .type = AU_TOK_UNKNOWN,
         .src = l->src + start,

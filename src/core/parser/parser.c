@@ -2106,14 +2106,31 @@ fail:
     return 0;
 }
 
+static int hex_value(char ch) {
+    if ('0' <= ch && ch <= '9')
+        return ch - '0';
+    if ('a' <= ch && ch <= 'f')
+        return ch - 'a' + 10;
+    if ('A' <= ch && ch <= 'F')
+        return ch - 'A' + 10;
+    return -1;
+}
+
 static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
     struct au_token t = au_lexer_next(l);
 
     switch (t.type) {
     case AU_TOK_INT: {
-        // We've already parsed the token as an integer literal in
-        // the lexer so calling atoi should not cause a buffer overflow
-        int32_t num = atoi(t.src);
+        int32_t num = 0;
+        if (t.len >= 2 && t.src[0] == '0' && t.src[1] == 'x') {
+            for (size_t i = 2; i < t.len; i++) {
+                num = num * 16 + hex_value(t.src[i]);
+            }
+        } else {
+            for (size_t i = 0; i < t.len; i++) {
+                num = num * 10 + (t.src[i] - '0');
+            }
+        }
 
         uint8_t result_reg;
         EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
@@ -2275,7 +2292,8 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
 
                 const_val = au_hm_vars_get(&p->consts, t.src, t.len);
                 if (const_val == NULL && p->top_level != 0) {
-                    const_val = au_hm_vars_get(&p->top_level->consts, t.src, t.len);
+                    const_val = au_hm_vars_get(&p->top_level->consts,
+                                               t.src, t.len);
                 }
 
                 if (const_val == NULL) {
