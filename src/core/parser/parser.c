@@ -27,13 +27,13 @@ static inline locale_t newlocale(int category_mask, const char *locale,
 #define strtod_l _strtod_l
 #endif
 
-#include "core/utf8.h"
 #include "core/array.h"
 #include "core/bit_array.h"
 #include "core/program.h"
 #include "core/rt/au_class.h"
 #include "core/rt/exception.h"
 #include "core/rt/malloc.h"
+#include "core/utf8.h"
 #include "platform/mmap.h"
 
 #include "stdlib/au_stdlib.h"
@@ -233,7 +233,8 @@ static void parser_emit_bc_u8(struct au_parser *p, uint8_t val) {
 
 static void replace_bc_u16(struct au_bc_buf *bc, size_t idx,
                            uint16_t val) {
-    assert(idx + 1 < bc->len);
+    if (idx + 1 >= bc->len)
+        abort();
     uint16_t *ptr = (uint16_t *)(&bc->data[idx]);
     ptr[0] = val;
 }
@@ -336,6 +337,10 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
 static int parser_exec_array_or_tuple(struct au_parser *p,
                                       struct au_lexer *l, int is_tuple);
 static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l);
+
+static struct au_imported_module *
+parser_resolve_module(struct au_parser *p, struct au_token module_tok,
+                      size_t *module_idx_out);
 
 static int parser_exec(struct au_parser *p, struct au_lexer *l) {
     while (1) {
@@ -534,6 +539,9 @@ static int parser_exec_export_statement(struct au_parser *p,
         return parser_exec_def_statement(p, l, 1);
     } else if (token_keyword_cmp(&tok, "class")) {
         return parser_exec_class_statement(p, l, 1);
+    } else if (token_keyword_cmp(&tok, "const")) {
+        return parser_exec_with_semicolon(
+            p, l, parser_exec_const_statement(p, l, 1));
     } else {
         EXPECT_TOKEN(0, tok, "'class', 'def'");
     }
@@ -654,19 +662,15 @@ static int parser_exec_def_statement(struct au_parser *p,
             module_tok = name_tok;
             au_lexer_next(l);
             name_tok = au_lexer_next(l);
-            const au_hm_var_value_t *module_val =
-                au_hm_vars_get(&p->p_data->imported_module_map,
-                               module_tok.src, module_tok.len);
-            if (module_val == 0) {
+            struct au_imported_module *module =
+                parser_resolve_module(p, module_tok, 0);
+            if (module == 0) {
                 p->res = (struct au_parser_result){
                     .type = AU_PARSER_RES_UNKNOWN_MODULE,
                     .data.unknown_id.name_token = module_tok,
                 };
                 return 0;
             }
-            const uint32_t module_idx = *module_val;
-            struct au_imported_module *module =
-                &p->p_data->imported_modules.data[module_idx];
             au_hm_var_value_t class_val = p->p_data->classes.len;
             const au_hm_var_value_t *old_class_val = au_hm_vars_add(
                 &module->class_map, name_tok.src, name_tok.len, class_val);
@@ -948,8 +952,6 @@ static int parser_exec_def_statement(struct au_parser *p,
 
 static int parser_exec_const_statement(struct au_parser *p,
                                        struct au_lexer *l, int exported) {
-    (void)exported;
-
     const struct au_token id_tok = au_lexer_next(l);
     EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
 
@@ -964,7 +966,7 @@ static int parser_exec_const_statement(struct au_parser *p,
 
     if (p->func_idx == AU_SM_FUNC_ID_MAIN) {
         // Main function
-        int data_len = p->p_data->data_val.len;
+        size_t data_len = p->p_data->data_val.len;
         au_hm_var_value_t *old =
             au_hm_vars_add(&p->consts, id_tok.src, id_tok.len, data_len);
 
@@ -979,6 +981,11 @@ static int parser_exec_const_statement(struct au_parser *p,
                 .data.duplicate_id.name_token = id_tok,
             };
             return 0;
+        }
+
+        if (exported) {
+            au_hm_vars_add(&p->p_data->exported_consts, id_tok.src,
+                           id_tok.len, data_len);
         }
     } else {
         abort(); // TODO
@@ -1890,6 +1897,20 @@ static int parser_exec_index_expr(struct au_parser *p,
     return 1;
 }
 
+static struct au_imported_module *
+parser_resolve_module(struct au_parser *p, struct au_token module_tok,
+                      size_t *module_idx_out) {
+    const au_hm_var_value_t *module_val = au_hm_vars_get(
+        &p->p_data->imported_module_map, module_tok.src, module_tok.len);
+    if (module_val == 0) {
+        return 0;
+    }
+    const au_hm_var_value_t module_idx = *module_val;
+    if (module_idx_out != 0)
+        *module_idx_out = module_idx;
+    return &p->p_data->imported_modules.data[module_idx];
+}
+
 static int parser_resolve_fn(struct au_parser *p,
                              struct au_token module_tok,
                              struct au_token id_tok, int num_args_in,
@@ -1898,19 +1919,16 @@ static int parser_resolve_fn(struct au_parser *p,
     int func_idx_found = 0;
     int execute_self = 0;
     if (module_tok.type != AU_TOK_EOF) {
-        const au_hm_var_value_t *module_val =
-            au_hm_vars_get(&p->p_data->imported_module_map, module_tok.src,
-                           module_tok.len);
-        if (module_val == 0) {
+        size_t module_idx = 0;
+        struct au_imported_module *module =
+            parser_resolve_module(p, module_tok, &module_idx);
+        if (module == 0) {
             p->res = (struct au_parser_result){
                 .type = AU_PARSER_RES_UNKNOWN_MODULE,
                 .data.unknown_id.name_token = module_tok,
             };
             return 0;
         }
-        const uint32_t module_idx = *module_val;
-        struct au_imported_module *module =
-            &p->p_data->imported_modules.data[module_idx];
         const au_hm_var_value_t *val =
             au_hm_vars_get(&module->fn_map, id_tok.src, id_tok.len);
         if (val == 0) {
@@ -2250,8 +2268,33 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             au_lexer_next(l);
             if (!parser_exec_call(p, l, module_tok, t, 0))
                 return 0;
+        } else if (module_tok.type != AU_TOK_EOF) {
+            struct au_imported_module *module =
+                parser_resolve_module(p, module_tok, 0);
+            if (module == 0) {
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNKNOWN_MODULE,
+                    .data.unknown_id.name_token = module_tok,
+                };
+                return 0;
+            }
+
+            au_hm_var_value_t *const_val = au_hm_vars_add(
+                &module->const_map, t.src, t.len, p->p_data->data_val.len);
+            size_t idx;
+            if (const_val == 0) {
+                idx = p->p_data->data_val.len;
+                au_program_data_add_data(p->p_data, au_value_none(), 0, 0);
+            } else {
+                idx = *const_val;
+            }
+
+            uint8_t reg;
+            EXPECT_BYTECODE(parser_new_reg(p, &reg));
+            parser_emit_bc_u8(p, AU_OP_LOAD_CONST);
+            parser_emit_bc_u8(p, reg);
+            parser_emit_bc_u16(p, idx);
         } else {
-            assert(module_tok.type == AU_TOK_EOF);
             const au_hm_var_value_t *val =
                 au_hm_vars_get(&p->vars, t.src, t.len);
             if (val == NULL) {

@@ -56,6 +56,7 @@ struct au_program_data;
 struct au_imported_module {
     struct au_hm_vars fn_map;
     struct au_hm_vars class_map;
+    struct au_hm_vars const_map;
     size_t stdlib_module_idx;
 };
 
@@ -85,6 +86,7 @@ struct au_program_data {
     struct au_str_array fn_names;
     struct au_class_interface_ptr_array classes;
     struct au_hm_vars class_map;
+    struct au_hm_vars exported_consts;
 };
 
 /// [func] Initializes an au_program_data instance

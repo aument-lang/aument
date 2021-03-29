@@ -79,7 +79,8 @@ static void debug_frame(struct au_vm_frame *frame) {
 }
 #endif
 
-static void link_to_imported(const struct au_program_data *p_data,
+static void link_to_imported(struct au_vm_thread_local *tl,
+                             const struct au_program_data *p_data,
                              const uint32_t relative_module_idx,
                              const struct au_program_data *loaded_module) {
     struct au_imported_module *relative_module =
@@ -112,6 +113,14 @@ static void link_to_imported(const struct au_program_data *p_data,
             au_fatal("this class is not exported");
         p_data->classes.data[entry] = class_interface;
         au_class_interface_ref(class_interface);
+    })
+    AU_HM_VARS_FOREACH_PAIR(&relative_module->const_map, key, entry, {
+        const au_hm_var_value_t *const_idx =
+            au_hm_vars_get(&loaded_module->exported_consts, key, key_len);
+        if (const_idx == 0)
+            au_fatal("unknown or unexported constant %.*s", key_len, key);
+        tl->const_cache[entry] =
+            tl->const_cache[loaded_module->tl_constant_start + *const_idx];
     })
     if (relative_module->class_map.entries_occ > 0) {
         for (size_t i = 0; i < p_data->fns.len; i++) {
@@ -1254,7 +1263,7 @@ _AU_OP_JNIF:;
                     if (module_path_with_subpath != 0)
                         au_data_free(module_path_with_subpath);
                     au_module_resolve_result_del(&resolve_res);
-                    link_to_imported(p_data, relative_module_idx,
+                    link_to_imported(tl, p_data, relative_module_idx,
                                      loaded_module);
                     DISPATCH;
                 }
@@ -1345,7 +1354,7 @@ _AU_OP_JNIF:;
                         au_vm_thread_local_add_module(tl, tl_module_idx,
                                                       loaded_module);
 
-                        link_to_imported(p_data, relative_module_idx,
+                        link_to_imported(tl, p_data, relative_module_idx,
                                          loaded_module);
                     }
                     break;
@@ -1359,7 +1368,7 @@ _AU_OP_JNIF:;
                     } else {
                         au_vm_thread_local_add_module(tl, tl_module_idx,
                                                       loaded_module);
-                        link_to_imported(p_data, relative_module_idx,
+                        link_to_imported(tl, p_data, relative_module_idx,
                                          loaded_module);
                     }
                     break;
@@ -1445,7 +1454,7 @@ au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
             const struct au_program_data *stdlib_module =
                 au_program_data_array_at(&tl->stdlib_modules,
                                          module->stdlib_module_idx);
-            link_to_imported(&program->data, (uint32_t)relative_idx,
+            link_to_imported(tl, &program->data, (uint32_t)relative_idx,
                              stdlib_module);
         }
     }

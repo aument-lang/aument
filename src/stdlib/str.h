@@ -32,7 +32,6 @@ AU_EXTERN_FUNC_DECL(au_std_str_char);
 /// @return The string equivalent of the `input` object.
 AU_EXTERN_FUNC_DECL(au_std_str_ord);
 
-
 /// [func-au] Splits a string into an array of UTF-8 code points
 /// @name str::code_points
 /// @param input Object to split

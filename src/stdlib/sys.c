@@ -9,7 +9,4 @@
 
 #include "core/rt/extern_fn.h"
 
-AU_EXTERN_FUNC_DECL(au_std_sys_abort) {
-    abort();
-}
-
+AU_EXTERN_FUNC_DECL(au_std_sys_abort) { abort(); }
