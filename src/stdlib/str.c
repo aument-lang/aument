@@ -9,72 +9,9 @@
 #include "core/rt/au_array.h"
 #include "core/rt/extern_fn.h"
 #include "core/rt/value.h"
+#include "core/utf8.h"
 #include "core/vm/vm.h"
 #include "lib/string_builder.h"
-
-// ** UTF-8 **
-
-static const char *utf8_next(const char *s, const char *max, int *size) {
-    uintptr_t s_intptr = (uintptr_t)s;
-    uintptr_t max_intptr = (uintptr_t)max;
-
-    if (0xf0 == (0xf8 & s[0])) {
-        // 4 byte utf8 codepoint
-        if (s_intptr + 4 > max_intptr)
-            return 0;
-        *size = 4;
-        s += 4;
-    } else if (0xe0 == (0xf0 & s[0])) {
-        // 3 byte utf8 codepoint
-        if (s_intptr + 3 > max_intptr)
-            return 0;
-        *size = 3;
-        s += 3;
-    } else if (0xc0 == (0xe0 & s[0])) {
-        // 2 byte utf8 codepoint
-        if (s_intptr + 2 > max_intptr)
-            return 0;
-        *size = 2;
-        s += 2;
-    } else {
-        // 1 byte utf8 codepoint otherwise
-        if (s_intptr + 1 > max_intptr)
-            return 0;
-        *size = 1;
-        s += 1;
-    }
-
-    return s;
-}
-
-static const char *utf8_str(const char *h, const char *h_max,
-                            const char *n, const char *n_max) {
-    while (h != h_max) {
-        const char *maybe_match = h;
-
-        while (*h == *n && (h != h_max && n != n_max)) {
-            n++;
-            h++;
-        }
-
-        if (n == n_max) {
-            // we found the whole utf8 string for needle in haystack at
-            // maybeMatch, so return it
-            return maybe_match;
-        } else {
-            // h could be in the middle of an unmatching utf8 codepoint,
-            // so we need to march it on to the next character beginning
-            // starting from the current character
-            int throwaway;
-            h = (const char *)utf8_next(h, h_max, &throwaway);
-            if (h == 0)
-                return 0;
-        }
-    }
-
-    // no match
-    return 0;
-}
 
 // ** Implementation **
 
@@ -155,6 +92,21 @@ AU_EXTERN_FUNC_DECL(au_std_str_char) {
     return au_value_string(au_string_builder_into_string(&builder));
 fail:
     au_value_deref(char_value);
+    return au_value_none();
+}
+
+AU_EXTERN_FUNC_DECL(au_std_str_ord) {
+    const au_value_t str_value = _args[0];
+    if (au_value_get_type(str_value) != AU_VALUE_STR)
+        goto fail;
+    struct au_string *str = au_value_get_string(str_value);
+    int32_t out = 0;
+    if(utf8_codepoint(str->data, str->len, &out) == 0)
+        goto fail;
+    au_value_deref(str_value);
+    return au_value_int(out);
+fail:
+    au_value_deref(str_value);
     return au_value_none();
 }
 

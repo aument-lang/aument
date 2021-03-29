@@ -27,6 +27,7 @@ static inline locale_t newlocale(int category_mask, const char *locale,
 #define strtod_l _strtod_l
 #endif
 
+#include "core/utf8.h"
 #include "core/array.h"
 #include "core/bit_array.h"
 #include "core/program.h"
@@ -39,40 +40,6 @@ static inline locale_t newlocale(int category_mask, const char *locale,
 
 #include "lexer.h"
 #include "parser.h"
-
-static const char *utf8_codepoint(const char *s, const size_t max_len,
-                                  int32_t *out_codepoint) {
-    if (max_len == 0)
-        return 0;
-
-    if (0xf0 == (0xf8 & s[0])) {
-        // 4 byte utf8 codepoint
-        if (max_len < 4)
-            return 0;
-        *out_codepoint = ((0x07 & s[0]) << 18) | ((0x3f & s[1]) << 12) |
-                         ((0x3f & s[2]) << 6) | (0x3f & s[3]);
-        s += 4;
-    } else if (0xe0 == (0xf0 & s[0])) {
-        // 3 byte utf8 codepoint
-        if (max_len < 3)
-            return 0;
-        *out_codepoint =
-            ((0x0f & s[0]) << 12) | ((0x3f & s[1]) << 6) | (0x3f & s[2]);
-        s += 3;
-    } else if (0xc0 == (0xe0 & s[0])) {
-        // 2 byte utf8 codepoint
-        if (max_len < 2)
-            return 0;
-        *out_codepoint = ((0x1f & s[0]) << 6) | (0x3f & s[1]);
-        s += 2;
-    } else {
-        // 1 byte utf8 codepoint otherwise
-        *out_codepoint = s[0];
-        s += 1;
-    }
-
-    return (void *)s;
-}
 
 #define CLASS_ID_NONE ((size_t)-1)
 #define CACHED_REG_NONE ((uint8_t)-1)
