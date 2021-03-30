@@ -61,20 +61,24 @@ au_value_t au_obj_array_pop(struct au_obj_array *obj_array) {
     return obj_array->array.data[--obj_array->array.len];
 }
 
-int au_obj_array_get(struct au_obj_array *obj_array, const au_value_t idx,
-                     au_value_t *result) {
-    const size_t index = au_value_get_int(idx);
-    if (index >= obj_array->array.len)
+int au_obj_array_get(struct au_obj_array *obj_array,
+                     const au_value_t idx_val, au_value_t *result) {
+    if (AU_UNLIKELY(au_value_get_type(idx_val) != AU_VALUE_INT))
         return 0;
-    au_value_ref(obj_array->array.data[index]);
-    *result = obj_array->array.data[index];
+    const size_t idx = au_value_get_int(idx_val);
+    if (AU_UNLIKELY(idx >= obj_array->array.len))
+        return 0;
+    au_value_ref(obj_array->array.data[idx]);
+    *result = obj_array->array.data[idx];
     return 1;
 }
 
 int au_obj_array_set(struct au_obj_array *obj_array, au_value_t idx_val,
                      au_value_t value) {
+    if (AU_UNLIKELY(au_value_get_type(idx_val) != AU_VALUE_INT))
+        return 0;
     const size_t idx = au_value_get_int(idx_val);
-    if (idx >= obj_array->array.len)
+    if (AU_UNLIKELY(idx >= obj_array->array.len))
         return 0;
     au_value_ref(value);
     obj_array->array.data[idx] = value;
