@@ -201,6 +201,8 @@ int main(int argc, char **argv) {
 
         au_value_t retval = au_vm_exec_unverified_main(&tl, &program);
         if (au_value_is_error(retval)) {
+            fflush(stdout);
+
             struct au_mmap_info mmap;
             if (!au_mmap_read(tl.error.file, &mmap))
                 au_perror("mmap");
