@@ -558,6 +558,9 @@ static AU_ALWAYS_INLINE au_value_t au_value_eq(au_value_t lhs,
     if (AU_UNLIKELY(au_value_get_type(lhs) != au_value_get_type(rhs)))
         return au_value_bool(0);
     switch (au_value_get_type(lhs)) {
+    case AU_VALUE_NONE: {
+        return au_value_bool(1);
+    }
     case AU_VALUE_INT: {
         return au_value_bool(au_value_get_int(lhs) ==
                              au_value_get_int(rhs));
