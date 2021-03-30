@@ -305,6 +305,11 @@ static int rhashmap_resize(struct rhashmap *hmap, size_t newsize) {
     hmap->size = newsize;
     hmap->nitems = 0;
 
+    for(size_t i = 0; i < len; i++) {
+        hmap->buckets[i].key = empty_value();
+        hmap->buckets[i].val = empty_value();
+    }
+
     hmap->divinfo = fast_div32_init(newsize);
 
     for (uint32_t i = 0; i < oldsize; i++) {
