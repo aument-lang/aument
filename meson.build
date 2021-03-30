@@ -35,6 +35,10 @@ if compiler.has_argument('-Wno-unused-command-line-argument')
     add_project_arguments('-Wno-unused-command-line-argument', language : ['c'])
 endif
 
+if compiler.has_argument('-fvisibility=hidden')
+    add_project_arguments('-fvisibility=hidden', language : ['c'])
+endif
+
 if is_testing
     add_project_arguments('-DAU_TEST', language : ['c'])
     au_hdr_cflags += ['DAU_TEST']
