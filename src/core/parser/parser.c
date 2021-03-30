@@ -122,6 +122,27 @@ static int is_assign_tok(struct au_token op) {
              op.src[1] == '='));
 }
 
+static AU_UNUSED void parser_flush_cached_regs(struct au_parser *p) {
+    for (size_t i = 0; i < p->local_to_reg.len; i++) {
+        p->local_to_reg.data[i] = CACHED_REG_NONE;
+    }
+    for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
+        p->pinned_regs[i] = 0;
+    }
+}
+
+static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
+    if (AU_BA_GET_BIT(p->pinned_regs, reg)) {
+        AU_BA_RESET_BIT(p->pinned_regs, reg);
+        for (size_t i = 0; i < p->local_to_reg.len; i++) {
+            if (p->local_to_reg.data[i] == reg) {
+                p->local_to_reg.data[i] = CACHED_REG_NONE;
+                break;
+            }
+        }
+    }
+}
+
 static void parser_flush_free_regs(struct au_parser *p) {
     p->rstack_len = 0;
     for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
@@ -152,6 +173,7 @@ static void parser_init(struct au_parser *p,
     p->self_keyword = 0;
     p->self_keyword_len = 0;
 
+    parser_flush_cached_regs(p);
     parser_flush_free_regs(p);
 
     p->top_level = 0;
@@ -256,27 +278,6 @@ static void parser_emit_pad8(struct au_parser *p) {
     parser_emit_bc_u8(p, 0);
 }
 
-static AU_UNUSED void parser_flush_cached_regs(struct au_parser *p) {
-    for (size_t i = 0; i < p->local_to_reg.len; i++) {
-        p->local_to_reg.data[i] = CACHED_REG_NONE;
-    }
-    for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
-        p->pinned_regs[i] = 0;
-    }
-}
-
-static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
-    if (AU_BA_GET_BIT(p->pinned_regs, reg)) {
-        AU_BA_RESET_BIT(p->pinned_regs, reg);
-        for (size_t i = 0; i < p->local_to_reg.len; i++) {
-            if (p->local_to_reg.data[i] == reg) {
-                p->local_to_reg.data[i] = CACHED_REG_NONE;
-                break;
-            }
-        }
-    }
-}
-
 #define EXPECT_TOKEN(CONDITION, TOKEN, EXPECTED)                          \
     do {                                                                  \
         if (AU_UNLIKELY(!(CONDITION))) {                                  \
@@ -336,6 +337,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
                             struct au_token id_tok, int has_self_argument);
 static int parser_exec_array_or_tuple(struct au_parser *p,
                                       struct au_lexer *l, int is_tuple);
+static int parser_exec_dict(struct au_parser *p, struct au_lexer *l);
 static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l);
 
 static struct au_imported_module *
@@ -1716,10 +1718,12 @@ static int parser_exec_index_expr(struct au_parser *p,
             if (!parser_exec_expr(p, l))
                 return 0;
             const uint8_t idx_reg = parser_last_reg(p);
+
             tok = au_lexer_next(l);
             EXPECT_TOKEN(tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
                              tok.src[0] == ']',
                          tok, "']'");
+
             tok = au_lexer_peek(l, 0);
             if (is_assign_tok(tok)) {
                 au_lexer_next(l);
@@ -1730,6 +1734,7 @@ static int parser_exec_index_expr(struct au_parser *p,
                 if (!(tok.len == 1 && tok.src[0] == '=')) {
                     uint8_t result_reg;
                     EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+
                     parser_emit_bc_u8(p, AU_OP_IDX_GET);
                     parser_emit_bc_u8(p, left_reg);
                     parser_emit_bc_u8(p, idx_reg);
@@ -1770,11 +1775,12 @@ static int parser_exec_index_expr(struct au_parser *p,
                     parser_emit_bc_u8(p, idx_reg);
                     parser_emit_bc_u8(p, right_reg);
                 }
+
                 // Right now, the used register stack is:
-                // ... [array reg (-3)] [idx reg (-2)] [right reg (-1)]
+                // ... [array reg (-3)] [idx reg (-2)] [result reg (-1)]
                 // Remove array and idx regs because they aren't used,
                 // leaving us with:
-                // ... [right reg(-1)]
+                // ... [result reg(-1)]
                 AU_BA_RESET_BIT(p->used_regs,
                                 p->rstack[p->rstack_len - 3]);
                 AU_BA_RESET_BIT(p->used_regs,
@@ -2175,6 +2181,8 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             return parser_exec_array_or_tuple(p, l, 0);
         } else if (t.len == 2 && t.src[0] == '#' && t.src[1] == '[') {
             return parser_exec_array_or_tuple(p, l, 1);
+        } else if (t.len == 1 && t.src[0] == '{') {
+            return parser_exec_dict(p, l);
         } else if (t.len == 1 && t.src[0] == '.') {
             t = au_lexer_next(l);
             EXPECT_TOKEN(t.type == AU_TOK_IDENTIFIER, t, "identifier");
@@ -2527,6 +2535,22 @@ static int parser_exec_array_or_tuple(struct au_parser *p,
 
     parser_replace_bc_u16(p, cap_offset, capacity);
     return 1;
+}
+
+static int parser_exec_dict(struct au_parser *p, struct au_lexer *l) {
+    uint8_t dict_reg;
+    EXPECT_BYTECODE(parser_new_reg(p, &dict_reg));
+
+    parser_emit_bc_u8(p, AU_OP_DICT_NEW);
+    parser_emit_bc_u8(p, dict_reg);
+    parser_emit_bc_u16(p, 0);
+
+    struct au_token tok = au_lexer_next(l);
+    if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == '}') {
+        return 1;
+    } else {
+        abort(); // TODO
+    }
 }
 
 struct new_initializer {

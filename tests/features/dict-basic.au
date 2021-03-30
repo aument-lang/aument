@@ -1,0 +1,3 @@
+obj = {};
+obj["test"] = 4;
+print obj["test"];

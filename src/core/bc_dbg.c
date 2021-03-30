@@ -63,7 +63,8 @@ const char *au_opcode_dbg[256] = {"load_self",
                                   "bshr",
                                   "bnot",
                                   "neg",
-                                  "new"};
+                                  "new",
+                                  "dict_new"};
 
 #ifdef AU_COVERAGE
 void au_bc_dbg(const struct au_bc_storage *bcs,
@@ -261,7 +262,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         case AU_OP_ARRAY_NEW: {
             uint8_t reg = bc(pos);
             DEF_BC16(capacity, 1);
-            printf(" %d [capacity %d]\n", reg, capacity);
+            printf(" -> r%d [capacity %d]\n", reg, capacity);
             pos += 3;
             break;
         }
@@ -292,7 +293,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         case AU_OP_TUPLE_NEW: {
             uint8_t reg = bc(pos);
             DEF_BC16(len, 1);
-            printf(" %d [length %d]\n", reg, len);
+            printf(" -> r%d [length %d]\n", reg, len);
             pos += 3;
             break;
         }
@@ -301,6 +302,13 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             uint8_t idx = bc(pos + 1);
             uint8_t ret = bc(pos + 2);
             printf(" r%d [%d] <- r%d\n", reg, idx, ret);
+            pos += 3;
+            break;
+        }
+        // Dictionary instructions
+        case AU_OP_DICT_NEW: {
+            uint8_t reg = bc(pos);
+            printf(" -> r%d\n", reg);
             pos += 3;
             break;
         }

@@ -196,22 +196,26 @@ void au_print_interpreter_error(struct au_interpreter_result res,
         break;
     }
     case X(UNKNOWN_FUNCTION): {
-        fprintf(stderr, "unknown or unexported function '%s'", res.data.unknown_id.key);
+        fprintf(stderr, "unknown or unexported function '%s'",
+                res.data.unknown_id.key);
         break;
     }
     case X(UNKNOWN_CLASS): {
-        fprintf(stderr, "unknown or unexported class '%s'", res.data.unknown_id.key);
+        fprintf(stderr, "unknown or unexported class '%s'",
+                res.data.unknown_id.key);
         break;
     }
     case X(UNKNOWN_CONST): {
-        fprintf(stderr, "unknown or unexported constant '%s'", res.data.unknown_id.key);
+        fprintf(stderr, "unknown or unexported constant '%s'",
+                res.data.unknown_id.key);
         break;
     }
     case X(WRONG_ARGS): {
-        fprintf(stderr, "wrong number of arguments for function '%s' (expected %d, got %d)",
-            res.data.wrong_args.key,
-            res.data.wrong_args.expected_args,
-            res.data.wrong_args.got_args);
+        fprintf(stderr,
+                "wrong number of arguments for function '%s' (expected "
+                "%d, got %d)",
+                res.data.wrong_args.key, res.data.wrong_args.expected_args,
+                res.data.wrong_args.got_args);
         break;
     }
     }

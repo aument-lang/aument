@@ -35,6 +35,7 @@
 #include "core/int_error/error_printer.h"
 #include "core/rt/au_array.h"
 #include "core/rt/au_class.h"
+#include "core/rt/au_dict.h"
 #include "core/rt/au_fn_value.h"
 #include "core/rt/au_string.h"
 #include "core/rt/au_struct.h"
@@ -407,6 +408,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_BNOT),
             &&CASE(AU_OP_NEG),
             &&CASE(AU_OP_CLASS_NEW_INITIALZIED),
+            &&CASE(AU_OP_DICT_NEW),
             &&CASE(AU_OP_MUL_INT),
             &&CASE(AU_OP_DIV_INT),
             &&CASE(AU_OP_ADD_INT),
@@ -1188,6 +1190,28 @@ _AU_OP_JNIF:;
                 } else {
                     RAISE(indexing_non_collection_error(col_val));
                 }
+
+                DISPATCH;
+            }
+            // Dictionary instructions
+            CASE(AU_OP_DICT_NEW) : {
+                const uint8_t reg = bc[1];
+                PREFETCH_INSN;
+
+#ifdef AU_FEAT_DELAYED_RC // clang-format off
+                struct au_struct *s =
+                    (struct au_struct *)au_obj_dict_new();
+                frame.regs[reg] = au_value_struct(s);
+                // INVARIANT(GC): from au_obj_dict_new
+                au_obj_deref(s);
+#else
+                MOVE_VALUE(
+                    frame.regs[reg],
+                    au_value_struct(
+                        (struct au_struct *)au_obj_dict_new()
+                    )
+                );
+#endif // clang-format on
 
                 DISPATCH;
             }

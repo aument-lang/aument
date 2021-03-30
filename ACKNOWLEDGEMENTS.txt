@@ -8,3 +8,6 @@ Thank you to all of the 1 people who have contributed:
 
   * UTF-8-related code is adopted from utf8.h
     https://github.com/sheredom/utf8.h
+
+  * Robin Hood hash map adopted from rhashmap
+    https://github.com/rmind/rhashmap

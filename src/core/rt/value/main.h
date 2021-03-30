@@ -205,7 +205,7 @@ static AU_ALWAYS_INLINE au_value_t au_value_none() {
     return v;
 }
 
-static AU_ALWAYS_INLINE au_value_t AU_VALUE_ERROR() {
+static AU_ALWAYS_INLINE au_value_t au_value_error() {
     au_value_t v = {0};
     v._type = AU_VALUE_ERROR;
     return v;
