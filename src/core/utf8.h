@@ -10,33 +10,38 @@
 #include "platform/platform.h"
 
 static inline AU_UNUSED const char *
-utf8_codepoint(const char *s, const size_t max_len,
+utf8_codepoint(const char *s, const char *max,
                int32_t *out_codepoint) {
-    if (max_len == 0)
+    uintptr_t s_intptr = (uintptr_t)s;
+    uintptr_t max_intptr = (uintptr_t)max;
+
+    if (s == max)
         return 0;
 
     if (0xf0 == (0xf8 & s[0])) {
         // 4 byte utf8 codepoint
-        if (max_len < 4)
+        if (s_intptr + 4 > max_intptr)
             return 0;
         *out_codepoint = ((0x07 & s[0]) << 18) | ((0x3f & s[1]) << 12) |
                          ((0x3f & s[2]) << 6) | (0x3f & s[3]);
         s += 4;
     } else if (0xe0 == (0xf0 & s[0])) {
         // 3 byte utf8 codepoint
-        if (max_len < 3)
+        if (s_intptr + 3 > max_intptr)
             return 0;
         *out_codepoint =
             ((0x0f & s[0]) << 12) | ((0x3f & s[1]) << 6) | (0x3f & s[2]);
         s += 3;
     } else if (0xc0 == (0xe0 & s[0])) {
         // 2 byte utf8 codepoint
-        if (max_len < 2)
+        if (s_intptr + 2 > max_intptr)
             return 0;
         *out_codepoint = ((0x1f & s[0]) << 6) | (0x3f & s[1]);
         s += 2;
     } else {
         // 1 byte utf8 codepoint otherwise
+        if (s_intptr + 1 > max_intptr)
+            return 0;
         *out_codepoint = s[0];
         s += 1;
     }
@@ -46,6 +51,9 @@ utf8_codepoint(const char *s, const size_t max_len,
 
 static inline AU_UNUSED const char *utf8_next(const char *s,
                                               const char *max, int *size) {
+    if(s == max)
+        return 0;
+
     uintptr_t s_intptr = (uintptr_t)s;
     uintptr_t max_intptr = (uintptr_t)max;
 

@@ -20,4 +20,4 @@ done
 
 ./build.sh release || exit 1
 cd build
-sudo meson install
+meson install 

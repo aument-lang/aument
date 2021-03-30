@@ -2394,7 +2394,7 @@ static int parser_exec_value(struct au_parser *p, struct au_lexer *l) {
         int idx = -1;
         if (is_char_string) {
             int32_t codepoint = 0;
-            if (utf8_codepoint(t.src, t.len, &codepoint) == 0)
+            if (utf8_codepoint(t.src, &t.src[t.len], &codepoint) == 0)
                 abort(); // TODO
 
             idx = au_program_data_add_data(p->p_data,

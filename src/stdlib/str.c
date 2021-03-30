@@ -101,7 +101,7 @@ AU_EXTERN_FUNC_DECL(au_std_str_ord) {
         goto fail;
     struct au_string *str = au_value_get_string(str_value);
     int32_t out = 0;
-    if (utf8_codepoint(str->data, str->len, &out) == 0)
+    if (utf8_codepoint(str->data, &str->data[str->len], &out) == 0)
         goto fail;
     au_value_deref(str_value);
     return au_value_int(out);
