@@ -164,6 +164,9 @@ void au_print_interpreter_error(struct au_interpreter_result res,
             error_path(loc.path));
     switch (res.type) {
 #define X(NAME) AU_INT_ERR_##NAME
+    case X(OK): {
+        return;
+    }
     case X(INCOMPAT_BIN_OP): {
         fprintf(stderr, "incompatible values for binary operation");
         break;
@@ -192,8 +195,25 @@ void au_print_interpreter_error(struct au_interpreter_result res,
         fprintf(stderr, "came from here");
         break;
     }
-    default:
+    case X(UNKNOWN_FUNCTION): {
+        fprintf(stderr, "unknown or unexported function '%s'", res.data.unknown_id.key);
         break;
+    }
+    case X(UNKNOWN_CLASS): {
+        fprintf(stderr, "unknown or unexported class '%s'", res.data.unknown_id.key);
+        break;
+    }
+    case X(UNKNOWN_CONST): {
+        fprintf(stderr, "unknown or unexported constant '%s'", res.data.unknown_id.key);
+        break;
+    }
+    case X(WRONG_ARGS): {
+        fprintf(stderr, "wrong number of arguments for function '%s' (expected %d, got %d)",
+            res.data.wrong_args.key,
+            res.data.wrong_args.expected_args,
+            res.data.wrong_args.got_args);
+        break;
+    }
     }
 #undef X
     fprintf(stderr, "\n");

@@ -22,6 +22,10 @@ enum au_interpreter_result_type {
     X(IMPORT_PATH) = 5,
     X(CIRCULAR_IMPORT) = 6,
     X(BACKTRACE) = 7,
+    X(UNKNOWN_FUNCTION) = 8,
+    X(UNKNOWN_CLASS) = 9,
+    X(UNKNOWN_CONST) = 10,
+    X(WRONG_ARGS) = 11,
 };
 #undef X
 
@@ -38,6 +42,14 @@ struct au_interpreter_result {
             au_value_t collection;
             au_value_t idx;
         } invalid_index;
+        struct {
+            char *key;
+        } unknown_id;
+        struct {
+            char *key;
+            int got_args;
+            int expected_args;
+        } wrong_args;
     } data;
     size_t pos;
     enum au_interpreter_result_type type;

@@ -79,25 +79,39 @@ static void debug_frame(struct au_vm_frame *frame) {
 }
 #endif
 
-static void link_to_imported(struct au_vm_thread_local *tl,
-                             const struct au_program_data *p_data,
-                             const uint32_t relative_module_idx,
-                             const struct au_program_data *loaded_module) {
+static struct au_interpreter_result
+link_to_imported(struct au_vm_thread_local *tl,
+                 const struct au_program_data *p_data,
+                 const uint32_t relative_module_idx,
+                 const struct au_program_data *loaded_module) {
     struct au_imported_module *relative_module =
         &p_data->imported_modules.data[relative_module_idx];
+    struct au_interpreter_result result =
+        (struct au_interpreter_result){.type = AU_INT_ERR_OK};
     AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
         assert(p_data->fns.data[entry].type == AU_FN_IMPORTER);
         const struct au_imported_func *imported_func =
             &p_data->fns.data[entry].as.imported_func;
         const au_hm_var_value_t *fn_idx =
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
-        if (fn_idx == 0)
-            au_fatal("unknown function %.*s", (int)key_len, key);
+        if (fn_idx == 0) {
+            result.type = AU_INT_ERR_UNKNOWN_FUNCTION;
+            result.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto _end;
+        }
         struct au_fn *fn = &loaded_module->fns.data[*fn_idx];
-        if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
-            au_fatal("this function is not exported");
-        if (au_fn_num_args(fn) != imported_func->num_args)
-            au_fatal("unexpected number of arguments");
+        if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0) {
+            result.type = AU_INT_ERR_UNKNOWN_FUNCTION;
+            result.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto _end;
+        }
+        if (au_fn_num_args(fn) != imported_func->num_args) {
+            result.type = AU_INT_ERR_WRONG_ARGS;
+            result.data.wrong_args.key = au_data_strndup(key, key_len);
+            result.data.wrong_args.got_args = imported_func->num_args;
+            result.data.wrong_args.expected_args = au_fn_num_args(fn);
+            goto _end;
+        }
         au_fn_fill_import_cache(&p_data->fns.data[entry], *fn_idx,
                                 loaded_module);
     })
@@ -105,20 +119,29 @@ static void link_to_imported(struct au_vm_thread_local *tl,
         assert(p_data->classes.data[entry] == 0);
         const au_hm_var_value_t *class_idx =
             au_hm_vars_get(&loaded_module->class_map, key, key_len);
-        if (class_idx == 0)
-            au_fatal("unknown class %.*s", key_len, key);
+        if (class_idx == 0) {
+            result.type = AU_INT_ERR_UNKNOWN_CLASS;
+            result.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto _end;
+        }
         struct au_class_interface *class_interface =
             loaded_module->classes.data[*class_idx];
-        if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0)
-            au_fatal("this class is not exported");
+        if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0) {
+            result.type = AU_INT_ERR_UNKNOWN_CLASS;
+            result.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto _end;
+        }
         p_data->classes.data[entry] = class_interface;
         au_class_interface_ref(class_interface);
     })
     AU_HM_VARS_FOREACH_PAIR(&relative_module->const_map, key, entry, {
         const au_hm_var_value_t *const_idx =
             au_hm_vars_get(&loaded_module->exported_consts, key, key_len);
-        if (const_idx == 0)
-            au_fatal("unknown or unexported constant %.*s", key_len, key);
+        if (const_idx == 0) {
+            result.type = AU_INT_ERR_UNKNOWN_CONST;
+            result.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto _end;
+        }
         tl->const_cache[p_data->tl_constant_start + entry] =
             tl->const_cache[loaded_module->tl_constant_start + *const_idx];
     })
@@ -127,6 +150,8 @@ static void link_to_imported(struct au_vm_thread_local *tl,
             au_fn_fill_class_cache(&p_data->fns.data[i], p_data);
         }
     }
+_end:
+    return result;
 }
 
 // * Error functions *
@@ -1263,8 +1288,10 @@ _AU_OP_JNIF:;
                     if (module_path_with_subpath != 0)
                         au_data_free(module_path_with_subpath);
                     au_module_resolve_result_del(&resolve_res);
-                    link_to_imported(tl, p_data, relative_module_idx,
-                                     loaded_module);
+                    struct au_interpreter_result res = link_to_imported(
+                        tl, p_data, relative_module_idx, loaded_module);
+                    if (res.type != AU_INT_ERR_OK)
+                        RAISE(res);
                     DISPATCH;
                 }
 
@@ -1354,8 +1381,12 @@ _AU_OP_JNIF:;
                         au_vm_thread_local_add_module(tl, tl_module_idx,
                                                       loaded_module);
 
-                        link_to_imported(tl, p_data, relative_module_idx,
-                                         loaded_module);
+                        struct au_interpreter_result res =
+                            link_to_imported(tl, p_data,
+                                             relative_module_idx,
+                                             loaded_module);
+                        if (res.type != AU_INT_ERR_OK)
+                            RAISE(res);
                     }
                     break;
                 }
@@ -1368,8 +1399,12 @@ _AU_OP_JNIF:;
                     } else {
                         au_vm_thread_local_add_module(tl, tl_module_idx,
                                                       loaded_module);
-                        link_to_imported(tl, p_data, relative_module_idx,
-                                         loaded_module);
+                        struct au_interpreter_result res =
+                            link_to_imported(tl, p_data,
+                                             relative_module_idx,
+                                             loaded_module);
+                        if (res.type != AU_INT_ERR_OK)
+                            RAISE(res);
                     }
                     break;
                 }
@@ -1454,8 +1489,10 @@ au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
             const struct au_program_data *stdlib_module =
                 au_program_data_array_at(&tl->stdlib_modules,
                                          module->stdlib_module_idx);
-            link_to_imported(tl, &program->data, (uint32_t)relative_idx,
-                             stdlib_module);
+            struct au_interpreter_result res = link_to_imported(
+                tl, &program->data, (uint32_t)relative_idx, stdlib_module);
+            if (AU_UNLIKELY(res.type != AU_INT_ERR_OK))
+                abort();
         }
     }
     return au_vm_exec_unverified(tl, &program->main, &program->data, 0);

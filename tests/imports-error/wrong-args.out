@@ -1,0 +1,2 @@
+interpreter error(11) in -: wrong number of arguments for function 'x' (expected 0, got 1)
+1 | import "./wrong-args-1.au" as mod;

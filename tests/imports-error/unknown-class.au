@@ -1,0 +1,2 @@
+import "./empty.au" as mod;
+def (self: mod::a) func() {}

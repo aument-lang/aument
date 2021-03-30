@@ -32,7 +32,7 @@ AU_EXTERN_FUNC_DECL(au_std_int_into) {
     case AU_VALUE_STR: {
         const struct au_string *header = au_value_get_string(value);
         int32_t num;
-        if(header->len < MAX_SMALL_STRING) {
+        if (header->len < MAX_SMALL_STRING) {
             char string[MAX_SMALL_STRING] = {0};
             memcpy(string, header->data, header->len);
             string[header->len] = 0;

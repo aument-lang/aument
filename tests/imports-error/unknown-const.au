@@ -1,0 +1,2 @@
+import "./empty.au" as mod;
+mod::a;

@@ -1,0 +1,2 @@
+import "./wrong-args-1.au" as mod;
+mod::x(1);

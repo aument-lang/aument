@@ -1,0 +1,2 @@
+interpreter error(8) in -: unknown or unexported function 'func'
+1 | import "./unknown-function-import.au" as mod;
