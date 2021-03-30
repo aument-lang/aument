@@ -131,18 +131,6 @@ static void parser_flush_cached_regs(struct au_parser *p) {
     }
 }
 
-static void parser_invalidate_reg(struct au_parser *p, uint8_t reg) {
-    if (AU_BA_GET_BIT(p->pinned_regs, reg)) {
-        AU_BA_RESET_BIT(p->pinned_regs, reg);
-        for (size_t i = 0; i < p->local_to_reg.len; i++) {
-            if (p->local_to_reg.data[i] == reg) {
-                p->local_to_reg.data[i] = CACHED_REG_NONE;
-                break;
-            }
-        }
-    }
-}
-
 static void parser_flush_free_regs(struct au_parser *p) {
     p->rstack_len = 0;
     for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
@@ -2048,46 +2036,34 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
 
     size_t call_fn_offset = 0;
 
-    if (params.len == 1 && 0) {
-        // OPTIMIZE: optimization for function calls with 1 argument
-        parser_emit_bc_u8(p, AU_OP_CALL1);
-        parser_emit_bc_u8(p, params.data[0]);
-        call_fn_offset = p->bc.len;
-        parser_emit_pad8(p);
-        parser_emit_pad8(p);
+    uint8_t result_reg;
+    EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
+    parser_emit_bc_u8(p, AU_OP_CALL);
+    parser_emit_bc_u8(p, result_reg);
+    call_fn_offset = p->bc.len;
+    parser_emit_pad8(p);
+    parser_emit_pad8(p);
 
-        parser_push_reg(p, params.data[0]);
-        parser_invalidate_reg(p, params.data[0]);
-    } else {
-        uint8_t result_reg;
-        EXPECT_BYTECODE(parser_new_reg(p, &result_reg));
-        parser_emit_bc_u8(p, AU_OP_CALL);
-        parser_emit_bc_u8(p, result_reg);
-        call_fn_offset = p->bc.len;
-        parser_emit_pad8(p);
-        parser_emit_pad8(p);
+    for (size_t i = 0; i < params.len;) {
+        uint8_t reg = 0;
 
-        for (size_t i = 0; i < params.len;) {
-            uint8_t reg = 0;
+        parser_emit_bc_u8(p, AU_OP_PUSH_ARG);
 
-            parser_emit_bc_u8(p, AU_OP_PUSH_ARG);
+        reg = i < params.len ? params.data[i] : 0;
+        i++;
+        parser_emit_bc_u8(p, reg);
 
-            reg = i < params.len ? params.data[i] : 0;
-            i++;
-            parser_emit_bc_u8(p, reg);
+        reg = i < params.len ? params.data[i] : 0;
+        i++;
+        parser_emit_bc_u8(p, reg);
 
-            reg = i < params.len ? params.data[i] : 0;
-            i++;
-            parser_emit_bc_u8(p, reg);
+        reg = i < params.len ? params.data[i] : 0;
+        i++;
+        parser_emit_bc_u8(p, reg);
+    }
 
-            reg = i < params.len ? params.data[i] : 0;
-            i++;
-            parser_emit_bc_u8(p, reg);
-        }
-
-        for (size_t i = 0; i < params.len; i++) {
-            parser_set_reg_unused(p, params.data[i]);
-        }
+    for (size_t i = 0; i < params.len; i++) {
+        parser_set_reg_unused(p, params.data[i]);
     }
 
     if (execute_self) {

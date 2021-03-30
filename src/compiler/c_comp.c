@@ -768,42 +768,6 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             comp_printf(state, "}\n");
             break;
         }
-        case AU_OP_CALL1: {
-            uint8_t reg = bc(pos);
-            DEF_BC16(func_id, 1);
-            const struct au_fn *fn =
-                au_fn_array_at_ptr(&p_data->fns, func_id);
-            switch (fn->type) {
-            case AU_FN_DISPATCH:
-            case AU_FN_BC: {
-                comp_printf(state, "r%d=", (int)reg);
-                comp_printf(state, "_M%d_f%d(&r%d)", (int)module_idx,
-                            (int)func_id, (int)reg);
-                comp_printf(state, ";");
-                break;
-            }
-            case AU_FN_LIB: {
-                const struct au_lib_func *lib_func = &fn->as.lib_func;
-                comp_printf(state, "r%d=", (int)reg);
-                comp_printf(state, "%s(0,&r%d);", lib_func->symbol,
-                            (int)reg);
-                break;
-            }
-            case AU_FN_IMPORTER: {
-                comp_printf(state, "r%d=", reg);
-                comp_printf(state, "(*_M%d_f%d)(&r%d)", (int)module_idx,
-                            func_id, reg);
-                comp_printf(state, ";");
-                break;
-            }
-            case AU_FN_NONE: {
-                au_fatal("generating none function");
-            }
-            }
-            comp_printf(state, "\n");
-            pos += 3;
-            break;
-        }
         // Function values
         case AU_OP_LOAD_FUNC: {
             const uint8_t reg = bc(pos);

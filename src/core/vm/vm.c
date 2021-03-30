@@ -918,46 +918,15 @@ _AU_OP_JNIF:;
 
                 DISPATCH_JMP;
             }
-            CASE(AU_OP_CALL1) : {
-                const uint8_t ret_reg = bc[1];
-                DEF_BC16(func_id, 2);
-                PREFETCH_INSN;
-
-                const struct au_fn *call_fn = &p_data->fns.data[func_id];
-
-                au_value_t arg_reg = frame.regs[ret_reg];
-                au_value_ref(arg_reg);
-
-                FLUSH_BC();
-
-                int is_native = 0;
-                const au_value_t callee_retval = au_fn_call_internal(
-                    call_fn, tl, p_data, &arg_reg, &is_native);
-                if (au_value_is_error(callee_retval))
-                    RAISE_BT();
-
-#ifdef AU_FEAT_DELAYED_RC // clang-format off
-                frame.regs[ret_reg] = callee_retval;
-                // INVARIANT(GC): native functions always return
-                // a RC'd value
-                if (is_native)
-                    au_value_deref(callee_retval);
-#else
-                MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-#endif // clang-format on                                                 
-                // Since the argument value was replaced by the return value, there is
-                // no need to clean up the argument stack
-
-                DISPATCH;
-            }
             // Function values
-            CASE(AU_OP_LOAD_FUNC): {
+            CASE(AU_OP_LOAD_FUNC) : {
                 const uint8_t reg = bc[1];
                 DEF_BC16(func_id, 2);
                 PREFETCH_INSN;
 
                 const struct au_fn *fn = &p_data->fns.data[func_id];
-                struct au_fn_value *fn_value = au_fn_value_from_vm(fn, p_data);
+                struct au_fn_value *fn_value =
+                    au_fn_value_from_vm(fn, p_data);
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[reg] = au_value_fn(fn_value);
                 // INVARIANT(GC): from au_fn_value_from_vm
@@ -1445,13 +1414,14 @@ _import_dispatch:;
 
                 DISPATCH;
             }
-            CASE(AU_OP_PUSH_ARG) : {
-                // fallthrough
-            }
+            // clang-format off
+            CASE(AU_OP_CALL1) :
+            CASE(AU_OP_PUSH_ARG) :
             CASE(AU_OP_NOP) : {
                 PREFETCH_INSN;
                 DISPATCH;
             }
+            // clang-format on
 #undef COPY_VALUE
 #ifndef AU_USE_DISPATCH_JMP
         }
