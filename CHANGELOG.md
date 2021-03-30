@@ -1,22 +1,25 @@
 # Version 0.5 [α]
 
+  * **Breaking:** rewrote Git history. I promise I won't do this again.
   * Language features:
     * Support compound assignment operators with indexing (`x[y] += z;`)
-	* Added character strings (automatically turns `"A"c` into 65).
-	* Support new expression with initializer
-	* Added bitwise AND `&`, bitwise OR `|`, bitwise NOT `~`, shift left `<<`, shift right `>>` operators
+    * Added character strings (automatically turns `"A"c` into 65).
+    * Support new expression with initializer
+    * Added bitwise AND `&`, bitwise OR `|`, bitwise NOT `~`, shift left `<<`, shift right `>>` operators
   * Standard library:
     * Moved type conversion functions into modules (`int` to `int::into`, ...), turning `bool`, `float` and `int` into fully fledged modules.
-	* Added `code_points`, `bytes`, `index_of`, `contains`, `starts_with`, `ends_with` functions to str module
-	* Added `array::push`, `array::pop`, `array::repeat` functions
-	* Added `is` type-check functions to `bool`, `float`, `int`, `str` modules.
-	* Moved `len` function to `list` module.
-	* Moved `input` function to `io` module.
+    * Added `code_points`, `bytes`, `index_of`, `contains`, `starts_with`, `ends_with` functions to str module
+    * Added `array::push`, `array::pop`, `array::repeat` functions
+    * Added `is` type-check functions to `bool`, `float`, `int`, `str` modules.
+    * Moved `len` function to `list` module.
+    * Moved `input` function to `io` module.
   * Interpreter:
     * Better error handling with stack traces.
     * Interpreter now correctly errors out on module import failure.
   * Libraries:
     * Reorganized C API
+  * Parser:
+    * Use strtod for parsing floating-point values
 
 # Version 0.4 [α]
 
