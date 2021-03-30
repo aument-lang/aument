@@ -2000,8 +2000,11 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
                             int has_self_argument) {
     struct reg_array params = {0};
 
-    if (has_self_argument)
-        reg_array_add(&params, parser_pop_reg(p));
+    if (has_self_argument) {
+        uint8_t reg = parser_pop_reg(p);
+        reg_array_add(&params, reg);
+        AU_BA_SET_BIT(p->used_regs, reg);
+    }
 
     if (!parser_exec_call_args(p, l, &params))
         goto fail;

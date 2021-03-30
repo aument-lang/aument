@@ -1,0 +1,17 @@
+class A{}
+class B{}
+
+def (self: A) other() {
+    return 1;
+}
+
+def (self: A) other_call(value) {
+    print value;
+}
+
+def (self: A) call() {
+    self.other_call(self.other());
+}
+
+a = new A;
+a.call();
