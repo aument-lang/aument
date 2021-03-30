@@ -189,7 +189,7 @@ static void parser_del(struct au_parser *p) {
 }
 
 static int parser_new_reg(struct au_parser *p, uint8_t *out) {
-    if (p->rstack_len + 1 > AU_REGS) {
+    if (AU_UNLIKELY(p->rstack_len + 1 > AU_REGS)) {
         return 0;
     }
 
@@ -217,7 +217,7 @@ static int parser_new_reg(struct au_parser *p, uint8_t *out) {
 /// The caller must NOT call any opcode that changes the result in the last
 /// register
 static uint8_t parser_last_reg(struct au_parser *p) {
-    if (p->rstack_len == 0)
+    if (AU_UNLIKELY(p->rstack_len == 0))
         abort();
     return p->rstack[p->rstack_len - 1];
 }
@@ -239,14 +239,25 @@ static void parser_push_reg(struct au_parser *p, uint8_t reg) {
         p->max_register = reg;
 }
 
+static void parser_set_reg_unused(struct au_parser *p, uint8_t reg) {
+    if (!AU_BA_GET_BIT(p->pinned_regs, reg)) {
+        assert(AU_BA_GET_BIT(p->used_regs, reg));
+        AU_BA_RESET_BIT(p->used_regs, reg);
+    }
+}
+
 static uint8_t parser_pop_reg(struct au_parser *p) {
     if (AU_UNLIKELY(p->rstack_len == 0))
         abort(); // TODO
     uint8_t reg = p->rstack[--p->rstack_len];
-    if (!AU_BA_GET_BIT(p->pinned_regs, reg)) {
-        AU_BA_RESET_BIT(p->used_regs, reg);
-    }
+    parser_set_reg_unused(p, reg);
     return reg;
+}
+
+static uint8_t parser_pop_reg_no_consume(struct au_parser *p) {
+    if (AU_UNLIKELY(p->rstack_len == 0))
+        abort(); // TODO
+    return p->rstack[--p->rstack_len];
 }
 
 static void parser_emit_bc_u8(struct au_parser *p, uint8_t val) {
@@ -1236,9 +1247,8 @@ static int parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
         }
         if (!parser_exec_expr(p, l))
             return 0;
-        const uint8_t reg = parser_pop_reg(p);
+        const uint8_t reg = parser_pop_reg_no_consume(p);
         reg_array_add(regs, reg);
-        AU_BA_SET_BIT(p->used_regs, reg);
     }
     while (1) {
         const struct au_token t = au_lexer_next(l);
@@ -1249,9 +1259,8 @@ static int parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
                    t.src[0] == ',') {
             if (!parser_exec_expr(p, l))
                 return 0;
-            const uint8_t reg = parser_pop_reg(p);
+            const uint8_t reg = parser_pop_reg_no_consume(p);
             reg_array_add(regs, reg);
-            AU_BA_SET_BIT(p->used_regs, reg);
             continue;
         } else {
             EXPECT_TOKEN(0, t, "',' or ')'");
@@ -1781,10 +1790,8 @@ static int parser_exec_index_expr(struct au_parser *p,
                 // Remove array and idx regs because they aren't used,
                 // leaving us with:
                 // ... [result reg(-1)]
-                AU_BA_RESET_BIT(p->used_regs,
-                                p->rstack[p->rstack_len - 3]);
-                AU_BA_RESET_BIT(p->used_regs,
-                                p->rstack[p->rstack_len - 2]);
+                parser_set_reg_unused(p, p->rstack[p->rstack_len - 3]);
+                parser_set_reg_unused(p, p->rstack[p->rstack_len - 2]);
                 p->rstack[p->rstack_len - 3] =
                     p->rstack[p->rstack_len - 1];
                 p->rstack_len -= 2;
@@ -1798,10 +1805,8 @@ static int parser_exec_index_expr(struct au_parser *p,
                 parser_emit_bc_u8(p, result_reg);
                 // ... [array reg (-3)] [idx reg (-2)] [value reg (-1)]
                 // We also want to remove array/idx regs here
-                AU_BA_RESET_BIT(p->used_regs,
-                                p->rstack[p->rstack_len - 3]);
-                AU_BA_RESET_BIT(p->used_regs,
-                                p->rstack[p->rstack_len - 2]);
+                parser_set_reg_unused(p, p->rstack[p->rstack_len - 3]);
+                parser_set_reg_unused(p, p->rstack[p->rstack_len - 2]);
                 p->rstack[p->rstack_len - 3] =
                     p->rstack[p->rstack_len - 1];
                 p->rstack_len -= 2;
@@ -1846,7 +1851,7 @@ static int parser_exec_index_expr(struct au_parser *p,
                 }
 
                 for (size_t i = 0; i < params.len; i++) {
-                    AU_BA_RESET_BIT(p->used_regs, i);
+                    parser_set_reg_unused(p, i);
                 }
 
                 au_data_free(params.data);
@@ -2001,9 +2006,8 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
     struct reg_array params = {0};
 
     if (has_self_argument) {
-        uint8_t reg = parser_pop_reg(p);
+        const uint8_t reg = parser_pop_reg_no_consume(p);
         reg_array_add(&params, reg);
-        AU_BA_SET_BIT(p->used_regs, reg);
     }
 
     if (!parser_exec_call_args(p, l, &params))
@@ -2082,9 +2086,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
         }
 
         for (size_t i = 0; i < params.len; i++) {
-            if (!AU_BA_GET_BIT(p->pinned_regs, i)) {
-                AU_BA_RESET_BIT(p->used_regs, i);
-            }
+            parser_set_reg_unused(p, params.data[i]);
         }
     }
 
@@ -2618,12 +2620,12 @@ static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
 
                 if (!parser_exec_expr(p, l))
                     return 0;
-                const uint8_t right_reg = parser_pop_reg(p);
+
+                const uint8_t right_reg = parser_pop_reg_no_consume(p);
                 new_initializer_array_add(&array, (struct new_initializer){
                                                       .local = *key_value,
                                                       .reg = right_reg,
                                                   });
-                AU_BA_SET_BIT(p->used_regs, right_reg);
 
                 tok = au_lexer_next(l);
                 EXPECT_TOKEN(tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
@@ -2652,7 +2654,7 @@ static int parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
                 parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
                 parser_emit_bc_u8(p, init.reg);
                 parser_emit_bc_u16(p, init.local);
-                AU_BA_RESET_BIT(p->used_regs, init.reg);
+                parser_set_reg_unused(p, init.reg);
             }
             au_data_free(array.data);
 
