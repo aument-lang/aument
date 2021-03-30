@@ -10,8 +10,7 @@
 #include "platform/platform.h"
 
 static inline AU_UNUSED const char *
-utf8_codepoint(const char *s, const char *max,
-               int32_t *out_codepoint) {
+utf8_codepoint(const char *s, const char *max, int32_t *out_codepoint) {
     uintptr_t s_intptr = (uintptr_t)s;
     uintptr_t max_intptr = (uintptr_t)max;
 
@@ -51,7 +50,7 @@ utf8_codepoint(const char *s, const char *max,
 
 static inline AU_UNUSED const char *utf8_next(const char *s,
                                               const char *max, int *size) {
-    if(s == max)
+    if (s == max)
         return 0;
 
     uintptr_t s_intptr = (uintptr_t)s;

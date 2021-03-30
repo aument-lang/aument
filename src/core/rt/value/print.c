@@ -32,7 +32,7 @@ void au_value_print(au_value_t value) {
         break;
     }
     case AU_VALUE_STRUCT: {
-        printf("(struct)");
+        printf("(struct %p)", au_value_get_struct(value));
         break;
     }
     default: {

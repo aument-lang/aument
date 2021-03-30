@@ -122,7 +122,7 @@ static int is_assign_tok(struct au_token op) {
              op.src[1] == '='));
 }
 
-static AU_UNUSED void parser_flush_cached_regs(struct au_parser *p) {
+static void parser_flush_cached_regs(struct au_parser *p) {
     for (size_t i = 0; i < p->local_to_reg.len; i++) {
         p->local_to_reg.data[i] = CACHED_REG_NONE;
     }
@@ -2044,7 +2044,7 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
 
     size_t call_fn_offset = 0;
 
-    if (params.len == 1) {
+    if (params.len == 1 && 0) {
         // OPTIMIZE: optimization for function calls with 1 argument
         parser_emit_bc_u8(p, AU_OP_CALL1);
         parser_emit_bc_u8(p, params.data[0]);
@@ -2082,7 +2082,9 @@ static int parser_exec_call(struct au_parser *p, struct au_lexer *l,
         }
 
         for (size_t i = 0; i < params.len; i++) {
-            AU_BA_RESET_BIT(p->used_regs, i);
+            if (!AU_BA_GET_BIT(p->pinned_regs, i)) {
+                AU_BA_RESET_BIT(p->used_regs, i);
+            }
         }
     }
 

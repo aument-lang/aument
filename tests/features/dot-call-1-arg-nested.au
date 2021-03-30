@@ -1,0 +1,13 @@
+def f1(x,y){
+    return x+y;
+}
+
+def f2(x) {
+    return 10;
+}
+
+def f(x) {
+    return x.f1(x.f2());
+}
+
+print (5).f();
