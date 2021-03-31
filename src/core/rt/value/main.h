@@ -525,19 +525,34 @@ static AU_ALWAYS_INLINE au_value_t au_value_neg(au_value_t value) {
 #define _BIN_OP_BOOL_GENERIC(NAME, OP)                                    \
     static AU_ALWAYS_INLINE au_value_t NAME(au_value_t lhs,               \
                                             au_value_t rhs) {             \
-        if (AU_UNLIKELY(au_value_get_type(lhs) !=                         \
-                        au_value_get_type(rhs)))                          \
-            return au_value_bool(0);                                      \
         switch (au_value_get_type(lhs)) {                                 \
         case AU_VALUE_INT: {                                              \
-            return au_value_bool(au_value_get_int(lhs)                    \
-                                     OP au_value_get_int(rhs));           \
+            switch (au_value_get_type(rhs)) {                             \
+            case AU_VALUE_INT:                                            \
+                return au_value_bool(au_value_get_int(lhs)                \
+                                         OP au_value_get_int(rhs));       \
+            case AU_VALUE_DOUBLE:                                         \
+                return au_value_bool(au_value_get_int(lhs)                \
+                                         OP au_value_get_double(rhs));    \
+            default:                                                      \
+                return au_value_bool(0);                                  \
+            }                                                             \
         }                                                                 \
         case AU_VALUE_DOUBLE: {                                           \
-            return au_value_bool(au_value_get_double(lhs)                 \
-                                     OP au_value_get_double(rhs));        \
+            switch (au_value_get_type(rhs)) {                             \
+            case AU_VALUE_INT:                                            \
+                return au_value_bool(au_value_get_double(lhs)             \
+                                         OP au_value_get_int(rhs));       \
+            case AU_VALUE_DOUBLE:                                         \
+                return au_value_bool(au_value_get_double(lhs)             \
+                                         OP au_value_get_double(rhs));    \
+            default:                                                      \
+                return au_value_bool(0);                                  \
+            }                                                             \
         }                                                                 \
         case AU_VALUE_STR: {                                              \
+            if (au_value_get_type(rhs) != AU_VALUE_STR)                   \
+                return au_value_bool(0);                                  \
             return au_value_bool(au_string_cmp(au_value_get_string(lhs),  \
                                                au_value_get_string(rhs))  \
                                      OP 0);                               \
