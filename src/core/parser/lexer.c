@@ -159,6 +159,7 @@ static struct au_token au_lexer_next_(struct au_lexer *l) {
 parse_decimal:
         l->pos++;
         size_t len = 1;
+        uint32_t type = AU_TOK_INT;
         while (!L_EOF()) {
             if (!l_isdigit(l->src[l->pos])) {
                 break;
@@ -176,14 +177,27 @@ parse_decimal:
                 l->pos++;
                 len++;
             }
-            return (struct au_token){
-                .type = AU_TOK_DOUBLE,
-                .src = l->src + start,
-                .len = len,
-            };
+            type = AU_TOK_DOUBLE;
+        }
+        if (!L_EOF() && (l->src[l->pos] == 'e' || l->src[l->pos] == 'E')) {
+            l->pos++;
+            len++;
+            if (!L_EOF() &&
+                (l->src[l->pos] == '+' || l->src[l->pos] == '-')) {
+                l->pos++;
+                len++;
+            }
+            while (!L_EOF()) {
+                if (!l_isdigit(l->src[l->pos])) {
+                    break;
+                }
+                l->pos++;
+                len++;
+            }
+            type = AU_TOK_DOUBLE;
         }
         return (struct au_token){
-            .type = AU_TOK_INT,
+            .type = type,
             .src = l->src + start,
             .len = len,
         };
