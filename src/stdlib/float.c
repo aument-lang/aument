@@ -31,7 +31,9 @@ AU_EXTERN_FUNC_DECL(au_std_float_into) {
     }
     case AU_VALUE_STR: {
         const struct au_string *header = au_value_get_string(value);
-        double num = au_dconv_strtod_s(header->data, header->len);
+        double num;
+        if (au_dconv_strtod_s(header->data, header->len, &num) != header->len)
+            return au_value_double(0);
         return au_value_double(num);
     }
     default: {

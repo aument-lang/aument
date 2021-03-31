@@ -207,7 +207,6 @@ if has_compile_feature
         'src/os/mmap.h',
         'src/core/vm/module.h',
 
-        'src/core/platform/dconv.c',
         'src/core/rt/value/print.c',
         'src/core/rt/malloc/static.c',
         'src/core/rt/exception.c',
