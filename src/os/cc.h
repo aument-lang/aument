@@ -6,7 +6,7 @@
 #pragma once
 
 #include "core/str_array.h"
-#include "platform.h"
+#include "platform/platform.h"
 
 struct au_cc_options {
     struct au_str_array cflags;

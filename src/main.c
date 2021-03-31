@@ -11,9 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "platform/mmap.h"
-#include "platform/path.h"
-#include "platform/tmpfile.h"
+#include "os/mmap.h"
+#include "os/path.h"
+#include "os/tmpfile.h"
 
 #include "core/bc.h"
 #include "core/int_error/error_printer.h"
@@ -25,7 +25,7 @@
 
 #ifdef AU_FEAT_COMPILER
 #include "compiler/c_comp.h"
-#include "platform/cc.h"
+#include "os/cc.h"
 #endif
 
 #ifndef _WIN32

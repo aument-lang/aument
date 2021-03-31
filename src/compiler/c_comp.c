@@ -8,8 +8,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "platform/mmap.h"
-#include "platform/path.h"
+#include "os/mmap.h"
+#include "os/path.h"
 
 #include "core/bc.h"
 #include "core/bit_array.h"

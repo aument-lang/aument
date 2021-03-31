@@ -21,9 +21,10 @@
 #endif
 
 #include "platform/arithmetic.h"
-#include "platform/mmap.h"
-#include "platform/path.h"
 #include "platform/platform.h"
+
+#include "os/mmap.h"
+#include "os/path.h"
 
 #include "core/fn.h"
 #include "core/parser/parser.h"

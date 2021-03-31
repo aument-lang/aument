@@ -5,7 +5,7 @@
 // See LICENSE.txt for license information
 #pragma once
 
-#include "platform.h"
+#include "platform/platform.h"
 #include <stdio.h>
 
 struct au_tmpfile {

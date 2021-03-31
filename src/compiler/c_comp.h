@@ -10,8 +10,7 @@
 #include "core/bc.h"
 #include "core/char_array.h"
 #include "core/str_array.h"
-
-#include "platform/cc.h"
+#include "os/cc.h"
 #include "platform/platform.h"
 
 struct au_c_comp_state {

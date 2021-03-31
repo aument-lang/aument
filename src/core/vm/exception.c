@@ -4,10 +4,8 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #include "core/int_error/error_location.h"
-#include "platform/mmap.h"
+#include "os/mmap.h"
 #include "vm.h"
-
-#include <assert.h>
 
 size_t au_vm_locate_error(const struct au_vm_frame *frame,
                           const struct au_bc_storage *bcs,

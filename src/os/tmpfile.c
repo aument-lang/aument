@@ -5,7 +5,7 @@
 // See LICENSE.txt for license information
 #include "tmpfile.h"
 #include "core/rt/malloc.h"
-#include "platform.h"
+#include "platform/platform.h"
 
 #include <stdlib.h>
 #include <string.h>

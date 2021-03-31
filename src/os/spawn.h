@@ -6,7 +6,7 @@
 #pragma once
 
 #include "core/str_array.h"
-#include "platform.h"
+#include "platform/platform.h"
 
 /// [func] Spawns a program with arguments specified
 AU_PUBLIC int au_spawn(struct au_str_array *args);

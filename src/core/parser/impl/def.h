@@ -13,10 +13,8 @@
 #include "core/rt/exception.h"
 #include "core/rt/malloc.h"
 #include "core/utf8.h"
-
-#include "platform/mmap.h"
+#include "os/mmap.h"
 #include "platform/platform.h"
-
 #include "stdlib/au_stdlib.h"
 
 #include "core/parser/exception.h"
