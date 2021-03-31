@@ -9,7 +9,8 @@
 #include "def.h"
 #include "regs.h"
 #include "resolve.h"
-#include "strtod.h"
+
+#include "platform/dconv.h"
 
 // ** Utility functions **
 
@@ -816,7 +817,7 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
         break;
     }
     case AU_TOK_DOUBLE: {
-        double value = au_parser_strtod(t.src, t.len);
+        double value = au_dconv_strtod_s(t.src, t.len);
 
         uint8_t result_reg;
         EXPECT_BYTECODE(au_parser_new_reg(p, &result_reg));
