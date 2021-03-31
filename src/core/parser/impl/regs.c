@@ -1,3 +1,10 @@
+// This source file is part of the Aument language
+// Copyright (c) 2021 the aument contributors
+//
+// Licensed under Apache License v2.0 with Runtime Library Exception
+// See LICENSE.txt for license information
+
+#include "regs.h"
 #include "def.h"
 
 int au_parser_new_reg(struct au_parser *p, uint8_t *out) {
@@ -66,12 +73,6 @@ uint8_t au_parser_pop_reg(struct au_parser *p) {
     return reg;
 }
 
-uint8_t au_parser_pop_reg_no_consume(struct au_parser *p) {
-    if (AU_UNLIKELY(p->rstack_len == 0))
-        abort(); // TODO
-    return p->rstack[--p->rstack_len];
-}
-
 void au_parser_flush_cached_regs(struct au_parser *p) {
     for (size_t i = 0; i < p->local_to_reg.len; i++) {
         p->local_to_reg.data[i] = CACHED_REG_NONE;
@@ -85,5 +86,28 @@ void au_parser_flush_free_regs(struct au_parser *p) {
     p->rstack_len = 0;
     for (int i = 0; i < AU_BA_LEN(AU_REGS); i++) {
         p->used_regs[i] = p->pinned_regs[i];
+    }
+}
+
+struct owned_reg_state
+au_parser_pop_reg_take_ownership(struct au_parser *p) {
+    if (AU_UNLIKELY(p->rstack_len == 0))
+        abort(); // TODO
+    struct owned_reg_state state;
+    state.reg = p->rstack[--p->rstack_len];
+    if (AU_BA_GET_BIT(p->pinned_regs, state.reg)) {
+        state.is_owned = 0;
+    } else {
+        state.is_owned = 1;
+        AU_BA_SET_BIT(p->pinned_regs, state.reg);
+    }
+    return state;
+}
+
+void au_parser_del_reg_from_ownership(struct au_parser *p,
+                                      const struct owned_reg_state state) {
+    if (state.is_owned) {
+        AU_BA_RESET_BIT(p->pinned_regs, state.reg);
+        AU_BA_RESET_BIT(p->used_regs, state.reg);
     }
 }

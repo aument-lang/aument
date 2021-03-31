@@ -1,3 +1,9 @@
+// This source file is part of the Aument language
+// Copyright (c) 2021 the aument contributors
+//
+// Licensed under Apache License v2.0 with Runtime Library Exception
+// See LICENSE.txt for license information
+
 #include "expr.h"
 #include "bc.h"
 #include "def.h"
@@ -5,8 +11,11 @@
 #include "resolve.h"
 #include "strtod.h"
 
-int au_parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
-                             struct reg_array *regs) {
+// ** Utility functions **
+
+static int au_parser_exec_call_args(struct au_parser *p,
+                                    struct au_lexer *l,
+                                    struct owned_reg_state_array *params) {
     {
         const struct au_token t = au_lexer_peek(l, 0);
         if (t.type == AU_TOK_OPERATOR && t.len == 1 && t.src[0] == ')') {
@@ -15,8 +24,9 @@ int au_parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
         }
         if (!au_parser_exec_expr(p, l))
             return 0;
-        const uint8_t reg = au_parser_pop_reg_no_consume(p);
-        reg_array_add(regs, reg);
+        const struct owned_reg_state state =
+            au_parser_pop_reg_take_ownership(p);
+        owned_reg_state_array_add(params, state);
     }
     while (1) {
         const struct au_token t = au_lexer_next(l);
@@ -27,8 +37,9 @@ int au_parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
                    t.src[0] == ',') {
             if (!au_parser_exec_expr(p, l))
                 return 0;
-            const uint8_t reg = au_parser_pop_reg_no_consume(p);
-            reg_array_add(regs, reg);
+            const struct owned_reg_state state =
+                au_parser_pop_reg_take_ownership(p);
+            owned_reg_state_array_add(params, state);
             continue;
         } else {
             EXPECT_TOKEN(0, t, "',' or ')'");
@@ -37,9 +48,13 @@ int au_parser_exec_call_args(struct au_parser *p, struct au_lexer *l,
     return 1;
 }
 
+// ** Main function **
+
 int au_parser_exec_expr(struct au_parser *p, struct au_lexer *l) {
     return au_parser_exec_assign(p, l);
 }
+
+// ** Binary operations
 
 int au_parser_exec_assign(struct au_parser *p, struct au_lexer *l) {
     const struct au_token t = au_lexer_peek(l, 0);
@@ -451,6 +466,8 @@ BIN_EXPR(
 
 #undef BIN_EXPR
 
+// ** Unary operations **
+
 int au_parser_exec_unary_expr(struct au_parser *p, struct au_lexer *l) {
     struct au_token tok = au_lexer_peek(l, 0);
 #define UNARY_EXPR_BODY(OPCODE)                                           \
@@ -585,9 +602,9 @@ int au_parser_exec_index_expr(struct au_parser *p, struct au_lexer *l) {
             struct au_token id_tok = au_lexer_next(l);
             if (id_tok.type == AU_TOK_OPERATOR && id_tok.len == 1 &&
                 id_tok.src[0] == '(') {
-                struct reg_array params = {0};
+                struct owned_reg_state_array params = {0};
                 if (!au_parser_exec_call_args(p, l, &params)) {
-                    au_data_free(params.data);
+                    owned_reg_state_array_del(p, &params);
                     return 0;
                 }
                 EXPECT_BYTECODE(params.len < 256);
@@ -600,28 +617,20 @@ int au_parser_exec_index_expr(struct au_parser *p, struct au_lexer *l) {
                 au_parser_emit_bc_u8(p, return_reg);
 
                 for (size_t i = 0; i < params.len;) {
-                    uint8_t reg = 0;
-
+#define EMIT_ARG()                                                        \
+    do {                                                                  \
+        uint8_t reg = i < params.len ? params.data[i].reg : 0;            \
+        i++;                                                              \
+        au_parser_emit_bc_u8(p, reg);                                     \
+    } while (0)
                     au_parser_emit_bc_u8(p, AU_OP_PUSH_ARG);
-
-                    reg = i < params.len ? params.data[i] : 0;
-                    i++;
-                    au_parser_emit_bc_u8(p, reg);
-
-                    reg = i < params.len ? params.data[i] : 0;
-                    i++;
-                    au_parser_emit_bc_u8(p, reg);
-
-                    reg = i < params.len ? params.data[i] : 0;
-                    i++;
-                    au_parser_emit_bc_u8(p, reg);
+                    EMIT_ARG();
+                    EMIT_ARG();
+                    EMIT_ARG();
+#undef EMIT_ARG
                 }
 
-                for (size_t i = 0; i < params.len; i++) {
-                    au_parser_set_reg_unused(p, i);
-                }
-
-                au_data_free(params.data);
+                owned_reg_state_array_del(p, &params);
             } else {
                 EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok,
                              "identifier or arguments");
@@ -675,14 +684,17 @@ int au_parser_exec_index_expr(struct au_parser *p, struct au_lexer *l) {
     return 1;
 }
 
+// ** Function calls **
+
 int au_parser_exec_call(struct au_parser *p, struct au_lexer *l,
                         struct au_token module_tok, struct au_token id_tok,
                         int has_self_argument) {
-    struct reg_array params = {0};
+    struct owned_reg_state_array params = {0};
 
     if (has_self_argument) {
-        const uint8_t reg = au_parser_pop_reg_no_consume(p);
-        reg_array_add(&params, reg);
+        const struct owned_reg_state state =
+            au_parser_pop_reg_take_ownership(p);
+        owned_reg_state_array_add(&params, state);
     }
 
     if (!au_parser_exec_call_args(p, l, &params))
@@ -732,25 +744,17 @@ int au_parser_exec_call(struct au_parser *p, struct au_lexer *l,
     au_parser_emit_pad8(p);
 
     for (size_t i = 0; i < params.len;) {
-        uint8_t reg = 0;
-
+#define EMIT_ARG()                                                        \
+    do {                                                                  \
+        uint8_t reg = i < params.len ? params.data[i].reg : 0;            \
+        i++;                                                              \
+        au_parser_emit_bc_u8(p, reg);                                     \
+    } while (0)
         au_parser_emit_bc_u8(p, AU_OP_PUSH_ARG);
-
-        reg = i < params.len ? params.data[i] : 0;
-        i++;
-        au_parser_emit_bc_u8(p, reg);
-
-        reg = i < params.len ? params.data[i] : 0;
-        i++;
-        au_parser_emit_bc_u8(p, reg);
-
-        reg = i < params.len ? params.data[i] : 0;
-        i++;
-        au_parser_emit_bc_u8(p, reg);
-    }
-
-    for (size_t i = 0; i < params.len; i++) {
-        au_parser_set_reg_unused(p, params.data[i]);
+        EMIT_ARG();
+        EMIT_ARG();
+        EMIT_ARG();
+#undef EMIT_ARG
     }
 
     if (execute_self) {
@@ -759,15 +763,15 @@ int au_parser_exec_call(struct au_parser *p, struct au_lexer *l,
         au_parser_replace_bc_u16(p, call_fn_offset, func_idx);
     }
 
-    au_data_free(params.data);
+    owned_reg_state_array_del(p, &params);
     return 1;
 
 fail:
-    au_data_free(params.data);
+    owned_reg_state_array_del(p, &params);
     return 0;
 }
 
-int hex_value(char ch) {
+static inline int hex_value(char ch) {
     if ('0' <= ch && ch <= '9')
         return ch - '0';
     if ('a' <= ch && ch <= 'f')
@@ -776,6 +780,8 @@ int hex_value(char ch) {
         return ch - 'A' + 10;
     return -1;
 }
+
+// ** Values **
 
 int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
     struct au_token t = au_lexer_next(l);
@@ -1221,8 +1227,8 @@ int au_parser_exec_dict(struct au_parser *p, struct au_lexer *l) {
 }
 
 struct new_initializer {
+    struct owned_reg_state reg_state;
     uint16_t local;
-    uint8_t reg;
 };
 
 AU_ARRAY_COPY(struct new_initializer, new_initializer_array, 1)
@@ -1281,11 +1287,13 @@ int au_parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
                 if (!au_parser_exec_expr(p, l))
                     return 0;
 
-                const uint8_t right_reg = au_parser_pop_reg_no_consume(p);
-                new_initializer_array_add(&array, (struct new_initializer){
-                                                      .local = *key_value,
-                                                      .reg = right_reg,
-                                                  });
+                const struct owned_reg_state right_reg =
+                    au_parser_pop_reg_take_ownership(p);
+                new_initializer_array_add(&array,
+                                          (struct new_initializer){
+                                              .reg_state = right_reg,
+                                              .local = *key_value,
+                                          });
 
                 tok = au_lexer_next(l);
                 EXPECT_TOKEN(tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
@@ -1312,9 +1320,14 @@ int au_parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
             for (size_t i = 0; i < array.len; i++) {
                 struct new_initializer init = array.data[i];
                 au_parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
-                au_parser_emit_bc_u8(p, init.reg);
+                au_parser_emit_bc_u8(p, init.reg_state.reg);
                 au_parser_emit_bc_u16(p, init.local);
-                au_parser_set_reg_unused(p, init.reg);
+                au_parser_set_reg_unused(p, init.reg_state.reg);
+            }
+
+            for (size_t i = 0; i < array.len; i++) {
+                au_parser_del_reg_from_ownership(p,
+                                                 array.data[i].reg_state);
             }
             au_data_free(array.data);
 
