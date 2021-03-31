@@ -132,6 +132,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <float.h>
+#include <limits.h>
 #include <stdint.h>
 
 #include "core/rt/malloc.h"
