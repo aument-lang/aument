@@ -37,3 +37,7 @@ AU_PRIVATE int au_parser_exec_print_statement(struct au_parser *p,
                                               struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_return_statement(struct au_parser *p,
                                                struct au_lexer *l);
+AU_PRIVATE int au_parser_exec_raise_statement(struct au_parser *p,
+                                               struct au_lexer *l);
+AU_PRIVATE int au_parser_exec_try_statement(struct au_parser *p,
+                                    struct au_lexer *l);

@@ -65,6 +65,12 @@ int au_parser_exec_statement(struct au_parser *p, struct au_lexer *l) {
             EXPECT_GLOBAL_SCOPE(t);
             au_lexer_next(l);
             retval = au_parser_exec_export_statement(p, l);
+        } else if (token_keyword_cmp(&t, "raise")) {
+            au_lexer_next(l);
+            retval = WITH_SEMICOLON(au_parser_exec_raise_statement);
+        } else if (token_keyword_cmp(&t, "try")) {
+            au_lexer_next(l);
+            retval = au_parser_exec_try_statement(p, l);
         } else {
             retval = WITH_SEMICOLON(au_parser_exec_expr);
         }
@@ -829,6 +835,23 @@ int au_parser_exec_return_statement(struct au_parser *p,
         au_parser_emit_pad8(p);
     }
     return 1;
+}
+
+int au_parser_exec_raise_statement(struct au_parser *p,
+                                    struct au_lexer *l) {
+    if (!au_parser_exec_expr(p, l))
+        return 0;
+    au_parser_emit_bc_u8(p, AU_OP_RAISE);
+    au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
+    au_parser_emit_pad8(p);
+    au_parser_emit_pad8(p);
+    return 1;
+}
+
+int au_parser_exec_try_statement(struct au_parser *p,
+                                    struct au_lexer *l) {
+    (void)p;
+    (void)l;
 }
 
 int au_parser_exec_block(struct au_parser *p, struct au_lexer *l) {
