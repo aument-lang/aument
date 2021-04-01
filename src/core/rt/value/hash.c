@@ -12,7 +12,7 @@ uint32_t au_hash_value(au_value_t key) {
         struct au_string *ptr = au_value_get_string(key);
         return au_hash((uint8_t *)ptr->data, ptr->len);
     }
-    return au_hash_u64(key.raw);
+    return au_hash_u64(key._raw);
 #else
     switch (au_value_get_type(key)) {
     case AU_VALUE_DOUBLE: {
