@@ -14,4 +14,4 @@ Thank you to all of the 1 people who have contributed:
 
   * Floating-point conversion functions (strtod, dtoa...)
     ported from CPython
-    https://github.com/python/cpython/blob/39f643614d03748a5fad462fe7ed26a174a522fa/Python/dtoa.c
+    https://github.com/python/cpython/tree/master/Python/dtoa.c
