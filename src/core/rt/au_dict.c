@@ -80,7 +80,7 @@ static inline int value_eq(au_value_t left, au_value_t right) {
 typedef struct {
     au_value_t key;
     au_value_t val;
-    au_hash_t hash;
+    uint32_t hash;
     uint32_t psl;
 } rh_bucket_t;
 
@@ -99,59 +99,49 @@ struct rhashmap {
     rh_bucket_t init_bucket;
 };
 
-static au_hash_t compute_hash(au_value_t key) {
-    au_hash_t hash = 0;
+static uint32_t compute_hash(au_value_t key) {
+#ifdef AU_USE_NAN_TAGGING
+    if(au_value_get_type(key) == AU_VALUE_STR) {
+        struct au_string *ptr = au_value_get_string(key);
+        return au_hash((uint8_t *)ptr->data, ptr->len);
+    }
+    return au_hash_u64(key.raw);
+#else
     switch (au_value_get_type(key)) {
     case AU_VALUE_DOUBLE: {
-        double value = au_value_get_double(key);
-        uint8_t bytes[sizeof(double)];
-        memcpy(bytes, &value, sizeof(double));
-        hash = au_hash(bytes, sizeof(bytes));
-        break;
+        union {
+            double d;
+            uint64_t u;
+        } u;
+        u.d = au_value_get_double(key);
+        return au_hash_u64(u.u);
     }
     case AU_VALUE_NONE: {
-        uint8_t bytes[4] = {0, 0, 0, 0};
-        hash = au_hash(bytes, sizeof(bytes));
-        break;
+        return 2;
     }
     case AU_VALUE_INT: {
         int32_t value = au_value_get_int(key);
-        uint8_t bytes[sizeof(int32_t)];
-        memcpy(bytes, &value, sizeof(int32_t));
-        hash = au_hash(bytes, sizeof(bytes));
-        break;
+        return au_hash_u32((uint32_t)value);
     }
     case AU_VALUE_BOOL: {
-        uint8_t bytes[4] = {0, 0, 0, au_value_get_bool(key)};
-        hash = au_hash(bytes, sizeof(bytes));
-        break;
+        return au_value_get_bool(key);
     }
     case AU_VALUE_FN: {
-        uintptr_t ptr = (uintptr_t)au_value_get_fn(key);
-        uint8_t bytes[sizeof(uintptr_t)];
-        memcpy(bytes, &ptr, sizeof(uintptr_t));
-        hash = au_hash(bytes, sizeof(bytes));
-        break;
+        return au_hash_usize(au_value_get_fn(key));
     }
     case AU_VALUE_STR: {
         struct au_string *ptr = au_value_get_string(key);
-        hash = au_hash((uint8_t *)ptr->data, ptr->len);
-        break;
+        return au_hash((uint8_t *)ptr->data, ptr->len);
     }
     case AU_VALUE_STRUCT: {
-        uintptr_t ptr = (uintptr_t)au_value_get_struct(key);
-        uint8_t bytes[sizeof(uintptr_t)];
-        memcpy(bytes, &ptr, sizeof(uintptr_t));
-        hash = au_hash(bytes, sizeof(bytes));
-        break;
+        return au_hash_usize(au_value_get_struct(key));
     }
     case AU_VALUE_ERROR: {
         AU_UNREACHABLE;
     }
     }
-    uint8_t type = (uint8_t)au_value_get_type(key);
-    hash ^= au_hash(&type, 1);
-    return hash;
+    return 0;
+#endif
 }
 
 static AU_UNUSED int validate_psl_p(struct rhashmap *hmap,
@@ -169,7 +159,7 @@ static AU_UNUSED int validate_psl_p(struct rhashmap *hmap,
  * => If key is present, return its associated value; otherwise NULL.
  */
 static au_value_t rhashmap_get(struct rhashmap *hmap, au_value_t key) {
-    const au_hash_t hash = compute_hash(key);
+    const uint32_t hash = compute_hash(key);
     uint32_t n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
     rh_bucket_t *bucket;
 
@@ -207,7 +197,7 @@ probe:
  */
 static void rhashmap_insert(struct rhashmap *hmap, au_value_t key,
                             au_value_t val) {
-    const au_hash_t hash = compute_hash(key);
+    const uint32_t hash = compute_hash(key);
     rh_bucket_t *bucket, entry;
     uint32_t i;
 
@@ -364,7 +354,7 @@ static void rhashmap_put(struct rhashmap *hmap, au_value_t key,
 static AU_UNUSED au_value_t rhashmap_del(struct rhashmap *hmap,
                                          au_value_t key) {
     const size_t threshold = APPROX_40_PERCENT(hmap->size);
-    const au_hash_t hash = compute_hash(key);
+    const uint32_t hash = compute_hash(key);
     uint32_t n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
     rh_bucket_t *bucket;
     au_value_t val = empty_value();

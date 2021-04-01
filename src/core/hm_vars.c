@@ -69,7 +69,7 @@ static void rehash_table(struct au_hm_vars *vars) {
 
 au_hm_var_value_t *au_hm_vars_add(struct au_hm_vars *vars, const char *key,
                                   size_t len, au_hm_var_value_t value) {
-    const au_hash_t hash = au_hash((const uint8_t *)key, len);
+    const uint32_t hash = au_hash((const uint8_t *)key, len);
     if (vars->buckets_len > 0) {
         const int bucket_idx = ((int)hash) & (vars->buckets_len - 1);
         const struct au_hm_bucket *bucket = &vars->buckets[bucket_idx];
@@ -133,7 +133,7 @@ const au_hm_var_value_t *au_hm_vars_get(const struct au_hm_vars *vars,
         return 0;
     }
 
-    const au_hash_t hash = au_hash((const uint8_t *)key, len);
+    const uint32_t hash = au_hash((const uint8_t *)key, len);
     const size_t bucket_idx = ((size_t)hash) & (vars->buckets_len - 1);
     const struct au_hm_bucket *bucket = &vars->buckets[bucket_idx];
     for (size_t i = 0; i < bucket->len; i++) {
