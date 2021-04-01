@@ -74,21 +74,9 @@ au_vm_thread_local_add_const_cache(struct au_vm_thread_local *tl,
 AU_PRIVATE void
 au_vm_thread_local_del_const_cache(struct au_vm_thread_local *tl);
 
-enum au_tl_reserve_mod_retval {
-#define X(NAME) AU_TL_RESMOD_RETVAL_##NAME
-    X(FAIL),
-    X(OK),
-    X(OK_MAIN_CALLED),
-#undef X
-};
-
-AU_PRIVATE enum au_tl_reserve_mod_retval
+AU_PRIVATE int
 au_vm_thread_local_reserve_module(struct au_vm_thread_local *tl,
                                   const char *abspath, uint32_t *retidx);
-
-AU_PRIVATE enum au_tl_reserve_mod_retval
-au_vm_thread_local_reserve_import_only(struct au_vm_thread_local *tl,
-                                       const char *abspath);
 
 AU_PRIVATE void
 au_vm_thread_local_add_module(struct au_vm_thread_local *tl,

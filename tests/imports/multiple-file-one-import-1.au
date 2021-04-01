@@ -1,1 +1,3 @@
-export def a() {}
+export def a() {
+    print 10;
+}

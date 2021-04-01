@@ -74,49 +74,25 @@ void au_vm_thread_local_del_const_cache(struct au_vm_thread_local *tl) {
     tl->const_len = 0;
 }
 
-enum au_tl_reserve_mod_retval
-au_vm_thread_local_reserve_import_only(struct au_vm_thread_local *tl,
-                                       const char *abspath) {
-    au_hm_var_value_t *old_value;
-    if ((old_value =
-             au_hm_vars_add(&tl->loaded_modules_map, abspath,
-                            strlen(abspath), AU_HM_VAR_VALUE_NONE)) != 0) {
-        if (*old_value == AU_HM_VAR_VALUE_NONE) {
-            return AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED;
-        }
-        return AU_TL_RESMOD_RETVAL_FAIL;
-    }
-    return AU_TL_RESMOD_RETVAL_OK;
-}
-
-enum au_tl_reserve_mod_retval
-au_vm_thread_local_reserve_module(struct au_vm_thread_local *tl,
-                                  const char *abspath, uint32_t *retidx) {
+int au_vm_thread_local_reserve_module(struct au_vm_thread_local *tl,
+                                      const char *abspath,
+                                      uint32_t *retidx) {
     au_hm_var_value_t value = tl->loaded_modules.len;
-    au_hm_var_value_t *old_value;
-    if ((old_value = au_hm_vars_add(&tl->loaded_modules_map, abspath,
-                                    strlen(abspath), value)) != 0) {
-        if (*old_value == AU_HM_VAR_VALUE_NONE) {
-            *old_value = value;
-            *retidx = value;
-            au_program_data_array_add(&tl->loaded_modules, 0);
-            return AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED;
-        }
-        return AU_TL_RESMOD_RETVAL_FAIL;
+    if (au_hm_vars_add(&tl->loaded_modules_map, abspath, strlen(abspath),
+                       value) != 0) {
+        return 0;
     }
     *retidx = value;
     au_program_data_array_add(&tl->loaded_modules, 0);
-    return AU_TL_RESMOD_RETVAL_OK;
+    return 1;
 }
 
 void au_vm_thread_local_add_module(struct au_vm_thread_local *tl,
                                    const uint32_t idx,
                                    struct au_program_data *data) {
-    if (idx >= tl->loaded_modules.len)
-        au_fatal_index(&tl->loaded_modules, idx, tl->loaded_modules.len);
-    if (tl->loaded_modules.data[idx] != 0)
-        au_fatal("module is already loaded\n");
-    tl->loaded_modules.data[idx] = data;
+    if (au_program_data_array_at(&tl->loaded_modules, idx) != 0)
+        abort();
+    au_program_data_array_set(&tl->loaded_modules, idx, data);
 }
 
 struct au_program_data *
@@ -124,12 +100,9 @@ au_vm_thread_local_get_module(const struct au_vm_thread_local *tl,
                               const char *abspath) {
     const au_hm_var_value_t *value =
         au_hm_vars_get(&tl->loaded_modules_map, abspath, strlen(abspath));
-    if (!value || *value == AU_HM_VAR_VALUE_NONE)
+    if (value == 0)
         return 0;
-    if (*value >= tl->loaded_modules.len)
-        au_fatal_index(&tl->loaded_modules, *value,
-                       tl->loaded_modules.len);
-    return tl->loaded_modules.data[*value];
+    return au_program_data_array_at(&tl->loaded_modules, *value);
 }
 
 void au_vm_thread_local_install_stdlib(struct au_vm_thread_local *tl) {

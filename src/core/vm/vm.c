@@ -1282,35 +1282,29 @@ _AU_OP_JNIF:;
                     if (module_path_with_subpath != 0)
                         au_data_free(module_path_with_subpath);
                     au_module_resolve_result_del(&resolve_res);
-                    struct au_interpreter_result res = link_to_imported(
-                        tl, p_data, relative_module_idx, loaded_module);
-                    if (res.type != AU_INT_ERR_OK)
-                        RAISE(res);
+
+                    if (relative_module_idx !=
+                        AU_PROGRAM_IMPORT_NO_MODULE) {
+                        struct au_interpreter_result res =
+                            link_to_imported(tl, p_data,
+                                             relative_module_idx,
+                                             loaded_module);
+                        if (res.type != AU_INT_ERR_OK)
+                            RAISE(res);
+                    }
+
                     DISPATCH;
                 }
 
                 uint32_t tl_module_idx = ((uint32_t)-1);
-                enum au_tl_reserve_mod_retval rmod_retval =
-                    AU_TL_RESMOD_RETVAL_FAIL;
-                if (relative_module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
-                    rmod_retval = au_vm_thread_local_reserve_import_only(
-                        tl, module_path);
-                    if (rmod_retval ==
-                        AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
-                        au_module_resolve_result_del(&resolve_res);
-                        DISPATCH;
-                    }
-                } else {
-                    rmod_retval = au_vm_thread_local_reserve_module(
-                        tl, module_path, &tl_module_idx);
-                }
+                // TODO: deallocate
+                if (!au_vm_thread_local_reserve_module(tl, module_path,
+                                                       &tl_module_idx))
+                    RAISE(circular_import_error());
 
                 if (module_path_with_subpath != 0)
                     au_data_free(module_path_with_subpath);
                 module_path = 0;
-
-                if (rmod_retval == AU_TL_RESMOD_RETVAL_FAIL)
-                    RAISE(circular_import_error());
 
                 struct au_module module;
                 switch (au_module_import(&module, &resolve_res)) {
@@ -1355,26 +1349,22 @@ _AU_OP_JNIF:;
 
                     au_module_resolve_result_del(&resolve_res);
 
-                    if (rmod_retval !=
-                        AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
-                        if (au_value_is_error(
-                                au_vm_exec_unverified_main(tl, &program)))
-                            RAISE_BT();
-                    }
+                    // FIXME: deallocate
+                    if (au_value_is_error(
+                            au_vm_exec_unverified_main(tl, &program)))
+                        RAISE_BT();
 
-                    if (relative_module_idx ==
+                    au_bc_storage_del(&program.main);
+
+                    struct au_program_data *loaded_module =
+                        au_data_malloc(sizeof(struct au_program_data));
+                    memcpy(loaded_module, &program.data,
+                           sizeof(struct au_program_data));
+                    au_vm_thread_local_add_module(tl, tl_module_idx,
+                                                  loaded_module);
+
+                    if (relative_module_idx !=
                         AU_PROGRAM_IMPORT_NO_MODULE) {
-                        au_program_del(&program);
-                    } else {
-                        au_bc_storage_del(&program.main);
-
-                        struct au_program_data *loaded_module =
-                            au_data_malloc(sizeof(struct au_program_data));
-                        memcpy(loaded_module, &program.data,
-                               sizeof(struct au_program_data));
-                        au_vm_thread_local_add_module(tl, tl_module_idx,
-                                                      loaded_module);
-
                         struct au_interpreter_result res =
                             link_to_imported(tl, p_data,
                                              relative_module_idx,
@@ -1388,11 +1378,12 @@ _AU_OP_JNIF:;
                     struct au_program_data *loaded_module =
                         module.data.lib.lib;
                     module.data.lib.lib = 0;
-                    if (tl_module_idx == ((uint32_t)-1)) {
-                        au_program_data_del(loaded_module);
-                    } else {
-                        au_vm_thread_local_add_module(tl, tl_module_idx,
-                                                      loaded_module);
+
+                    au_vm_thread_local_add_module(tl, tl_module_idx,
+                                                  loaded_module);
+
+                    if (relative_module_idx !=
+                        AU_PROGRAM_IMPORT_NO_MODULE) {
                         struct au_interpreter_result res =
                             link_to_imported(tl, p_data,
                                              relative_module_idx,
