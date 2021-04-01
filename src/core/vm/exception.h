@@ -26,6 +26,7 @@ enum au_interpreter_result_type {
     X(UNKNOWN_CLASS) = 9,
     X(UNKNOWN_CONST) = 10,
     X(WRONG_ARGS) = 11,
+    X(RAISED_ERROR) = 12,
 };
 #undef X
 
@@ -50,6 +51,9 @@ struct au_interpreter_result {
             int got_args;
             int expected_args;
         } wrong_args;
+        struct {
+            au_value_t value;
+        } raised_error;
     } data;
     size_t pos;
     enum au_interpreter_result_type type;

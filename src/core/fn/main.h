@@ -78,6 +78,7 @@ AU_PUBLIC void au_dispatch_func_del(struct au_dispatch_func *fn);
 
 #define AU_FN_FLAG_EXPORTED (1 << 0)
 #define AU_FN_FLAG_HAS_CLASS (1 << 1)
+#define AU_FN_FLAG_MAY_FAIL (1 << 2)
 
 /// [struct] Representation of an Aument function, used by the parser and
 /// the virtual machine.

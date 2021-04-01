@@ -26,6 +26,7 @@ void au_parser_init(struct au_parser *p, struct au_program_data *p_data) {
     p->self_len = 0;
     p->self_fill_call = (struct size_t_array){0};
     p->self_num_args = 0;
+    p->self_flags = 0;
     p->func_idx = AU_SM_FUNC_ID_MAIN;
 
     p->class_interface = 0;

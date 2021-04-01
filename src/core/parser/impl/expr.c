@@ -16,11 +16,17 @@
 
 static int au_parser_exec_call_args(struct au_parser *p,
                                     struct au_lexer *l,
-                                    struct owned_reg_state_array *params) {
+                                    struct owned_reg_state_array *params,
+                                    int *catches_error_out) {
+    *catches_error_out = 0;
     {
         const struct au_token t = au_lexer_peek(l, 0);
         if (t.type == AU_TOK_OPERATOR && t.len == 1 && t.src[0] == ')') {
             au_lexer_next(l);
+            return 1;
+        } else if (t.type == AU_TOK_OPERATOR && t.len == 2 &&
+                   t.src[0] == ')' && t.src[1] == '?') {
+            *catches_error_out = 1;
             return 1;
         }
         if (!au_parser_exec_expr(p, l))
@@ -33,6 +39,11 @@ static int au_parser_exec_call_args(struct au_parser *p,
         const struct au_token t = au_lexer_next(l);
         if (t.type == AU_TOK_EOF ||
             (t.type == AU_TOK_OPERATOR && t.len == 1 && t.src[0] == ')')) {
+            return 1;
+        } else if (t.type == AU_TOK_EOF ||
+                   (t.type == AU_TOK_OPERATOR && t.len == 2 &&
+                    t.src[0] == ')' && t.src[0] == '?')) {
+            *catches_error_out = 1;
             return 1;
         } else if (t.type == AU_TOK_OPERATOR && t.len == 1 &&
                    t.src[0] == ',') {
@@ -604,13 +615,18 @@ int au_parser_exec_index_expr(struct au_parser *p, struct au_lexer *l) {
             if (id_tok.type == AU_TOK_OPERATOR && id_tok.len == 1 &&
                 id_tok.src[0] == '(') {
                 struct owned_reg_state_array params = {0};
-                if (!au_parser_exec_call_args(p, l, &params)) {
+                int catches_error = 0;
+                if (!au_parser_exec_call_args(p, l, &params,
+                                              &catches_error)) {
                     owned_reg_state_array_del(p, &params);
                     return 0;
                 }
                 EXPECT_BYTECODE(params.len < 256);
 
-                au_parser_emit_bc_u8(p, AU_OP_CALL_FUNC_VALUE);
+                if (catches_error)
+                    au_parser_emit_bc_u8(p, AU_OP_CALL_FUNC_VALUE_CATCH);
+                else
+                    au_parser_emit_bc_u8(p, AU_OP_CALL_FUNC_VALUE);
                 au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
                 au_parser_emit_bc_u8(p, params.len);
                 uint8_t return_reg;
@@ -698,7 +714,8 @@ int au_parser_exec_call(struct au_parser *p, struct au_lexer *l,
         owned_reg_state_array_add(&params, state);
     }
 
-    if (!au_parser_exec_call_args(p, l, &params))
+    int catches_error = 0;
+    if (!au_parser_exec_call_args(p, l, &params, &catches_error))
         goto fail;
 
     size_t func_idx = 0;
@@ -738,7 +755,10 @@ int au_parser_exec_call(struct au_parser *p, struct au_lexer *l,
 
     uint8_t result_reg;
     EXPECT_BYTECODE(au_parser_new_reg(p, &result_reg));
-    au_parser_emit_bc_u8(p, AU_OP_CALL);
+    if (catches_error)
+        au_parser_emit_bc_u8(p, AU_OP_CALL_CATCH);
+    else
+        au_parser_emit_bc_u8(p, AU_OP_CALL);
     au_parser_emit_bc_u8(p, result_reg);
     call_fn_offset = p->bc.len;
     au_parser_emit_pad8(p);

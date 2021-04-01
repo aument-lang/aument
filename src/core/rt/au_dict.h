@@ -19,8 +19,8 @@ AU_PUBLIC void au_obj_dict_del(struct au_obj_dict *obj_dict);
 AU_PUBLIC int au_obj_dict_get(struct au_obj_dict *obj_dict,
                               const au_value_t idx, au_value_t *result);
 
-AU_PUBLIC int au_obj_dict_set(struct au_obj_dict *obj_dict,
-                              au_value_t idx, au_value_t value);
+AU_PUBLIC int au_obj_dict_set(struct au_obj_dict *obj_dict, au_value_t idx,
+                              au_value_t value);
 
 AU_PUBLIC int32_t au_obj_dict_len(struct au_obj_dict *obj_dict);
 

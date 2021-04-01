@@ -259,6 +259,8 @@ parse_decimal:
     else X("&&") else X("||") else X("&=") else X("|=")
     // Other
     else X("#[") else X("::")
+    else X(")?") else X(")!")
+    else X("]?")
 
     // One character operators:
     // Arithmetic/comparison operators

@@ -29,14 +29,12 @@ enum au_vtype {
     AU_VALUE_FN = 4,
     AU_VALUE_STR = 5,
     AU_VALUE_STRUCT = 6,
-    AU_VALUE_OBJ_ERROR = 7,
     // ...
     AU_VALUE_ERROR = 15,
 };
 
 struct au_string;
 struct au_fn_value;
-struct au_obj_error;
 
 #ifdef AU_USE_NAN_TAGGING
 typedef union {
@@ -130,8 +128,9 @@ static AU_ALWAYS_INLINE int32_t au_value_get_int(const au_value_t v) {
 static AU_ALWAYS_INLINE au_value_t au_value_double(double n) {
     au_value_t v;
     v._d = n;
-    if (AU_UNLIKELY((AU_REPR_EXPONENT(v._raw) == AU_REPR_SPECIAL_EXPONENT) &
-                    (AU_REPR_FRACTION(v._raw) != 0))) {
+    if (AU_UNLIKELY(
+            (AU_REPR_EXPONENT(v._raw) == AU_REPR_SPECIAL_EXPONENT) &
+            (AU_REPR_FRACTION(v._raw) != 0))) {
         v._raw = AU_REPR_CANONICAL_NAN;
         if (n < 0) {
             v._raw |= (INT64_C(1) << INT64_C(63));
@@ -196,18 +195,6 @@ au_value_get_struct(const au_value_t v) {
     return (struct au_struct *)(AU_REPR_GET_POINTER(v._raw));
 }
 
-static AU_ALWAYS_INLINE au_value_t
-au_value_obj_error(struct au_obj_error *data) {
-    au_value_t v;
-    v._raw = AU_REPR_BOXED(AU_VALUE_OBJ_ERROR, (uint64_t)data);
-    return v;
-}
-static AU_ALWAYS_INLINE struct au_obj_error *
-au_value_get_obj_error(const au_value_t v) {
-    if (au_value_get_type(v) != AU_VALUE_OBJ_ERROR)
-        abort();
-    return (struct au_obj_error *)(AU_REPR_GET_POINTER(v._raw));
-}
 #else
 static AU_ALWAYS_INLINE enum au_vtype
 au_value_get_type(const au_value_t v) {
@@ -303,20 +290,6 @@ au_value_struct(struct au_struct *data) {
 static AU_ALWAYS_INLINE struct au_struct *
 au_value_get_struct(const au_value_t v) {
     if (au_value_get_type(v) != AU_VALUE_STRUCT)
-        abort();
-    return (struct au_struct *)v._data.d_ptr;
-}
-
-static AU_ALWAYS_INLINE au_value_t
-au_value_obj_error(struct au_obj_error *data) {
-    au_value_t v = {0};
-    v._type = AU_VALUE_OBJ_ERROR;
-    v._data.d_ptr = data;
-    return v;
-}
-static AU_ALWAYS_INLINE struct au_obj_error *
-au_value_get_obj_error(const au_value_t v) {
-    if (au_value_get_type(v) != AU_VALUE_OBJ_ERROR)
         abort();
     return (struct au_struct *)v._data.d_ptr;
 }

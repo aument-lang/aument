@@ -69,6 +69,8 @@ struct au_parser {
     struct size_t_array self_fill_call;
     /// Number of arguments in the current function
     int self_num_args;
+    /// Current function flags
+    uint32_t self_flags;
 
     /// The index of this function's class
     struct au_class_interface *class_interface;

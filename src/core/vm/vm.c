@@ -213,6 +213,29 @@ static struct au_interpreter_result circular_import_error() {
     };
 }
 
+static struct au_interpreter_result raised_error(au_value_t value) {
+    au_value_ref(value);
+    return (struct au_interpreter_result){
+        .type = AU_INT_ERR_RAISED_ERROR,
+        .data.raised_error.value = value,
+        .pos = 0,
+    };
+}
+
+static au_value_t extract_error_value(struct au_vm_thread_local *tl) {
+    if (AU_UNLIKELY(tl->error.result.type != AU_INT_ERR_RAISED_ERROR))
+        return au_value_error();
+    au_value_t retval = tl->error.result.data.raised_error.value;
+    tl->error.file = 0;
+    tl->error.result.type = AU_INT_ERR_OK;
+    tl->error.result.pos = 0;
+    au_data_free(tl->backtrace.data);
+    tl->backtrace.data = 0;
+    tl->backtrace.len = 0;
+    tl->backtrace.cap = 0;
+    return retval;
+}
+
 // * Implementation *
 
 au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
@@ -395,7 +418,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_CLASS_GET_INNER),
             &&CASE(AU_OP_CLASS_SET_INNER),
             &&CASE(AU_OP_CLASS_NEW),
-            &&CASE(AU_OP_CALL1),
+            &&CASE(AU_OP_CALL_CATCH),
             &&CASE(AU_OP_SET_CONST),
             &&CASE(AU_OP_LOAD_FUNC),
             &&CASE(AU_OP_BIND_ARG_TO_FUNC),
@@ -410,6 +433,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
             &&CASE(AU_OP_NEG),
             &&CASE(AU_OP_CLASS_NEW_INITIALZIED),
             &&CASE(AU_OP_DICT_NEW),
+            &&CASE(AU_OP_RAISE),
+            &&CASE(AU_OP_CALL_FUNC_VALUE_CATCH),
             &&CASE(AU_OP_MUL_INT),
             &&CASE(AU_OP_DIV_INT),
             &&CASE(AU_OP_ADD_INT),
@@ -851,7 +876,11 @@ _AU_OP_JNIF:;
                 }
             }
             // Call instructions
-            CASE(AU_OP_CALL) : {
+            // clang-format off
+            CASE(AU_OP_CALL): 
+            CASE(AU_OP_CALL_CATCH): // clang-format on
+            {
+                const uint8_t opcode = bc[0];
                 const uint8_t ret_reg = bc[1];
                 DEF_BC16(func_id, 2);
                 bc += 4;
@@ -892,11 +921,16 @@ _AU_OP_JNIF:;
                 FLUSH_BC();
 
                 int is_native = 0;
-                const au_value_t callee_retval = au_fn_call_internal(
+                au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, args, &is_native);
                 if (au_value_is_error(callee_retval)) {
-                    au_data_free(args);
-                    RAISE_BT();
+                    if (opcode == AU_OP_CALL_CATCH) {
+                        callee_retval = extract_error_value(tl);
+                    }
+                    if (au_value_is_error(callee_retval)) {
+                        au_data_free(args);
+                        RAISE_BT();
+                    }
                 }
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -956,7 +990,11 @@ _AU_OP_JNIF:;
 
                 DISPATCH;
             }
-            CASE(AU_OP_CALL_FUNC_VALUE) : {
+            // clang-format off
+            CASE(AU_OP_CALL_FUNC_VALUE):
+            CASE(AU_OP_CALL_FUNC_VALUE_CATCH): // clang-format on
+            {
+                const uint8_t opcode = bc[0];
                 const uint8_t func_reg = bc[1];
                 const uint8_t num_args = bc[2];
                 const uint8_t ret_reg = bc[3];
@@ -997,12 +1035,16 @@ _AU_OP_JNIF:;
                     au_fn_value_coerce(frame.regs[func_reg]);
                 if (AU_LIKELY(fn_value != 0)) {
                     int is_native = 0;
-                    const au_value_t callee_retval = au_fn_value_call_vm(
+                    au_value_t callee_retval = au_fn_value_call_vm(
                         fn_value, tl, args, num_args, &is_native);
                     if (au_value_is_error(callee_retval)) {
-                        au_data_free(args);
-                        FLUSH_BC();
-                        RAISE(call_error(p_data, &frame));
+                        if (opcode == AU_OP_CALL_FUNC_VALUE_CATCH) {
+                            callee_retval = extract_error_value(tl);
+                        }
+                        if (au_value_is_error(callee_retval)) {
+                            au_data_free(args);
+                            RAISE(call_error(p_data, &frame));
+                        }
                     }
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -1397,6 +1439,11 @@ _AU_OP_JNIF:;
 _import_dispatch:;
                 DISPATCH;
             }
+            // Exceptions
+            CASE(AU_OP_RAISE) : {
+                const au_value_t reg = frame.regs[bc[1]];
+                RAISE(raised_error(reg));
+            }
             // Other
             CASE(AU_OP_PRINT) : {
                 const au_value_t reg = frame.regs[bc[1]];
@@ -1407,7 +1454,6 @@ _import_dispatch:;
                 DISPATCH;
             }
             // clang-format off
-            CASE(AU_OP_CALL1) :
             CASE(AU_OP_PUSH_ARG) :
             CASE(AU_OP_NOP) : {
                 PREFETCH_INSN;

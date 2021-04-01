@@ -11,7 +11,7 @@
 #endif
 
 uint32_t au_hash(const uint8_t *str, const size_t len) {
-    // FNV-1a hash. See: http://www.isthe.com/chongo/tech/comp/fnv/    
+    // FNV-1a hash. See: http://www.isthe.com/chongo/tech/comp/fnv/
     uint32_t hash = 2166136261u;
     for (uint32_t i = 0; i < len; i++) {
         hash ^= str[i];
@@ -37,5 +37,5 @@ uint32_t au_hash_u64(uint64_t key) {
     key = key ^ (key >> 11);
     key = key + (key << 6);
     key = key ^ (key >> 22);
-    return (uint32_t) key;
+    return (uint32_t)key;
 }

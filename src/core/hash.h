@@ -7,6 +7,7 @@
 #pragma once
 #include "platform/platform.h"
 #include <stdint.h>
+#include <stdlib.h>
 #endif
 
 /// [func] Hashes a chunk of memory `str` with length `len`
@@ -29,4 +30,3 @@ AU_PRIVATE uint32_t au_hash_u64(uint64_t key);
 #error "No hash function for this architecture"
 #endif
 #endif
-

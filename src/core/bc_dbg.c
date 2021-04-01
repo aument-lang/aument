@@ -221,14 +221,8 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
             pos += 3;
             break;
         }
-        case AU_OP_CALL: {
-            uint8_t retval = bc(pos);
-            DEF_BC16(x, 1);
-            printf(" (%d) -> r%d\n", x, retval);
-            pos += 3;
-            break;
-        }
-        case AU_OP_CALL1: {
+        case AU_OP_CALL:
+        case AU_OP_CALL_CATCH: {
             uint8_t retval = bc(pos);
             DEF_BC16(x, 1);
             printf(" (%d) -> r%d\n", x, retval);

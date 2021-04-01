@@ -319,6 +319,7 @@ int au_parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
     struct au_token old_id_tok = (struct au_token){0};
     old_id_tok.type = AU_TOK_EOF;
 
+    int expected_no_fail = 0;
     int expected_num_args = -1;
 
     au_hm_var_value_t func_value = p->p_data->fns.len;
@@ -327,6 +328,9 @@ int au_parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
     if (old_value) {
         struct au_fn *old = &p->p_data->fns.data[*old_value];
         expected_num_args = au_fn_num_args(old);
+
+        if ((old->flags & AU_FN_FLAG_MAY_FAIL) == 0)
+            expected_no_fail = 1;
 
         const int has_same_visibility =
             (old->flags & AU_FN_FLAG_EXPORTED) ==
@@ -528,6 +532,7 @@ int au_parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
         au_parser_emit_pad8(&func_p);
         au_parser_emit_pad8(&func_p);
     }
+    func_p.self_flags = fn_flags;
 
     const size_t source_map_start = p->p_data->source_map.len;
     if (!au_parser_exec_block(&func_p, l)) {
@@ -537,6 +542,11 @@ int au_parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
         return 0;
     }
     au_parser_emit_bc_u8(&func_p, AU_OP_RET_NULL);
+
+    if (expected_no_fail &&
+        (func_p.self_flags & AU_FN_FLAG_MAY_FAIL) != 0) {
+        abort(); // TODO
+    }
 
     bcs.num_locals = func_p.num_locals;
     bcs.num_registers = func_p.max_register + 1;
@@ -554,7 +564,7 @@ int au_parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
     }
     *au_fn_array_at_mut(&p->p_data->fns, func_value) = (struct au_fn){
         .type = AU_FN_BC,
-        .flags = fn_flags,
+        .flags = func_p.self_flags,
         .as.bc_func = bcs,
     };
 
@@ -838,20 +848,21 @@ int au_parser_exec_return_statement(struct au_parser *p,
 }
 
 int au_parser_exec_raise_statement(struct au_parser *p,
-                                    struct au_lexer *l) {
+                                   struct au_lexer *l) {
     if (!au_parser_exec_expr(p, l))
         return 0;
     au_parser_emit_bc_u8(p, AU_OP_RAISE);
     au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
     au_parser_emit_pad8(p);
     au_parser_emit_pad8(p);
+    p->self_flags |= AU_FN_FLAG_MAY_FAIL;
     return 1;
 }
 
-int au_parser_exec_try_statement(struct au_parser *p,
-                                    struct au_lexer *l) {
+int au_parser_exec_try_statement(struct au_parser *p, struct au_lexer *l) {
     (void)p;
     (void)l;
+    abort();
 }
 
 int au_parser_exec_block(struct au_parser *p, struct au_lexer *l) {

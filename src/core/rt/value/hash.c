@@ -8,7 +8,7 @@
 
 uint32_t au_hash_value(au_value_t key) {
 #ifdef AU_USE_NAN_TAGGING
-    if(au_value_get_type(key) == AU_VALUE_STR) {
+    if (au_value_get_type(key) == AU_VALUE_STR) {
         struct au_string *ptr = au_value_get_string(key);
         return au_hash((uint8_t *)ptr->data, ptr->len);
     }
