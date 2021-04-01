@@ -26,6 +26,7 @@ has_io_library = get_option('io_library')
 compiler = meson.get_compiler('c')
 prog_python = import('python').find_installation('python3')
 
+au_exe_cflags = []
 au_hdr_cflags = []
 au_depends = []
 au_supports_dll_import = false
@@ -36,7 +37,7 @@ if compiler.has_argument('-Wno-unused-command-line-argument')
 endif
 
 if compiler.has_argument('-fvisibility=hidden')
-    add_project_arguments('-fvisibility=hidden', language : ['c'])
+    au_exe_cflags += '-fvisibility=hidden'
 endif
 
 if is_testing
@@ -275,6 +276,7 @@ endif
 
 au_runtime_sources = [
     'src/core/vm/module.c',
+    'src/platform/dconv.c',
 
     'src/stdlib/array.c',
     'src/stdlib/bool.c',
@@ -532,6 +534,7 @@ else
     executable('aument',
         sources + ['src/main.c'],
         include_directories: incs,
+        c_args: au_exe_cflags,
         link_args: link_args,
         install: true,
         dependencies: au_depends,
