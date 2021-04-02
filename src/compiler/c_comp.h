@@ -10,11 +10,13 @@
 #include "core/bc.h"
 #include "core/char_array.h"
 #include "core/str_array.h"
+#include "core/vm/exception.h"
 #include "os/cc.h"
 #include "platform/platform.h"
 
 struct au_c_comp_state {
     struct au_char_array str;
+    const char *error_file;
 };
 
 /// [func] Deinitializes an au_c_comp_state instance
@@ -35,7 +37,7 @@ struct au_c_comp_options {
 /// @param cc An optional pointer to an au_cc_options object.
 ///     This will be used to pass additional arguments required for
 ///     compilation.
-AU_PUBLIC void au_c_comp(struct au_c_comp_state *state,
-                         const struct au_program *program,
-                         const struct au_c_comp_options *options,
-                         struct au_cc_options *cc);
+AU_PUBLIC struct au_interpreter_result
+au_c_comp(struct au_c_comp_state *state, const struct au_program *program,
+          const struct au_c_comp_options *options,
+          struct au_cc_options *cc);

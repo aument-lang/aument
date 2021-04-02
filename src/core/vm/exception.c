@@ -7,11 +7,8 @@
 #include "os/mmap.h"
 #include "vm.h"
 
-size_t au_vm_locate_error(const struct au_vm_frame *frame,
-                          const struct au_bc_storage *bcs,
+size_t au_vm_locate_error(const size_t pc, const struct au_bc_storage *bcs,
                           const struct au_program_data *p_data) {
-    const size_t pc = frame->bc - frame->bc_start;
-
     for (size_t i = 0; i < p_data->source_map.len; i++) {
         const struct au_program_source_map map =
             p_data->source_map.data[i];

@@ -16,20 +16,12 @@ void au_fatal(const char *fmt, ...) {
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
     va_end(args);
-#ifdef AU_FUZZ_VM
     exit(1);
-#else
-    abort();
-#endif
 }
 
 void au_perror(const char *msg) {
     perror(msg);
-#ifdef AU_FUZZ_VM
     exit(1);
-#else
-    abort();
-#endif
 }
 
 void au_fatal_index(const void *array, size_t idx, size_t len) {
