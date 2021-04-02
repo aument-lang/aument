@@ -11,60 +11,7 @@
 #include "program.h"
 #include "rt/exception.h"
 
-const char *au_opcode_dbg[256] = {"load_self",
-                                  "mov",
-                                  "mul",
-                                  "div",
-                                  "add",
-                                  "sub",
-                                  "mod",
-                                  "mov",
-                                  "mov",
-                                  "print",
-                                  "eq",
-                                  "neq",
-                                  "lt",
-                                  "gt",
-                                  "leq",
-                                  "geq",
-                                  "jif",
-                                  "jnif",
-                                  "jrel",
-                                  "jrelb",
-                                  "loadc",
-                                  "mov",
-                                  "nop",
-                                  "push_arg",
-                                  "call",
-                                  "ret",
-                                  "ret",
-                                  "ret",
-                                  "import",
-                                  "array_new",
-                                  "array_push",
-                                  "idx_get",
-                                  "idx_set",
-                                  "not",
-                                  "tuple_new",
-                                  "idx_set_static",
-                                  "mov_class",
-                                  "mov_class",
-                                  "class_new",
-                                  "call_1",
-                                  "set_const",
-                                  "load_func",
-                                  "bind_arg_to_func",
-                                  "call_func_value",
-                                  "load_nil",
-                                  "bor",
-                                  "bxor",
-                                  "band",
-                                  "bshl",
-                                  "bshr",
-                                  "bnot",
-                                  "neg",
-                                  "new",
-                                  "dict_new"};
+#include "bc_data/dbg.txt"
 
 #ifdef AU_COVERAGE
 void au_bc_dbg(const struct au_bc_storage *bcs,
@@ -82,12 +29,7 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
     while (pos < bcs->bc.len) {
         assert(pos % 4 == 0);
         uint8_t opcode = bc(pos);
-        printf("%5" PRIdPTR ": ", pos);
-        if (opcode >= AU_OP_MAX_PRINTABLE) {
-            au_fatal("unknown opcode %d", opcode);
-        } else {
-            printf("%s", au_opcode_dbg[opcode]);
-        }
+        printf("%5" PRIdPTR ": %s", pos, au_opcode_dbg[opcode]);
         pos++;
 
 #define DEF_BC16(VAR, OFFSET)                                             \
