@@ -11,6 +11,8 @@
 #include "regs.h"
 #include "resolve.h"
 
+#include <stdio.h>
+
 int au_parser_exec_with_semicolon(struct au_parser *p, struct au_lexer *l,
                                   int retval) {
     if (!retval)
@@ -542,6 +544,7 @@ int au_parser_exec_def_statement(struct au_parser *p, struct au_lexer *l,
 
     if (expected_no_fail &&
         (func_p.self_flags & AU_FN_FLAG_MAY_FAIL) != 0) {
+        printf("expected %.*s not to fail\n", (int)id_tok.len, id_tok.src);
         abort(); // TODO
     }
 

@@ -107,6 +107,10 @@ link_to_imported(struct au_vm_thread_local *tl,
             result.data.unknown_id.key = au_data_strndup(key, key_len);
             goto _end;
         }
+        if ((fn->flags & AU_FN_FLAG_MAY_FAIL) !=
+            (p_data->fns.data[entry].flags & AU_FN_FLAG_MAY_FAIL)) {
+            au_fatal("invalid may fail %.*s\n", (int)key_len, key); // TODO
+        }
         if (au_fn_num_args(fn) != imported_func->num_args) {
             result.type = AU_INT_ERR_WRONG_ARGS;
             result.data.wrong_args.key = au_data_strndup(key, key_len);

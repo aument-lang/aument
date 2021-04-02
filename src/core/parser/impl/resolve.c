@@ -22,7 +22,10 @@ au_parser_resolve_module(struct au_parser *p, struct au_token module_tok,
 
 int au_parser_resolve_fn(struct au_parser *p, struct au_token module_tok,
                          struct au_token id_tok, int num_args_in,
-                         size_t *func_idx_out, int *execute_self_out) {
+                         // output
+                         size_t *func_idx_out, int *execute_self_out,
+                         int *create_function_out) {
+    *create_function_out = 0;
     size_t func_idx = 0;
     int func_idx_found = 0;
     int execute_self = 0;
@@ -40,6 +43,7 @@ int au_parser_resolve_fn(struct au_parser *p, struct au_token module_tok,
         const au_hm_var_value_t *val =
             au_hm_vars_get(&module->fn_map, id_tok.src, id_tok.len);
         if (val == 0) {
+            *create_function_out = 1;
             au_hm_var_value_t value = p->p_data->fns.len;
             char *import_name = au_data_malloc(id_tok.len);
             memcpy(import_name, id_tok.src, id_tok.len);
@@ -77,6 +81,7 @@ int au_parser_resolve_fn(struct au_parser *p, struct au_token module_tok,
     }
 
     if (!func_idx_found) {
+        *create_function_out = 1;
         au_hm_var_value_t func_value = p->p_data->fns.len;
         au_hm_vars_add(&p->p_data->fn_map, id_tok.src, id_tok.len,
                        func_value);
