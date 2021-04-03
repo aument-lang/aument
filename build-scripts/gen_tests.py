@@ -35,9 +35,9 @@ c_src = """
 """
 
 c_src_comp_test = c_src + """
-#include "platform/tmpfile.h"
-#include "platform/spawn.h"
-#include "platform/cc.h"
+#include "os/tmpfile.h"
+#include "os/spawn.h"
+#include "os/cc.h"
 
 #include "compiler/c_comp.h"
 

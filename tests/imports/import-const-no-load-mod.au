@@ -1,0 +1,3 @@
+import "./import-const-no-load-mod-1.au";
+import "./import-const-1.au" as mod;
+print mod::X;

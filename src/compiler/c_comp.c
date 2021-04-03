@@ -8,8 +8,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "platform/mmap.h"
-#include "platform/path.h"
+#include "os/mmap.h"
+#include "os/path.h"
 
 #include "core/bc.h"
 #include "core/bit_array.h"
@@ -74,17 +74,20 @@ struct au_c_comp_global_state {
     struct au_c_comp_state header_file;
     struct au_hm_vars declared_externs;
     struct au_program_data_array stdlib_modules;
+    const char *error_file;
     int loads_dl;
 };
 
-static void au_c_comp_module(struct au_c_comp_state *state,
-                             const struct au_program *program,
-                             const size_t module_idx,
-                             struct au_c_comp_global_state *g_state);
+static struct au_interpreter_result
+au_c_comp_module(struct au_c_comp_state *state,
+                 const struct au_program *program, const size_t module_idx,
+                 struct au_c_comp_global_state *g_state);
 
 void au_c_comp_state_del(struct au_c_comp_state *state) {
     au_data_free(state->str.data);
 }
+
+// ** Compiler output functions **
 
 static void comp_write(struct au_c_comp_state *state, const char *bytes,
                        size_t len) {
@@ -183,12 +186,16 @@ static void comp_cleanup(struct au_c_comp_state *state,
     }
 }
 
-static void link_to_imported(
+// ** Linkage **
+
+static struct au_interpreter_result link_to_imported(
     const struct au_program_data *p_data, size_t module_idx,
     enum au_module_type module_type, size_t imported_module_idx_in_source,
     struct au_c_comp_global_state *g_state, struct au_c_comp_state *state,
     const struct au_imported_module *relative_module,
     const struct au_c_comp_module *loaded_module) {
+    struct au_interpreter_result retval =
+        (struct au_interpreter_result){.type = AU_INT_ERR_OK};
     AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
         const struct au_fn *relative_fn =
             au_fn_array_at_ptr(&p_data->fns, entry);
@@ -197,14 +204,25 @@ static void link_to_imported(
             &relative_fn->as.imported_func;
         const au_hm_var_value_t *fn_idx =
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
-        if (fn_idx == 0)
-            au_fatal("unknown function %.*s", key_len, key);
+        if (fn_idx == 0) {
+            retval.type = AU_INT_ERR_UNKNOWN_FUNCTION;
+            retval.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto end;
+        }
         const struct au_fn *fn =
             au_fn_array_at_ptr(&loaded_module->fns, *fn_idx);
-        if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0)
-            au_fatal("this function is not exported");
-        if (au_fn_num_args(fn) != imported_func->num_args)
-            au_fatal("unexpected number of arguments");
+        if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0) {
+            retval.type = AU_INT_ERR_UNKNOWN_FUNCTION;
+            retval.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto end;
+        }
+        if (au_fn_num_args(fn) != imported_func->num_args) {
+            retval.type = AU_INT_ERR_WRONG_ARGS;
+            retval.data.wrong_args.key = au_data_strndup(key, key_len);
+            retval.data.wrong_args.got_args = imported_func->num_args;
+            retval.data.wrong_args.expected_args = au_fn_num_args(fn);
+            goto end;
+        }
         if (module_type == AU_MODULE_SOURCE) {
             if (imported_func->num_args == 0) {
                 comp_printf(state, INDENT "extern au_value_t _M%d_f%d();",
@@ -233,13 +251,19 @@ static void link_to_imported(
                0);
         const au_hm_var_value_t *class_idx =
             au_hm_vars_get(&loaded_module->class_map, key, key_len);
-        if (class_idx == 0)
-            au_fatal("unknown class %.*s", key_len, key);
+        if (class_idx == 0) {
+            retval.type = AU_INT_ERR_UNKNOWN_CLASS;
+            retval.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto end;
+        }
         struct au_class_interface *class_interface =
             au_class_interface_ptr_array_at(&loaded_module->classes,
                                             *class_idx);
-        if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0)
-            au_fatal("this class is not exported");
+        if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0) {
+            retval.type = AU_INT_ERR_UNKNOWN_CLASS;
+            retval.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto end;
+        }
         X("#define _M%d_%d _M%d_%d\n");
         X("#define _struct_M%d_%d_vdata"
           " _struct_M%d_%d_vdata\n");
@@ -247,6 +271,8 @@ static void link_to_imported(
           " _struct_M%d_%d_del_fn\n");
     })
 #undef X
+end:
+    return retval;
 }
 
 static void
@@ -298,11 +324,12 @@ write_imported_module_main(size_t imported_module_idx_in_source,
     comp_printf(&g_state->header_file, "}\n");
 }
 
-static void au_c_comp_func(struct au_c_comp_state *state,
-                           const struct au_bc_storage *bcs,
-                           const struct au_program_data *p_data,
-                           const size_t module_idx, const size_t func_idx,
-                           struct au_c_comp_global_state *g_state) {
+// ** Main Aument to C compiler **
+
+static struct au_interpreter_result au_c_comp_func(
+    struct au_c_comp_state *state, const struct au_bc_storage *bcs,
+    const struct au_program_data *p_data, const size_t module_idx,
+    const size_t func_idx, struct au_c_comp_global_state *g_state) {
     comp_printf(state, INDENT "au_value_t t;\n");
     if (bcs->num_registers > 0) {
         comp_printf(state, INDENT "au_value_t r0 = au_value_none()");
@@ -422,6 +449,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
     }
 
     int has_self = 0;
+
+#define RAISE(ERROR)                                                      \
+    do {                                                                  \
+        struct au_interpreter_result _error = (ERROR);                    \
+        _error.pos = au_vm_locate_error(pos, bcs, p_data);                \
+        g_state->error_file = p_data->file;                               \
+        return _error;                                                    \
+    } while (0)
 
     for (size_t pos = 0; pos < bcs->bc.len;) {
         if (current_source_map && current_line_info) {
@@ -768,42 +803,6 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             comp_printf(state, "}\n");
             break;
         }
-        case AU_OP_CALL1: {
-            uint8_t reg = bc(pos);
-            DEF_BC16(func_id, 1);
-            const struct au_fn *fn =
-                au_fn_array_at_ptr(&p_data->fns, func_id);
-            switch (fn->type) {
-            case AU_FN_DISPATCH:
-            case AU_FN_BC: {
-                comp_printf(state, "r%d=", (int)reg);
-                comp_printf(state, "_M%d_f%d(&r%d)", (int)module_idx,
-                            (int)func_id, (int)reg);
-                comp_printf(state, ";");
-                break;
-            }
-            case AU_FN_LIB: {
-                const struct au_lib_func *lib_func = &fn->as.lib_func;
-                comp_printf(state, "r%d=", (int)reg);
-                comp_printf(state, "%s(0,&r%d);", lib_func->symbol,
-                            (int)reg);
-                break;
-            }
-            case AU_FN_IMPORTER: {
-                comp_printf(state, "r%d=", reg);
-                comp_printf(state, "(*_M%d_f%d)(&r%d)", (int)module_idx,
-                            func_id, reg);
-                comp_printf(state, ";");
-                break;
-            }
-            case AU_FN_NONE: {
-                au_fatal("generating none function");
-            }
-            }
-            comp_printf(state, "\n");
-            pos += 3;
-            break;
-        }
         // Function values
         case AU_OP_LOAD_FUNC: {
             const uint8_t reg = bc(pos);
@@ -927,8 +926,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             const char *relpath = import->path;
 
             struct au_module_resolve_result resolve_res = {0};
-            if (!au_module_resolve(&resolve_res, relpath, p_data->cwd))
-                au_fatal("unable to resolve path '%s'\n", relpath);
+            if (!au_module_resolve(&resolve_res, relpath, p_data->cwd)) {
+                struct au_interpreter_result error =
+                    (struct au_interpreter_result){
+                        .type = AU_INT_ERR_IMPORT_PATH,
+                        .pos = 0,
+                    };
+                RAISE(error);
+            }
 
             struct au_module module;
             switch (au_module_import(&module, &resolve_res)) {
@@ -937,13 +942,21 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 break;
             }
             case AU_MODULE_IMPORT_FAIL: {
-                au_fatal("unable to import '%s'\n", resolve_res.abspath);
-                break;
+                struct au_interpreter_result error =
+                    (struct au_interpreter_result){
+                        .type = AU_INT_ERR_IMPORT_PATH,
+                        .pos = 0,
+                    };
+                RAISE(error);
             }
             case AU_MODULE_IMPORT_FAIL_DL: {
                 au_module_lib_perror();
-                au_fatal("unable to import '%s'\n", resolve_res.abspath);
-                break;
+                struct au_interpreter_result error =
+                    (struct au_interpreter_result){
+                        .type = AU_INT_ERR_IMPORT_PATH,
+                        .pos = 0,
+                    };
+                RAISE(error);
             }
             }
 
@@ -980,8 +993,14 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             switch (module.type) {
             case AU_MODULE_SOURCE: {
                 struct au_mmap_info mmap;
-                if (!au_mmap_read(module_path, &mmap))
-                    au_perror("mmap");
+                if (!au_mmap_read(module_path, &mmap)) {
+                    struct au_interpreter_result error =
+                        (struct au_interpreter_result){
+                            .type = AU_INT_ERR_IMPORT_PATH,
+                            .pos = 0,
+                        };
+                    RAISE(error);
+                }
 
                 struct line_info_array line_info_array = {0};
                 create_line_info_array(&line_info_array, mmap.bytes,
@@ -999,7 +1018,12 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                                                   .path = p_data->file,
                                               });
                         au_mmap_del(&mmap);
-                        abort();
+                        struct au_interpreter_result error =
+                            (struct au_interpreter_result){
+                                .type = AU_INT_ERR_IMPORT_PATH,
+                                .pos = 0,
+                            };
+                        RAISE(error);
                     }
                     au_mmap_del(&mmap);
 
@@ -1011,9 +1035,11 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                     au_module_resolve_result_del(&resolve_res);
 
                     struct au_c_comp_state mod_state = {0};
-                    au_c_comp_module(&mod_state, &program,
-                                     imported_module_idx_in_source,
-                                     g_state);
+                    struct au_interpreter_result retval = au_c_comp_module(
+                        &mod_state, &program,
+                        imported_module_idx_in_source, g_state);
+                    if (retval.type != AU_INT_ERR_OK)
+                        RAISE(retval);
 
                     struct au_c_comp_module comp_module =
                         (struct au_c_comp_module){0};
@@ -1154,9 +1180,15 @@ static void au_c_comp_func(struct au_c_comp_state *state,
                 const struct au_c_comp_module *loaded_module =
                     au_c_comp_module_array_at_ptr(&g_state->modules,
                                                   imported_module_idx);
-                link_to_imported(p_data, module_idx, module.type,
-                                 imported_module_idx_in_source, g_state,
-                                 state, relative_module, loaded_module);
+                struct au_interpreter_result retval = link_to_imported(
+                    p_data, module_idx, module.type,
+                    imported_module_idx_in_source, g_state, state,
+                    relative_module, loaded_module);
+                if (retval.type != AU_INT_ERR_OK) {
+                    if (module_path_with_subpath != 0)
+                        au_data_free(module_path_with_subpath);
+                    RAISE(retval);
+                }
             }
 
             if (module_path_with_subpath != 0)
@@ -1293,20 +1325,17 @@ static void au_c_comp_func(struct au_c_comp_state *state,
             pos += 3;
             break;
         }
-        default: {
-            au_fatal("unimplemented: %s\n", au_opcode_dbg[opcode]);
-            break;
-        }
         }
     }
 
     au_data_free(labelled_lines);
+    return (struct au_interpreter_result){0};
 }
 
-void au_c_comp_module(struct au_c_comp_state *state,
-                      const struct au_program *program,
-                      const size_t module_idx,
-                      struct au_c_comp_global_state *g_state) {
+struct au_interpreter_result
+au_c_comp_module(struct au_c_comp_state *state,
+                 const struct au_program *program, const size_t module_idx,
+                 struct au_c_comp_global_state *g_state) {
     for (size_t i = 0; i < program->data.data_val.len; i++) {
         const struct au_program_data_val *val =
             &program->data.data_val.data[i];
@@ -1456,8 +1485,10 @@ _decl_fn_lib:;
                 comp_printf(state, "au_value_t _M%d_f%d() {\n",
                             (int)module_idx, (int)i);
             }
-            au_c_comp_func(state, bcs, &program->data, module_idx, i,
-                           g_state);
+            struct au_interpreter_result retval = au_c_comp_func(
+                state, bcs, &program->data, module_idx, i, g_state);
+            if (retval.type != AU_INT_ERR_OK)
+                return retval;
             comp_printf(state, "}\n");
         }
     }
@@ -1548,11 +1579,15 @@ _decl_fn_lib:;
                 INDENT "if(_M%d_main_init){return au_value_none();}\n",
                 (int)module_idx);
     comp_printf(state, INDENT "_M%d_main_init=1;\n", (int)module_idx);
-    au_c_comp_func(state, &program->main, &program->data, module_idx,
-                   AU_SM_FUNC_ID_MAIN, g_state);
+    struct au_interpreter_result retval =
+        au_c_comp_func(state, &program->main, &program->data, module_idx,
+                       AU_SM_FUNC_ID_MAIN, g_state);
+    if (retval.type != AU_INT_ERR_OK)
+        return retval;
     comp_printf(state, "}\n");
     comp_printf(&g_state->header_file, "static au_value_t _M%d_main();\n",
                 (int)module_idx);
+    return (struct au_interpreter_result){.type = AU_INT_ERR_OK};
 }
 
 extern const char AU_RT_HDR[];
@@ -1563,10 +1598,13 @@ char *TEST_RT_CODE;
 size_t TEST_RT_CODE_LEN;
 #endif
 
-void au_c_comp(struct au_c_comp_state *state,
-               const struct au_program *program,
-               const struct au_c_comp_options *options,
-               struct au_cc_options *cc) {
+struct au_interpreter_result
+au_c_comp(struct au_c_comp_state *state, const struct au_program *program,
+          const struct au_c_comp_options *options,
+          struct au_cc_options *cc) {
+    struct au_interpreter_result retval =
+        (struct au_interpreter_result){.type = AU_INT_ERR_OK};
+
     comp_printf(
         state,
         "/* Code for Aument's core library. Do not edit this. */\n");
@@ -1600,8 +1638,11 @@ void au_c_comp(struct au_c_comp_state *state,
 
     struct au_c_comp_state main_mod_state = {
         .str = (struct au_char_array){0},
+        .error_file = 0,
     };
-    au_c_comp_module(&main_mod_state, program, 0, &g_state);
+    if ((retval = au_c_comp_module(&main_mod_state, program, 0, &g_state))
+            .type != AU_INT_ERR_OK)
+        goto end;
 
     comp_printf(state, "/* Code generated from source file */\n");
 
@@ -1624,6 +1665,7 @@ void au_c_comp(struct au_c_comp_state *state,
     }
 
     // Cleanup
+end:
     for (size_t i = 0; i < g_state.modules.len; i++) {
         struct au_c_comp_module *module = &g_state.modules.data[i];
         au_hm_vars_del(&module->fn_map);
@@ -1645,4 +1687,6 @@ void au_c_comp(struct au_c_comp_state *state,
         au_data_free(module);
     }
     au_data_free(g_state.stdlib_modules.data);
+    state->error_file = g_state.error_file;
+    return retval;
 }

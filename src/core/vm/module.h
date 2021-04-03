@@ -5,7 +5,7 @@
 // See LICENSE.txt for license information
 #ifdef AU_IS_INTERPRETER
 #pragma once
-#include "platform/mmap.h"
+#include "os/mmap.h"
 #include "platform/platform.h"
 #endif
 

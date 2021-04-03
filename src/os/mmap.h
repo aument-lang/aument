@@ -6,7 +6,7 @@
 #ifdef AU_IS_INTERPRETER
 #pragma once
 
-#include "platform.h"
+#include "platform/platform.h"
 #include <stdlib.h>
 #endif
 

@@ -4,9 +4,6 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #pragma once
+#include "main.h"
 
-#include "core/str_array.h"
-#include "platform.h"
-
-/// [func] Spawns a program with arguments specified
-AU_PUBLIC int au_spawn(struct au_str_array *args);
+uint32_t au_hash_value(au_value_t key);

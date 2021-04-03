@@ -21,9 +21,10 @@
 #endif
 
 #include "platform/arithmetic.h"
-#include "platform/mmap.h"
-#include "platform/path.h"
 #include "platform/platform.h"
+
+#include "os/mmap.h"
+#include "os/path.h"
 
 #include "core/fn.h"
 #include "core/parser/parser.h"
@@ -87,7 +88,7 @@ link_to_imported(struct au_vm_thread_local *tl,
                  const struct au_program_data *loaded_module) {
     struct au_imported_module *relative_module =
         &p_data->imported_modules.data[relative_module_idx];
-    struct au_interpreter_result result =
+    struct au_interpreter_result retval =
         (struct au_interpreter_result){.type = AU_INT_ERR_OK};
     AU_HM_VARS_FOREACH_PAIR(&relative_module->fn_map, key, entry, {
         assert(p_data->fns.data[entry].type == AU_FN_IMPORTER);
@@ -96,22 +97,26 @@ link_to_imported(struct au_vm_thread_local *tl,
         const au_hm_var_value_t *fn_idx =
             au_hm_vars_get(&loaded_module->fn_map, key, key_len);
         if (fn_idx == 0) {
-            result.type = AU_INT_ERR_UNKNOWN_FUNCTION;
-            result.data.unknown_id.key = au_data_strndup(key, key_len);
-            goto _end;
+            retval.type = AU_INT_ERR_UNKNOWN_FUNCTION;
+            retval.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto end;
         }
         struct au_fn *fn = &loaded_module->fns.data[*fn_idx];
         if ((fn->flags & AU_FN_FLAG_EXPORTED) == 0) {
-            result.type = AU_INT_ERR_UNKNOWN_FUNCTION;
-            result.data.unknown_id.key = au_data_strndup(key, key_len);
-            goto _end;
+            retval.type = AU_INT_ERR_UNKNOWN_FUNCTION;
+            retval.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto end;
+        }
+        if ((fn->flags & AU_FN_FLAG_MAY_FAIL) !=
+            (p_data->fns.data[entry].flags & AU_FN_FLAG_MAY_FAIL)) {
+            au_fatal("invalid may fail %.*s\n", (int)key_len, key); // TODO
         }
         if (au_fn_num_args(fn) != imported_func->num_args) {
-            result.type = AU_INT_ERR_WRONG_ARGS;
-            result.data.wrong_args.key = au_data_strndup(key, key_len);
-            result.data.wrong_args.got_args = imported_func->num_args;
-            result.data.wrong_args.expected_args = au_fn_num_args(fn);
-            goto _end;
+            retval.type = AU_INT_ERR_WRONG_ARGS;
+            retval.data.wrong_args.key = au_data_strndup(key, key_len);
+            retval.data.wrong_args.got_args = imported_func->num_args;
+            retval.data.wrong_args.expected_args = au_fn_num_args(fn);
+            goto end;
         }
         au_fn_fill_import_cache(&p_data->fns.data[entry], *fn_idx,
                                 loaded_module);
@@ -121,16 +126,16 @@ link_to_imported(struct au_vm_thread_local *tl,
         const au_hm_var_value_t *class_idx =
             au_hm_vars_get(&loaded_module->class_map, key, key_len);
         if (class_idx == 0) {
-            result.type = AU_INT_ERR_UNKNOWN_CLASS;
-            result.data.unknown_id.key = au_data_strndup(key, key_len);
-            goto _end;
+            retval.type = AU_INT_ERR_UNKNOWN_CLASS;
+            retval.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto end;
         }
         struct au_class_interface *class_interface =
             loaded_module->classes.data[*class_idx];
         if ((class_interface->flags & AU_CLASS_FLAG_EXPORTED) == 0) {
-            result.type = AU_INT_ERR_UNKNOWN_CLASS;
-            result.data.unknown_id.key = au_data_strndup(key, key_len);
-            goto _end;
+            retval.type = AU_INT_ERR_UNKNOWN_CLASS;
+            retval.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto end;
         }
         p_data->classes.data[entry] = class_interface;
         au_class_interface_ref(class_interface);
@@ -139,9 +144,9 @@ link_to_imported(struct au_vm_thread_local *tl,
         const au_hm_var_value_t *const_idx =
             au_hm_vars_get(&loaded_module->exported_consts, key, key_len);
         if (const_idx == 0) {
-            result.type = AU_INT_ERR_UNKNOWN_CONST;
-            result.data.unknown_id.key = au_data_strndup(key, key_len);
-            goto _end;
+            retval.type = AU_INT_ERR_UNKNOWN_CONST;
+            retval.data.unknown_id.key = au_data_strndup(key, key_len);
+            goto end;
         }
         tl->const_cache[p_data->tl_constant_start + entry] =
             tl->const_cache[loaded_module->tl_constant_start + *const_idx];
@@ -151,8 +156,8 @@ link_to_imported(struct au_vm_thread_local *tl,
             au_fn_fill_class_cache(&p_data->fns.data[i], p_data);
         }
     }
-_end:
-    return result;
+end:
+    return retval;
 }
 
 // * Error functions *
@@ -210,6 +215,29 @@ static struct au_interpreter_result circular_import_error() {
         .type = AU_INT_ERR_CIRCULAR_IMPORT,
         .pos = 0,
     };
+}
+
+static struct au_interpreter_result raised_error(au_value_t value) {
+    au_value_ref(value);
+    return (struct au_interpreter_result){
+        .type = AU_INT_ERR_RAISED_ERROR,
+        .data.raised_error.value = value,
+        .pos = 0,
+    };
+}
+
+static au_value_t extract_error_value(struct au_vm_thread_local *tl) {
+    if (AU_UNLIKELY(tl->error.result.type != AU_INT_ERR_RAISED_ERROR))
+        return au_value_error();
+    au_value_t retval = tl->error.result.data.raised_error.value;
+    tl->error.file = 0;
+    tl->error.result.type = AU_INT_ERR_OK;
+    tl->error.result.pos = 0;
+    au_data_free(tl->backtrace.data);
+    tl->backtrace.data = 0;
+    tl->backtrace.len = 0;
+    tl->backtrace.cap = 0;
+    return retval;
 }
 
 // * Implementation *
@@ -285,7 +313,8 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
         FLUSH_BC();                                                       \
         tl->error.file = p_data->file;                                    \
         tl->error.result = (ERROR);                                       \
-        tl->error.result.pos = au_vm_locate_error(&frame, bcs, p_data);   \
+        const size_t pc = frame.bc - frame.bc_start;                      \
+        tl->error.result.pos = au_vm_locate_error(pc, bcs, p_data);       \
         frame.retval = au_value_error();                                  \
         goto end;                                                         \
     } while (0)
@@ -293,15 +322,15 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
 #define RAISE_BT()                                                        \
     do {                                                                  \
         FLUSH_BC();                                                       \
+        const size_t pc = frame.bc - frame.bc_start;                      \
         if (tl->error.result.type == 0) {                                 \
             tl->error.file = p_data->file;                                \
             tl->error.result.type = AU_INT_ERR_INCOMPAT_CALL;             \
-            tl->error.result.pos =                                        \
-                au_vm_locate_error(&frame, bcs, p_data);                  \
+            tl->error.result.pos = au_vm_locate_error(pc, bcs, p_data);   \
         } else {                                                          \
             struct au_vm_trace_item item;                                 \
             item.file = p_data->file;                                     \
-            item.pos = au_vm_locate_error(&frame, bcs, p_data);           \
+            item.pos = au_vm_locate_error(pc, bcs, p_data);               \
             au_vm_trace_item_array_add(&tl->backtrace, item);             \
         }                                                                 \
         frame.retval = au_value_error();                                  \
@@ -354,86 +383,7 @@ au_value_t au_vm_exec_unverified(struct au_vm_thread_local *tl,
     } while (0)
 
 #define CASE(x) CB_##x
-        static void *cb[] = {
-            &&CASE(AU_OP_LOAD_SELF),
-            &&CASE(AU_OP_MOV_U16),
-            &&CASE(AU_OP_MUL),
-            &&CASE(AU_OP_DIV),
-            &&CASE(AU_OP_ADD),
-            &&CASE(AU_OP_SUB),
-            &&CASE(AU_OP_MOD),
-            &&CASE(AU_OP_MOV_REG_LOCAL),
-            &&CASE(AU_OP_MOV_LOCAL_REG),
-            &&CASE(AU_OP_PRINT),
-            &&CASE(AU_OP_EQ),
-            &&CASE(AU_OP_NEQ),
-            &&CASE(AU_OP_LT),
-            &&CASE(AU_OP_GT),
-            &&CASE(AU_OP_LEQ),
-            &&CASE(AU_OP_GEQ),
-            &&CASE(AU_OP_JIF),
-            &&CASE(AU_OP_JNIF),
-            &&CASE(AU_OP_JREL),
-            &&CASE(AU_OP_JRELB),
-            &&CASE(AU_OP_LOAD_CONST),
-            &&CASE(AU_OP_MOV_BOOL),
-            &&CASE(AU_OP_NOP),
-            &&CASE(AU_OP_PUSH_ARG),
-            &&CASE(AU_OP_CALL),
-            &&CASE(AU_OP_RET_LOCAL),
-            &&CASE(AU_OP_RET),
-            &&CASE(AU_OP_RET_NULL),
-            &&CASE(AU_OP_IMPORT),
-            &&CASE(AU_OP_ARRAY_NEW),
-            &&CASE(AU_OP_ARRAY_PUSH),
-            &&CASE(AU_OP_IDX_GET),
-            &&CASE(AU_OP_IDX_SET),
-            &&CASE(AU_OP_NOT),
-            &&CASE(AU_OP_TUPLE_NEW),
-            &&CASE(AU_OP_IDX_SET_STATIC),
-            &&CASE(AU_OP_CLASS_GET_INNER),
-            &&CASE(AU_OP_CLASS_SET_INNER),
-            &&CASE(AU_OP_CLASS_NEW),
-            &&CASE(AU_OP_CALL1),
-            &&CASE(AU_OP_SET_CONST),
-            &&CASE(AU_OP_LOAD_FUNC),
-            &&CASE(AU_OP_BIND_ARG_TO_FUNC),
-            &&CASE(AU_OP_CALL_FUNC_VALUE),
-            &&CASE(AU_OP_LOAD_NIL),
-            &&CASE(AU_OP_BOR),
-            &&CASE(AU_OP_BXOR),
-            &&CASE(AU_OP_BAND),
-            &&CASE(AU_OP_BSHL),
-            &&CASE(AU_OP_BSHR),
-            &&CASE(AU_OP_BNOT),
-            &&CASE(AU_OP_NEG),
-            &&CASE(AU_OP_CLASS_NEW_INITIALZIED),
-            &&CASE(AU_OP_DICT_NEW),
-            &&CASE(AU_OP_MUL_INT),
-            &&CASE(AU_OP_DIV_INT),
-            &&CASE(AU_OP_ADD_INT),
-            &&CASE(AU_OP_SUB_INT),
-            &&CASE(AU_OP_MOD_INT),
-            &&CASE(AU_OP_EQ_INT),
-            &&CASE(AU_OP_NEQ_INT),
-            &&CASE(AU_OP_LT_INT),
-            &&CASE(AU_OP_GT_INT),
-            &&CASE(AU_OP_LEQ_INT),
-            &&CASE(AU_OP_GEQ_INT),
-            &&CASE(AU_OP_JIF_BOOL),
-            &&CASE(AU_OP_JNIF_BOOL),
-            &&CASE(AU_OP_MUL_DOUBLE),
-            &&CASE(AU_OP_DIV_DOUBLE),
-            &&CASE(AU_OP_ADD_DOUBLE),
-            &&CASE(AU_OP_SUB_DOUBLE),
-            &&CASE(AU_OP_EQ_DOUBLE),
-            &&CASE(AU_OP_NEQ_DOUBLE),
-            &&CASE(AU_OP_LT_DOUBLE),
-            &&CASE(AU_OP_GT_DOUBLE),
-            &&CASE(AU_OP_LEQ_DOUBLE),
-            &&CASE(AU_OP_GEQ_DOUBLE),
-        };
-
+#include "core/bc_data/callbacks.txt"
         goto *cb[bc[0]];
 #endif
 
@@ -850,7 +800,11 @@ _AU_OP_JNIF:;
                 }
             }
             // Call instructions
-            CASE(AU_OP_CALL) : {
+            // clang-format off
+            CASE(AU_OP_CALL): 
+            CASE(AU_OP_CALL_CATCH): // clang-format on
+            {
+                const uint8_t opcode = bc[0];
                 const uint8_t ret_reg = bc[1];
                 DEF_BC16(func_id, 2);
                 bc += 4;
@@ -891,11 +845,16 @@ _AU_OP_JNIF:;
                 FLUSH_BC();
 
                 int is_native = 0;
-                const au_value_t callee_retval = au_fn_call_internal(
+                au_value_t callee_retval = au_fn_call_internal(
                     call_fn, tl, p_data, args, &is_native);
                 if (au_value_is_error(callee_retval)) {
-                    au_data_free(args);
-                    RAISE_BT();
+                    if (opcode == AU_OP_CALL_CATCH) {
+                        callee_retval = extract_error_value(tl);
+                    }
+                    if (au_value_is_error(callee_retval)) {
+                        au_data_free(args);
+                        RAISE_BT();
+                    }
                 }
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -918,46 +877,15 @@ _AU_OP_JNIF:;
 
                 DISPATCH_JMP;
             }
-            CASE(AU_OP_CALL1) : {
-                const uint8_t ret_reg = bc[1];
-                DEF_BC16(func_id, 2);
-                PREFETCH_INSN;
-
-                const struct au_fn *call_fn = &p_data->fns.data[func_id];
-
-                au_value_t arg_reg = frame.regs[ret_reg];
-                au_value_ref(arg_reg);
-
-                FLUSH_BC();
-
-                int is_native = 0;
-                const au_value_t callee_retval = au_fn_call_internal(
-                    call_fn, tl, p_data, &arg_reg, &is_native);
-                if (au_value_is_error(callee_retval))
-                    RAISE_BT();
-
-#ifdef AU_FEAT_DELAYED_RC // clang-format off
-                frame.regs[ret_reg] = callee_retval;
-                // INVARIANT(GC): native functions always return
-                // a RC'd value
-                if (is_native)
-                    au_value_deref(callee_retval);
-#else
-                MOVE_VALUE(frame.regs[ret_reg], callee_retval);
-#endif // clang-format on                                                 
-                // Since the argument value was replaced by the return value, there is
-                // no need to clean up the argument stack
-
-                DISPATCH;
-            }
             // Function values
-            CASE(AU_OP_LOAD_FUNC): {
+            CASE(AU_OP_LOAD_FUNC) : {
                 const uint8_t reg = bc[1];
                 DEF_BC16(func_id, 2);
                 PREFETCH_INSN;
 
                 const struct au_fn *fn = &p_data->fns.data[func_id];
-                struct au_fn_value *fn_value = au_fn_value_from_vm(fn, p_data);
+                struct au_fn_value *fn_value =
+                    au_fn_value_from_vm(fn, p_data);
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
                 frame.regs[reg] = au_value_fn(fn_value);
                 // INVARIANT(GC): from au_fn_value_from_vm
@@ -986,7 +914,11 @@ _AU_OP_JNIF:;
 
                 DISPATCH;
             }
-            CASE(AU_OP_CALL_FUNC_VALUE) : {
+            // clang-format off
+            CASE(AU_OP_CALL_FUNC_VALUE):
+            CASE(AU_OP_CALL_FUNC_VALUE_CATCH): // clang-format on
+            {
+                const uint8_t opcode = bc[0];
                 const uint8_t func_reg = bc[1];
                 const uint8_t num_args = bc[2];
                 const uint8_t ret_reg = bc[3];
@@ -1027,12 +959,16 @@ _AU_OP_JNIF:;
                     au_fn_value_coerce(frame.regs[func_reg]);
                 if (AU_LIKELY(fn_value != 0)) {
                     int is_native = 0;
-                    const au_value_t callee_retval = au_fn_value_call_vm(
+                    au_value_t callee_retval = au_fn_value_call_vm(
                         fn_value, tl, args, num_args, &is_native);
                     if (au_value_is_error(callee_retval)) {
-                        au_data_free(args);
-                        FLUSH_BC();
-                        RAISE(call_error(p_data, &frame));
+                        if (opcode == AU_OP_CALL_FUNC_VALUE_CATCH) {
+                            callee_retval = extract_error_value(tl);
+                        }
+                        if (au_value_is_error(callee_retval)) {
+                            au_data_free(args);
+                            RAISE(call_error(p_data, &frame));
+                        }
                     }
 
 #ifdef AU_FEAT_DELAYED_RC // clang-format off
@@ -1312,35 +1248,29 @@ _AU_OP_JNIF:;
                     if (module_path_with_subpath != 0)
                         au_data_free(module_path_with_subpath);
                     au_module_resolve_result_del(&resolve_res);
-                    struct au_interpreter_result res = link_to_imported(
-                        tl, p_data, relative_module_idx, loaded_module);
-                    if (res.type != AU_INT_ERR_OK)
-                        RAISE(res);
+
+                    if (relative_module_idx !=
+                        AU_PROGRAM_IMPORT_NO_MODULE) {
+                        struct au_interpreter_result res =
+                            link_to_imported(tl, p_data,
+                                             relative_module_idx,
+                                             loaded_module);
+                        if (res.type != AU_INT_ERR_OK)
+                            RAISE(res);
+                    }
+
                     DISPATCH;
                 }
 
                 uint32_t tl_module_idx = ((uint32_t)-1);
-                enum au_tl_reserve_mod_retval rmod_retval =
-                    AU_TL_RESMOD_RETVAL_FAIL;
-                if (relative_module_idx == AU_PROGRAM_IMPORT_NO_MODULE) {
-                    rmod_retval = au_vm_thread_local_reserve_import_only(
-                        tl, module_path);
-                    if (rmod_retval ==
-                        AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
-                        au_module_resolve_result_del(&resolve_res);
-                        DISPATCH;
-                    }
-                } else {
-                    rmod_retval = au_vm_thread_local_reserve_module(
-                        tl, module_path, &tl_module_idx);
-                }
+                // TODO: deallocate
+                if (!au_vm_thread_local_reserve_module(tl, module_path,
+                                                       &tl_module_idx))
+                    RAISE(circular_import_error());
 
                 if (module_path_with_subpath != 0)
                     au_data_free(module_path_with_subpath);
                 module_path = 0;
-
-                if (rmod_retval == AU_TL_RESMOD_RETVAL_FAIL)
-                    RAISE(circular_import_error());
 
                 struct au_module module;
                 switch (au_module_import(&module, &resolve_res)) {
@@ -1385,26 +1315,22 @@ _AU_OP_JNIF:;
 
                     au_module_resolve_result_del(&resolve_res);
 
-                    if (rmod_retval !=
-                        AU_TL_RESMOD_RETVAL_OK_MAIN_CALLED) {
-                        if (au_value_is_error(
-                                au_vm_exec_unverified_main(tl, &program)))
-                            RAISE_BT();
-                    }
+                    // FIXME: deallocate
+                    if (au_value_is_error(
+                            au_vm_exec_unverified_main(tl, &program)))
+                        RAISE_BT();
 
-                    if (relative_module_idx ==
+                    au_bc_storage_del(&program.main);
+
+                    struct au_program_data *loaded_module =
+                        au_data_malloc(sizeof(struct au_program_data));
+                    memcpy(loaded_module, &program.data,
+                           sizeof(struct au_program_data));
+                    au_vm_thread_local_add_module(tl, tl_module_idx,
+                                                  loaded_module);
+
+                    if (relative_module_idx !=
                         AU_PROGRAM_IMPORT_NO_MODULE) {
-                        au_program_del(&program);
-                    } else {
-                        au_bc_storage_del(&program.main);
-
-                        struct au_program_data *loaded_module =
-                            au_data_malloc(sizeof(struct au_program_data));
-                        memcpy(loaded_module, &program.data,
-                               sizeof(struct au_program_data));
-                        au_vm_thread_local_add_module(tl, tl_module_idx,
-                                                      loaded_module);
-
                         struct au_interpreter_result res =
                             link_to_imported(tl, p_data,
                                              relative_module_idx,
@@ -1418,11 +1344,12 @@ _AU_OP_JNIF:;
                     struct au_program_data *loaded_module =
                         module.data.lib.lib;
                     module.data.lib.lib = 0;
-                    if (tl_module_idx == ((uint32_t)-1)) {
-                        au_program_data_del(loaded_module);
-                    } else {
-                        au_vm_thread_local_add_module(tl, tl_module_idx,
-                                                      loaded_module);
+
+                    au_vm_thread_local_add_module(tl, tl_module_idx,
+                                                  loaded_module);
+
+                    if (relative_module_idx !=
+                        AU_PROGRAM_IMPORT_NO_MODULE) {
                         struct au_interpreter_result res =
                             link_to_imported(tl, p_data,
                                              relative_module_idx,
@@ -1436,6 +1363,11 @@ _AU_OP_JNIF:;
 _import_dispatch:;
                 DISPATCH;
             }
+            // Exceptions
+            CASE(AU_OP_RAISE) : {
+                const au_value_t reg = frame.regs[bc[1]];
+                RAISE(raised_error(reg));
+            }
             // Other
             CASE(AU_OP_PRINT) : {
                 const au_value_t reg = frame.regs[bc[1]];
@@ -1445,13 +1377,13 @@ _import_dispatch:;
 
                 DISPATCH;
             }
-            CASE(AU_OP_PUSH_ARG) : {
-                // fallthrough
-            }
+            // clang-format off
+            CASE(AU_OP_PUSH_ARG) :
             CASE(AU_OP_NOP) : {
                 PREFETCH_INSN;
                 DISPATCH;
             }
+            // clang-format on
 #undef COPY_VALUE
 #ifndef AU_USE_DISPATCH_JMP
         }
@@ -1515,8 +1447,13 @@ au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
                                          module->stdlib_module_idx);
             struct au_interpreter_result res = link_to_imported(
                 tl, &program->data, (uint32_t)relative_idx, stdlib_module);
-            if (AU_UNLIKELY(res.type != AU_INT_ERR_OK))
-                abort();
+            if (AU_UNLIKELY(res.type != AU_INT_ERR_OK)) {
+                // TODO: error location
+                tl->error.result = res;
+                tl->error.file = program->data.file;
+                tl->error.result.pos = 0;
+                return au_value_error();
+            }
         }
     }
     return au_vm_exec_unverified(tl, &program->main, &program->data, 0);

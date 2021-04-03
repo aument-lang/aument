@@ -48,6 +48,7 @@ static const struct std_module_fn array_fns[] = {
     AU_MODULE_FN("repeat", au_std_array_repeat, 2),
     AU_MODULE_FN("push", au_std_array_push, 2),
     AU_MODULE_FN("pop", au_std_array_pop, 1),
+    AU_MODULE_FN("insert", au_std_array_insert, 3),
 };
 
 // * array.h *

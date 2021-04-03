@@ -11,9 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "platform/mmap.h"
-#include "platform/path.h"
-#include "platform/tmpfile.h"
+#include "os/mmap.h"
+#include "os/path.h"
+#include "os/tmpfile.h"
 
 #include "core/bc.h"
 #include "core/int_error/error_printer.h"
@@ -25,7 +25,7 @@
 
 #ifdef AU_FEAT_COMPILER
 #include "compiler/c_comp.h"
-#include "platform/cc.h"
+#include "os/cc.h"
 #endif
 
 #ifndef _WIN32
@@ -252,7 +252,22 @@ int main(int argc, char **argv) {
         options.with_debug = (flags & FLAG_GENERATE_DEBUG) != 0;
         if ((flags & FLAG_GENERATE_C) != 0) {
             struct au_c_comp_state c_state = {0};
-            au_c_comp(&c_state, &program, &options, 0);
+
+            struct au_interpreter_result result =
+                au_c_comp(&c_state, &program, &options, 0);
+            if (result.type != AU_INT_ERR_OK) {
+                struct au_mmap_info mmap;
+                if (!au_mmap_read(c_state.error_file, &mmap))
+                    au_perror("mmap");
+                au_print_interpreter_error(result,
+                                           (struct au_error_location){
+                                               .src = mmap.bytes,
+                                               .len = mmap.size,
+                                               .path = c_state.error_file,
+                                           });
+                au_mmap_del(&mmap);
+                return 1;
+            }
 
             FILE *f = fopen(output_file, "wb");
             fwrite(c_state.str.data, 1, c_state.str.len, f);
@@ -270,7 +285,21 @@ int main(int argc, char **argv) {
             au_cc_options_default(&cc);
 
             struct au_c_comp_state c_state = {0};
-            au_c_comp(&c_state, &program, &options, &cc);
+            struct au_interpreter_result result =
+                au_c_comp(&c_state, &program, &options, &cc);
+            if (result.type != AU_INT_ERR_OK) {
+                struct au_mmap_info mmap;
+                if (!au_mmap_read(c_state.error_file, &mmap))
+                    au_perror("mmap");
+                au_print_interpreter_error(result,
+                                           (struct au_error_location){
+                                               .src = mmap.bytes,
+                                               .len = mmap.size,
+                                               .path = c_state.error_file,
+                                           });
+                au_mmap_del(&mmap);
+                return 1;
+            }
 
             fwrite(c_state.str.data, 1, c_state.str.len, tmp.f);
             fflush(tmp.f);

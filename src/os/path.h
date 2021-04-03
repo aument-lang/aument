@@ -5,7 +5,7 @@
 // See LICENSE.txt for license information
 #pragma once
 #include "core/char_array.h"
-#include "platform.h"
+#include "platform/platform.h"
 
 /// [func] Splits a path into file and directory components
 /// @param path the path to be split

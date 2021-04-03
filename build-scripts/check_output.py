@@ -21,6 +21,9 @@ args = parser.parse_args()
 out_extension = '.out'
 out_extension_len = len(out_extension)
 
+def sanitize(source):
+    return source.strip()
+
 def check_output(out_path):
     global out_extension, out_extension_len
     program_path = out_path[:-out_extension_len] + '.au'
@@ -32,6 +35,7 @@ def check_output(out_path):
         'run',
         program_path
     ])
+    output, expected_output = sanitize(output), sanitize(expected_output)
     assert(output == expected_output)
 
 def check_output_stderr(out_path):
@@ -45,6 +49,7 @@ def check_output_stderr(out_path):
         'run',
         program_path
     ], stderr=subprocess.STDOUT)
+    output, expected_output = sanitize(output), sanitize(expected_output)
     assert(output == expected_output)
 
 def check_with_input(out_path):
@@ -61,6 +66,7 @@ def check_with_input(out_path):
         'run',
         program_path
     ], input=read_input)
+    output, expected_output = sanitize(output), sanitize(expected_output)
     assert(output == expected_output)
 
 def check_comp(out_path):
@@ -79,6 +85,7 @@ def check_comp(out_path):
         exe_name,
     ])
     output = subprocess.check_output([ exe_name ])
+    output, expected_output = sanitize(output), sanitize(expected_output)
     assert(output == expected_output)
     try:
         os.remove(exe_name)
@@ -99,6 +106,7 @@ def check_comp_to_path(out_path):
         exe_name,
     ])
     output = subprocess.check_output([ exe_name ])
+    output, expected_output = sanitize(output), sanitize(expected_output)
     assert(output == expected_output)
 
 def check_errors(out_path):
@@ -115,7 +123,8 @@ def check_errors(out_path):
         print(f"File {program_path} succeeded")
         exit(1)
     except subprocess.CalledProcessError as e:
-        assert(e.output == expected_output)
+        output, expected_output = sanitize(e.output), sanitize(expected_output)
+        assert(output == expected_output)
 
 check_fn = {
     "output": check_output,

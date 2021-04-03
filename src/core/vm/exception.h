@@ -26,6 +26,7 @@ enum au_interpreter_result_type {
     X(UNKNOWN_CLASS) = 9,
     X(UNKNOWN_CONST) = 10,
     X(WRONG_ARGS) = 11,
+    X(RAISED_ERROR) = 12,
 };
 #undef X
 
@@ -50,11 +51,14 @@ struct au_interpreter_result {
             int got_args;
             int expected_args;
         } wrong_args;
+        struct {
+            au_value_t value;
+        } raised_error;
     } data;
     size_t pos;
     enum au_interpreter_result_type type;
 };
 
-AU_PRIVATE size_t au_vm_locate_error(const struct au_vm_frame *frame,
+AU_PRIVATE size_t au_vm_locate_error(const size_t pc,
                                      const struct au_bc_storage *bcs,
                                      const struct au_program_data *p_data);

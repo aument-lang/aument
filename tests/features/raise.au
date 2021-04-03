@@ -1,0 +1,5 @@
+def hello() {
+    raise "Hello World\n";
+}
+
+print hello()?;

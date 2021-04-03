@@ -10,7 +10,7 @@
 #include "core/rt/value.h"
 #include "core/vm/vm.h"
 
-#define MAX_SMALL_STRING 256
+#include "platform/dconv.h"
 
 AU_EXTERN_FUNC_DECL(au_std_float_is) {
     const au_value_t value = _args[0];
@@ -32,16 +32,9 @@ AU_EXTERN_FUNC_DECL(au_std_float_into) {
     case AU_VALUE_STR: {
         const struct au_string *header = au_value_get_string(value);
         double num;
-        if (header->len < MAX_SMALL_STRING) {
-            char string[MAX_SMALL_STRING] = {0};
-            memcpy(string, header->data, header->len);
-            string[header->len] = 0;
-            num = strtod(string, 0);
-        } else {
-            char *string = au_data_strndup(header->data, header->len);
-            num = strtod(string, 0);
-            au_data_free(string);
-        }
+        if (au_dconv_strtod_s(header->data, header->len, &num) !=
+            header->len)
+            return au_value_double(0);
         return au_value_double(num);
     }
     default: {

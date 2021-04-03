@@ -38,8 +38,8 @@ struct au_fn_value;
 
 #ifdef AU_USE_NAN_TAGGING
 typedef union {
-    double d;
-    uint64_t raw;
+    double _d;
+    uint64_t _raw;
 } au_value_t;
 #else
 union au_value_data {
@@ -93,106 +93,108 @@ au_value_get_type(const au_value_t v) {
     // OPTIMIZE: this function checks if the value is a not a regular
     // float, nor a special value (the infinity and canonical nan value) by
     // doing some bitwise magic
-    const uint64_t magic = v.raw & AU_REPR_MAGIC_BITMASK;
+    const uint64_t magic = v._raw & AU_REPR_MAGIC_BITMASK;
     const int is_not_float = !!(magic >= AU_REPR_MAGIC_THRESHOLD);
     return (enum au_vtype)((magic >> 48) & (0xf * is_not_float));
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_error() {
     au_value_t v;
-    v.raw = AU_REPR_ERROR;
+    v._raw = AU_REPR_ERROR;
     return v;
 }
 
 static AU_ALWAYS_INLINE int au_value_is_error(au_value_t v) {
-    return AU_UNLIKELY(v.raw == AU_REPR_ERROR);
+    return AU_UNLIKELY(v._raw == AU_REPR_ERROR);
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_none() {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(AU_VALUE_NONE, 0);
+    v._raw = AU_REPR_BOXED(AU_VALUE_NONE, 0);
     return v;
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_int(int32_t n) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(AU_VALUE_INT, (uint64_t)n);
+    v._raw = AU_REPR_BOXED(AU_VALUE_INT, (uint64_t)n);
     return v;
 }
 static AU_ALWAYS_INLINE int32_t au_value_get_int(const au_value_t v) {
     if (au_value_get_type(v) != AU_VALUE_INT)
         abort();
-    return (int32_t)(AU_REPR_GET_POINTER(v.raw));
+    return (int32_t)(AU_REPR_GET_POINTER(v._raw));
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_double(double n) {
     au_value_t v;
-    v.d = n;
-    if (AU_UNLIKELY((AU_REPR_EXPONENT(v.raw) == AU_REPR_SPECIAL_EXPONENT) &
-                    (AU_REPR_FRACTION(v.raw) != 0))) {
-        v.raw = AU_REPR_CANONICAL_NAN;
+    v._d = n;
+    if (AU_UNLIKELY(
+            (AU_REPR_EXPONENT(v._raw) == AU_REPR_SPECIAL_EXPONENT) &
+            (AU_REPR_FRACTION(v._raw) != 0))) {
+        v._raw = AU_REPR_CANONICAL_NAN;
         if (n < 0) {
-            v.raw |= (INT64_C(1) << INT64_C(63));
+            v._raw |= (INT64_C(1) << INT64_C(63));
         }
     } else {
-        v.d = n;
+        v._d = n;
     }
     return v;
 }
 static AU_ALWAYS_INLINE double au_value_get_double(const au_value_t v) {
     if (au_value_get_type(v) != AU_VALUE_DOUBLE)
         abort();
-    return v.d;
+    return v._d;
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_bool(int32_t n) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(AU_VALUE_BOOL, n != 0);
+    v._raw = AU_REPR_BOXED(AU_VALUE_BOOL, n != 0);
     return v;
 }
 static AU_ALWAYS_INLINE int32_t au_value_get_bool(const au_value_t v) {
     if (au_value_get_type(v) != AU_VALUE_BOOL)
         abort();
-    return v.raw & 1;
+    return v._raw & 1;
 }
 
 static AU_ALWAYS_INLINE au_value_t
 au_value_string(struct au_string *data) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(AU_VALUE_STR, (uint64_t)data);
+    v._raw = AU_REPR_BOXED(AU_VALUE_STR, (uint64_t)data);
     return v;
 }
 static AU_ALWAYS_INLINE struct au_string *
 au_value_get_string(const au_value_t v) {
     if (au_value_get_type(v) != AU_VALUE_STR)
         abort();
-    return (struct au_string *)(AU_REPR_GET_POINTER(v.raw));
+    return (struct au_string *)(AU_REPR_GET_POINTER(v._raw));
 }
 
 static AU_ALWAYS_INLINE au_value_t au_value_fn(struct au_fn_value *data) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(AU_VALUE_FN, (uint64_t)data);
+    v._raw = AU_REPR_BOXED(AU_VALUE_FN, (uint64_t)data);
     return v;
 }
 static AU_ALWAYS_INLINE struct au_fn_value *
 au_value_get_fn(const au_value_t v) {
     if (au_value_get_type(v) != AU_VALUE_FN)
         abort();
-    return (struct au_fn_value *)(AU_REPR_GET_POINTER(v.raw));
+    return (struct au_fn_value *)(AU_REPR_GET_POINTER(v._raw));
 }
 
 static AU_ALWAYS_INLINE au_value_t
 au_value_struct(struct au_struct *data) {
     au_value_t v;
-    v.raw = AU_REPR_BOXED(AU_VALUE_STRUCT, (uint64_t)data);
+    v._raw = AU_REPR_BOXED(AU_VALUE_STRUCT, (uint64_t)data);
     return v;
 }
 static AU_ALWAYS_INLINE struct au_struct *
 au_value_get_struct(const au_value_t v) {
     if (au_value_get_type(v) != AU_VALUE_STRUCT)
         abort();
-    return (struct au_struct *)(AU_REPR_GET_POINTER(v.raw));
+    return (struct au_struct *)(AU_REPR_GET_POINTER(v._raw));
 }
+
 #else
 static AU_ALWAYS_INLINE enum au_vtype
 au_value_get_type(const au_value_t v) {
@@ -525,19 +527,34 @@ static AU_ALWAYS_INLINE au_value_t au_value_neg(au_value_t value) {
 #define _BIN_OP_BOOL_GENERIC(NAME, OP)                                    \
     static AU_ALWAYS_INLINE au_value_t NAME(au_value_t lhs,               \
                                             au_value_t rhs) {             \
-        if (AU_UNLIKELY(au_value_get_type(lhs) !=                         \
-                        au_value_get_type(rhs)))                          \
-            return au_value_bool(0);                                      \
         switch (au_value_get_type(lhs)) {                                 \
         case AU_VALUE_INT: {                                              \
-            return au_value_bool(au_value_get_int(lhs)                    \
-                                     OP au_value_get_int(rhs));           \
+            switch (au_value_get_type(rhs)) {                             \
+            case AU_VALUE_INT:                                            \
+                return au_value_bool(au_value_get_int(lhs)                \
+                                         OP au_value_get_int(rhs));       \
+            case AU_VALUE_DOUBLE:                                         \
+                return au_value_bool(au_value_get_int(lhs)                \
+                                         OP au_value_get_double(rhs));    \
+            default:                                                      \
+                return au_value_bool(0);                                  \
+            }                                                             \
         }                                                                 \
         case AU_VALUE_DOUBLE: {                                           \
-            return au_value_bool(au_value_get_double(lhs)                 \
-                                     OP au_value_get_double(rhs));        \
+            switch (au_value_get_type(rhs)) {                             \
+            case AU_VALUE_INT:                                            \
+                return au_value_bool(au_value_get_double(lhs)             \
+                                         OP au_value_get_int(rhs));       \
+            case AU_VALUE_DOUBLE:                                         \
+                return au_value_bool(au_value_get_double(lhs)             \
+                                         OP au_value_get_double(rhs));    \
+            default:                                                      \
+                return au_value_bool(0);                                  \
+            }                                                             \
         }                                                                 \
         case AU_VALUE_STR: {                                              \
+            if (au_value_get_type(rhs) != AU_VALUE_STR)                   \
+                return au_value_bool(0);                                  \
             return au_value_bool(au_string_cmp(au_value_get_string(lhs),  \
                                                au_value_get_string(rhs))  \
                                      OP 0);                               \

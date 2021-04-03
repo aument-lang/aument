@@ -19,6 +19,9 @@ AU_PUBLIC void au_obj_array_del(struct au_obj_array *obj_array);
 AU_PUBLIC void au_obj_array_push(struct au_obj_array *obj_array,
                                  au_value_t el);
 
+AU_PUBLIC int au_obj_array_insert(struct au_obj_array *obj_array,
+                                  int32_t idx, au_value_t el);
+
 AU_PUBLIC au_value_t au_obj_array_pop(struct au_obj_array *obj_array);
 
 AU_PUBLIC int au_obj_array_get(struct au_obj_array *obj_array,

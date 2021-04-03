@@ -26,6 +26,7 @@ has_io_library = get_option('io_library')
 compiler = meson.get_compiler('c')
 prog_python = import('python').find_installation('python3')
 
+au_exe_cflags = []
 au_hdr_cflags = []
 au_depends = []
 au_supports_dll_import = false
@@ -33,6 +34,10 @@ au_supports_dll_import = false
 # Preconfigs
 if compiler.has_argument('-Wno-unused-command-line-argument')
     add_project_arguments('-Wno-unused-command-line-argument', language : ['c'])
+endif
+
+if compiler.has_argument('-fvisibility=hidden')
+    au_exe_cflags += '-fvisibility=hidden'
 endif
 
 if is_testing
@@ -200,7 +205,7 @@ if has_compile_feature
         'src/core/rt/au_fn_value.h',
         'src/core/vm/frame_link.h',
         'src/core/rt/struct/helper.h',
-        'src/platform/mmap.h',
+        'src/os/mmap.h',
         'src/core/vm/module.h',
 
         'src/core/rt/value/print.c',
@@ -230,12 +235,12 @@ if has_compile_feature
     )
 
     sources += [
-        'src/platform/cc.c',
-        'src/platform/cc.h',
-        'src/platform/tmpfile.c',
-        'src/platform/tmpfile.h',
-        'src/platform/spawn.c',
-        'src/platform/spawn.h',
+        'src/os/cc.c',
+        'src/os/cc.h',
+        'src/os/tmpfile.c',
+        'src/os/tmpfile.h',
+        'src/os/spawn.c',
+        'src/os/spawn.h',
         'src/compiler/c_comp.c',
         'src/compiler/c_comp.h',
         rt_hdr_src,
@@ -271,6 +276,7 @@ endif
 
 au_runtime_sources = [
     'src/core/vm/module.c',
+    'src/platform/dconv.c',
 
     'src/stdlib/array.c',
     'src/stdlib/bool.c',
@@ -367,11 +373,11 @@ aument_header_files = [
 'src/core/vm/frame_link.h',
 'src/core/vm/tl.h',
 'src/core/vm/vm.h',
-'src/platform/cc.h',
-'src/platform/mmap.h',
-'src/platform/path.h',
-'src/platform/spawn.h',
-'src/platform/tmpfile.h',
+'src/os/cc.h',
+'src/os/mmap.h',
+'src/os/path.h',
+'src/os/spawn.h',
+'src/os/tmpfile.h',
 'src/lib/module.h',
 'src/core/vm/module.h',
 'src/stdlib/au_stdlib.h',
@@ -528,6 +534,7 @@ else
     executable('aument',
         sources + ['src/main.c'],
         include_directories: incs,
+        c_args: au_exe_cflags,
         link_args: link_args,
         install: true,
         dependencies: au_depends,

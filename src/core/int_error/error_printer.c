@@ -218,6 +218,10 @@ void au_print_interpreter_error(struct au_interpreter_result res,
                 res.data.wrong_args.got_args);
         break;
     }
+    case X(RAISED_ERROR): {
+        fprintf(stderr, "uncaught exception");
+        break;
+    }
     }
 #undef X
     fprintf(stderr, "\n");

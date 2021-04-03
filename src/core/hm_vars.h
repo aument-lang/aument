@@ -18,7 +18,7 @@ typedef uint32_t au_hm_var_value_t;
 struct au_hm_var_el {
     size_t key_idx;
     size_t key_len;
-    au_hash_t key_hash;
+    uint32_t key_hash;
     au_hm_var_value_t value;
 };
 

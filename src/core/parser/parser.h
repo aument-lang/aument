@@ -6,7 +6,6 @@
 #pragma once
 
 #include "exception.h"
-
 #include "platform/platform.h"
 
 struct au_program;

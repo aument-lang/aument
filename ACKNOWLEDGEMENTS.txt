@@ -11,3 +11,7 @@ Thank you to all of the 1 people who have contributed:
 
   * Robin Hood hash map adopted from rhashmap
     https://github.com/rmind/rhashmap
+
+  * Floating-point conversion functions (strtod, dtoa...)
+    ported from CPython
+    https://github.com/python/cpython/tree/master/Python/dtoa.c

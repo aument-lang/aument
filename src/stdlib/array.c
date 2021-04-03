@@ -65,8 +65,36 @@ AU_EXTERN_FUNC_DECL(au_std_array_pop) {
     if (array == 0)
         goto fail;
 
-    return au_obj_array_pop(array);
+    const au_value_t retval = au_obj_array_pop(array);
+    au_value_deref(array_value);
+    return retval;
 fail:
     au_value_deref(array_value);
+    return au_value_none();
+}
+
+AU_EXTERN_FUNC_DECL(au_std_array_insert) {
+    const au_value_t array_value = _args[0];
+    const au_value_t idx_value = _args[1];
+    const au_value_t item_value = _args[2];
+
+    struct au_obj_array *array = au_obj_array_coerce(array_value);
+    if (array == 0)
+        goto fail;
+
+    if (au_value_get_type(idx_value) != AU_VALUE_INT)
+        goto fail;
+    const int32_t idx = au_value_get_int(idx_value);
+
+    if (!au_obj_array_insert(array, idx, item_value))
+        goto fail;
+
+    au_value_deref(idx_value);
+    au_value_deref(item_value);
+    return array_value;
+fail:
+    au_value_deref(array_value);
+    au_value_deref(idx_value);
+    au_value_deref(item_value);
     return au_value_none();
 }

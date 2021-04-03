@@ -1,0 +1,5 @@
+def x(a) {
+    raise a;
+}
+
+print x(x(10)?)?;

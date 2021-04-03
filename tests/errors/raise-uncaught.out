@@ -1,0 +1,4 @@
+interpreter error(12) in -: uncaught exception
+2 |     raise "Hello World\n";
+interpreter error(7) in -: came from here
+5 | hello();
