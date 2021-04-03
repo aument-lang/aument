@@ -1447,8 +1447,13 @@ au_value_t au_vm_exec_unverified_main(struct au_vm_thread_local *tl,
                                          module->stdlib_module_idx);
             struct au_interpreter_result res = link_to_imported(
                 tl, &program->data, (uint32_t)relative_idx, stdlib_module);
-            if (AU_UNLIKELY(res.type != AU_INT_ERR_OK))
-                abort();
+            if (AU_UNLIKELY(res.type != AU_INT_ERR_OK)) {
+                // TODO: error location
+                tl->error.result = res;
+                tl->error.file = program->data.file;
+                tl->error.result.pos = 0;
+                return au_value_error();
+            }
         }
     }
     return au_vm_exec_unverified(tl, &program->main, &program->data, 0);
