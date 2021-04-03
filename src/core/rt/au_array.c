@@ -55,6 +55,22 @@ void au_obj_array_push(struct au_obj_array *obj_array, au_value_t el) {
     au_value_array_add(&obj_array->array, el);
 }
 
+int au_obj_array_insert(struct au_obj_array *obj_array, int32_t idx,
+                        au_value_t el) {
+    if ((size_t)idx == obj_array->array.len) {
+        au_obj_array_push(obj_array, el);
+        return 1;
+    } else if ((size_t)idx > obj_array->array.len) {
+        return 0;
+    }
+    au_value_ref(el);
+    au_value_array_add(&obj_array->array, au_value_none());
+    memmove(&obj_array->array.data[idx + 1], &obj_array->array.data[idx],
+            obj_array->array.len - idx - 1);
+    obj_array->array.data[idx] = el;
+    return 1;
+}
+
 au_value_t au_obj_array_pop(struct au_obj_array *obj_array) {
     if (obj_array->array.len == 0)
         return au_value_none();

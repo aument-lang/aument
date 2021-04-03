@@ -35,3 +35,12 @@ AU_EXTERN_FUNC_DECL(au_std_array_push);
 /// @return The popped element from the array. If the array is empty, then
 /// it returns nil.
 AU_EXTERN_FUNC_DECL(au_std_array_pop);
+
+/// [func-au] Pops an element from an array and returns it
+/// @name array::insert
+/// @param array array
+/// @param position position
+/// @param item item
+/// @return The popped element from the array. If the array is empty, then
+/// it returns nil.
+AU_EXTERN_FUNC_DECL(au_std_array_insert);
