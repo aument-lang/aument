@@ -1,0 +1,3 @@
+[submodule "src/compiler/lyra"]
+	path = src/compiler/lyra
+	url = https://github.com/aument-lang/lyra
