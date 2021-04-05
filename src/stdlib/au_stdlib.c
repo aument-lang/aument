@@ -196,6 +196,7 @@ const size_t au_stdlib_modules_len =
     sizeof(au_stdlib_modules_data) / sizeof(struct std_module);
 
 void au_stdlib_export(struct au_program_data *data) {
+    au_hm_vars_init(&data->imported_module_map);
     for (size_t i = 0; i < au_stdlib_modules_len; i++) {
         const struct std_module *lib = &au_stdlib_modules_data[i];
         au_hm_var_value_t *old =
@@ -226,6 +227,7 @@ au_extern_module_t au_stdlib_module(size_t idx) {
             .symbol = std_fn->symbol,
         };
         const au_hm_var_value_t fn_idx = module->fns.len;
+        au_hm_vars_init(&module->fn_map);
         if (au_hm_vars_add(&module->fn_map, std_fn->name,
                            strlen(std_fn->name), fn_idx) == 0) {
             au_fn_array_add(&module->fns, fn);

@@ -18,7 +18,7 @@ AU_PRIVATE uint32_t au_hash_u32(uint32_t key);
 AU_PRIVATE uint32_t au_hash_u64(uint64_t key);
 
 #if UINTPTR_MAX != SIZE_MAX
-#define "UINTPTR_MAX != SIZE_MAX"
+#error "UINTPTR_MAX != SIZE_MAX"
 #endif
 
 #if SIZE_MAX == UINT64_MAX

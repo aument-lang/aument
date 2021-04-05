@@ -1505,10 +1505,10 @@ _decl_fn_lib:;
                     (int)module_idx, (int)i);
         comp_printf(&g_state->header_file,
                     INDENT "struct au_struct header;\n");
-        if (interface->map.entries_occ > 0) {
+        if (interface->map.nitems > 0) {
             comp_printf(&g_state->header_file,
                         INDENT "au_value_t v[%d];\n",
-                        (int)interface->map.entries_occ);
+                        (int)interface->map.nitems);
         }
         comp_printf(&g_state->header_file, "};\n");
 
@@ -1518,7 +1518,7 @@ _decl_fn_lib:;
                     "struct _M%d_%d*s"
                     "){\n",
                     (int)module_idx, (int)i, (int)module_idx, (int)i);
-        for (size_t i = 0; i < interface->map.entries_occ; i++) {
+        for (size_t i = 0; i < interface->map.nitems; i++) {
             comp_printf(&g_state->header_file,
                         INDENT "au_value_deref(s->v[%d]);\n", (int)i);
         }
@@ -1565,7 +1565,7 @@ _decl_fn_lib:;
         comp_printf(&g_state->header_file,
                     INDENT "k->header.vdata=_struct_M%d_%d_vdata_get();\n",
                     (int)module_idx, (int)i);
-        for (size_t i = 0; i < interface->map.entries_occ; i++) {
+        for (size_t i = 0; i < interface->map.nitems; i++) {
             comp_printf(&g_state->header_file,
                         INDENT "k->v[%d]=au_value_none();\n", (int)i);
         }

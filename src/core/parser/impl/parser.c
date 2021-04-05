@@ -11,6 +11,8 @@
 #include "stmt.h"
 
 void au_parser_init(struct au_parser *p, struct au_program_data *p_data) {
+    memset(p, 0, sizeof(struct au_parser));
+
     p->bc = (struct au_bc_buf){0};
     au_hm_vars_init(&p->vars);
     au_hm_vars_init(&p->consts);

@@ -47,7 +47,7 @@ static void au_obj_class_vdata_init() {
 
 struct au_obj_class *
 au_obj_class_new(const struct au_class_interface *interface) {
-    const size_t len = interface->map.entries_occ;
+    const size_t len = interface->map.nitems;
     struct au_obj_class *obj_class = au_obj_malloc(
         sizeof(struct au_obj_class) + sizeof(au_value_t) * len,
         (au_obj_del_fn_t)au_obj_class_del);
@@ -61,7 +61,7 @@ au_obj_class_new(const struct au_class_interface *interface) {
 }
 
 void au_obj_class_del(struct au_obj_class *obj_class) {
-    const size_t len = obj_class->interface->map.entries_occ;
+    const size_t len = obj_class->interface->map.nitems;
     for (size_t i = 0; i < len; i++) {
         au_value_deref(obj_class->data[i]);
     }
@@ -80,7 +80,7 @@ int au_obj_class_set(AU_UNUSED struct au_obj_class *obj_class,
 }
 
 int32_t au_obj_class_len(struct au_obj_class *obj_class) {
-    return (int32_t)obj_class->interface->map.entries_occ;
+    return (int32_t)obj_class->interface->map.nitems;
 }
 
 #ifdef _AUMENT_H

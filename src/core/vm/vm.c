@@ -151,7 +151,7 @@ link_to_imported(struct au_vm_thread_local *tl,
         tl->const_cache[p_data->tl_constant_start + entry] =
             tl->const_cache[loaded_module->tl_constant_start + *const_idx];
     })
-    if (relative_module->class_map.entries_occ > 0) {
+    if (relative_module->class_map.nitems > 0) {
         for (size_t i = 0; i < p_data->fns.len; i++) {
             au_fn_fill_class_cache(&p_data->fns.data[i], p_data);
         }

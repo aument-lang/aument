@@ -205,7 +205,7 @@ int au_parser_exec_class_statement(struct au_parser *p, struct au_lexer *l,
             const struct au_token name_tok = au_lexer_next(l);
             EXPECT_TOKEN(name_tok.type == AU_TOK_IDENTIFIER, name_tok,
                          "identifier");
-            au_hm_var_value_t prop_value = interface->map.entries_occ;
+            au_hm_var_value_t prop_value = interface->map.nitems;
 
             const au_hm_var_value_t *old_prop_value = au_hm_vars_add(
                 &interface->map, name_tok.src, name_tok.len, prop_value);

@@ -7,13 +7,18 @@
 import glob
 import os
 all_files = []
+
+def normalize_path(path):
+    return path.replace("\\","/")
+
 for root, _, files in os.walk("src/"):
     for file in files:
         if file.endswith(".h") or file.endswith(".c"):
             path = os.path.join(root, file)
-            all_files.append(path.replace("\\","/"))
+            all_files.append(normalize_path(path))
 all_files.sort()
-exclude = set(glob.glob('src/compiler/*') +
+exclude = set(
+    glob.glob('src/compiler/*') +
     glob.glob('src/lib/*') +
 [
     'src/core/rt/stdlib_begin.h',
@@ -31,5 +36,6 @@ exclude = set(glob.glob('src/compiler/*') +
     'src/core/stdlib/math.c',
     'src/core/stdlib/test_fns.c',
 ])
+exclude = set(map(normalize_path, exclude))
 all_files = filter(lambda x: x not in exclude, all_files)
 print('\n'.join(all_files), end='')

@@ -78,31 +78,31 @@ static inline int value_eq(au_value_t left, au_value_t right) {
 #define APPROX_85_PERCENT(x) (((x)*870) >> 10)
 #define APPROX_40_PERCENT(x) (((x)*409) >> 10)
 
-typedef struct {
+struct au_obj_dict_bucket {
     au_value_t key;
     au_value_t val;
     uint32_t hash;
     uint32_t psl;
-} rh_bucket_t;
+};
 
-struct rhashmap {
+struct au_obj_dict_hm {
     uint32_t size;
     uint32_t nitems;
     uint32_t minsize;
     uint64_t divinfo;
-    rh_bucket_t *buckets;
+    struct au_obj_dict_bucket *buckets;
 
     /*
      * Small optimisation for a single element case: allocate one
      * bucket together with the hashmap structure -- it will generally
      * fit within the same cache-line.
      */
-    rh_bucket_t init_bucket;
+    struct au_obj_dict_bucket init_bucket;
 };
 
-static AU_UNUSED int validate_psl_p(struct rhashmap *hmap,
-                                    const rh_bucket_t *bucket,
-                                    uint32_t i) {
+static AU_UNUSED int
+validate_psl_p(struct au_obj_dict_hm *hmap,
+               const struct au_obj_dict_bucket *bucket, uint32_t i) {
     uint32_t base_i = fast_rem32(bucket->hash, hmap->size, hmap->divinfo);
     uint32_t diff = (base_i > i) ? hmap->size - base_i + i : i - base_i;
     return au_value_get_type(bucket->key) == AU_VALUE_NONE ||
@@ -110,14 +110,14 @@ static AU_UNUSED int validate_psl_p(struct rhashmap *hmap,
 }
 
 /*
- * rhashmap_get: lookup an value given the key.
+ * hm_get: lookup an value given the key.
  *
  * => If key is present, return its associated value; otherwise NULL.
  */
-static au_value_t rhashmap_get(struct rhashmap *hmap, au_value_t key) {
+static au_value_t hm_get(struct au_obj_dict_hm *hmap, au_value_t key) {
     const uint32_t hash = au_hash_value(key);
     uint32_t n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
-    rh_bucket_t *bucket;
+    struct au_obj_dict_bucket *bucket;
 
     /*
      * Lookup is a linear probe.
@@ -149,12 +149,12 @@ probe:
 }
 
 /*
- * rhashmap_insert: internal rhashmap_put(), without the resize.
+ * hm_insert: internal hm_put(), without the resize.
  */
-static void rhashmap_insert(struct rhashmap *hmap, au_value_t key,
-                            au_value_t val) {
+static void hm_insert(struct au_obj_dict_hm *hmap, au_value_t key,
+                      au_value_t val) {
     const uint32_t hash = au_hash_value(key);
-    rh_bucket_t *bucket, entry;
+    struct au_obj_dict_bucket *bucket, entry;
     uint32_t i;
 
     /*
@@ -199,7 +199,7 @@ probe:
          * We found a "rich" bucket.  Capture its location.
          */
         if (entry.psl > bucket->psl) {
-            rh_bucket_t tmp;
+            struct au_obj_dict_bucket tmp;
 
             /*
              * Place our key-value pair by swapping the "rich"
@@ -226,11 +226,11 @@ probe:
     // assert(validate_psl_p(hmap, bucket, i));
 }
 
-static int rhashmap_resize(struct rhashmap *hmap, size_t newsize) {
-    const size_t len = newsize * sizeof(rh_bucket_t);
-    rh_bucket_t *oldbuckets = hmap->buckets;
+static int hm_resize(struct au_obj_dict_hm *hmap, size_t newsize) {
+    const size_t len = newsize * sizeof(struct au_obj_dict_bucket);
+    struct au_obj_dict_bucket *oldbuckets = hmap->buckets;
     const size_t oldsize = hmap->size;
-    rh_bucket_t *newbuckets;
+    struct au_obj_dict_bucket *newbuckets;
 
     // assert(newsize > 0);
     // assert(newsize > hmap->nitems);
@@ -240,7 +240,7 @@ static int rhashmap_resize(struct rhashmap *hmap, size_t newsize) {
      * a new hash key/seed every time we resize the hash table.
      */
     if (newsize == 1) {
-        memset(&hmap->init_bucket, 0, sizeof(rh_bucket_t));
+        memset(&hmap->init_bucket, 0, sizeof(struct au_obj_dict_bucket));
         newbuckets = &hmap->init_bucket;
     } else if (newsize > UINT32_MAX) {
         return -1;
@@ -259,13 +259,13 @@ static int rhashmap_resize(struct rhashmap *hmap, size_t newsize) {
     hmap->divinfo = fast_div32_init(newsize);
 
     for (uint32_t i = 0; i < oldsize; i++) {
-        const rh_bucket_t *bucket = &oldbuckets[i];
+        const struct au_obj_dict_bucket *bucket = &oldbuckets[i];
 
         /* Skip the empty buckets. */
         if (is_empty_value(bucket->key)) {
             continue;
         }
-        rhashmap_insert(hmap, bucket->key, bucket->val);
+        hm_insert(hmap, bucket->key, bucket->val);
         au_value_deref(bucket->key);
     }
     if (oldbuckets && oldbuckets != &hmap->init_bucket) {
@@ -275,13 +275,13 @@ static int rhashmap_resize(struct rhashmap *hmap, size_t newsize) {
 }
 
 /*
- * rhashmap_put: insert a value given the key.
+ * hm_put: insert a value given the key.
  *
  * => If the key is already present, return its associated value.
  * => Otherwise, on successful insert, return the given value.
  */
-static void rhashmap_put(struct rhashmap *hmap, au_value_t key,
-                         au_value_t val) {
+static void hm_put(struct au_obj_dict_hm *hmap, au_value_t key,
+                   au_value_t val) {
     const size_t threshold = APPROX_85_PERCENT(hmap->size);
 
     /*
@@ -294,25 +294,25 @@ static void rhashmap_put(struct rhashmap *hmap, au_value_t key,
          */
         const size_t grow_limit = hmap->size + MAX_GROWTH_STEP;
         const size_t newsize = MIN(hmap->size << 1, grow_limit);
-        if (rhashmap_resize(hmap, newsize) != 0) {
+        if (hm_resize(hmap, newsize) != 0) {
             au_fatal("out of memory\n"); // TODO
         }
     }
 
-    rhashmap_insert(hmap, key, val);
+    hm_insert(hmap, key, val);
 }
 
 /*
- * rhashmap_del: remove the given key and return its value.
+ * hm_del: remove the given key and return its value.
  *
  * => If key was present, return its associated value; otherwise NULL.
  */
-static AU_UNUSED au_value_t rhashmap_del(struct rhashmap *hmap,
-                                         au_value_t key) {
+static AU_UNUSED au_value_t hm_del(struct au_obj_dict_hm *hmap,
+                                   au_value_t key) {
     const size_t threshold = APPROX_40_PERCENT(hmap->size);
     const uint32_t hash = au_hash_value(key);
     uint32_t n = 0, i = fast_rem32(hash, hmap->size, hmap->divinfo);
-    rh_bucket_t *bucket;
+    struct au_obj_dict_bucket *bucket;
     au_value_t val = empty_value();
 
 probe:
@@ -345,7 +345,7 @@ probe:
      * Use the backwards-shifting method to maintain low variance.
      */
     for (;;) {
-        rh_bucket_t *nbucket;
+        struct au_obj_dict_bucket *nbucket;
 
         bucket->key = empty_value();
 
@@ -372,33 +372,33 @@ probe:
      */
     if (hmap->nitems > hmap->minsize && hmap->nitems < threshold) {
         size_t newsize = MAX(hmap->size >> 1, hmap->minsize);
-        (void)rhashmap_resize(hmap, newsize);
+        (void)hm_resize(hmap, newsize);
     }
     return val;
 }
 
 /*
- * rhashmap_create: construct a new hash table.
+ * hm_create: construct a new hash table.
  *
  * => If size is non-zero, then pre-allocate the given number of buckets;
  * => If size is zero, then a default minimum is used.
  */
-static void rhashmap_init(struct rhashmap *hmap, size_t size) {
-    memset(hmap, 0, sizeof(struct rhashmap));
+static void hm_init(struct au_obj_dict_hm *hmap, size_t size) {
+    memset(hmap, 0, sizeof(struct au_obj_dict_hm));
     hmap->minsize = MAX(size, 1);
-    if (rhashmap_resize(hmap, hmap->minsize) != 0) {
+    if (hm_resize(hmap, hmap->minsize) != 0) {
         abort(); // TODO
     }
 }
 
 /*
- * rhashmap_destroy: free the memory used by the hash table.
+ * hm_destroy: free the memory used by the hash table.
  *
  * => It is the responsibility of the caller to remove elements if needed.
  */
-static void rhashmap_destroy(struct rhashmap *hmap) {
+static void hm_destroy(struct au_obj_dict_hm *hmap) {
     for (uint32_t i = 0; i < hmap->size; i++) {
-        const rh_bucket_t *bucket = &hmap->buckets[i];
+        const struct au_obj_dict_bucket *bucket = &hmap->buckets[i];
 
         if (!is_empty_value(bucket->key)) {
             au_value_deref(bucket->key);
@@ -413,7 +413,7 @@ static void rhashmap_destroy(struct rhashmap *hmap) {
 
 struct au_obj_dict {
     struct au_struct header;
-    struct rhashmap hashmap;
+    struct au_obj_dict_hm hashmap;
 };
 
 AU_THREAD_LOCAL struct au_struct_vdata au_obj_dict_vdata;
@@ -437,17 +437,17 @@ struct au_obj_dict *au_obj_dict_new() {
     obj_dict->header = (struct au_struct){
         .vdata = &au_obj_dict_vdata,
     };
-    rhashmap_init(&obj_dict->hashmap, 1);
+    hm_init(&obj_dict->hashmap, 1);
     return obj_dict;
 }
 
 void au_obj_dict_del(struct au_obj_dict *obj_dict) {
-    rhashmap_destroy(&obj_dict->hashmap);
+    hm_destroy(&obj_dict->hashmap);
 }
 
 int au_obj_dict_get(struct au_obj_dict *obj_dict, const au_value_t key,
                     au_value_t *result) {
-    au_value_t get_result = rhashmap_get(&obj_dict->hashmap, key);
+    au_value_t get_result = hm_get(&obj_dict->hashmap, key);
     if (is_empty_value(get_result))
         return 0;
     *result = get_result;
@@ -456,7 +456,7 @@ int au_obj_dict_get(struct au_obj_dict *obj_dict, const au_value_t key,
 
 int au_obj_dict_set(struct au_obj_dict *obj_dict, au_value_t key,
                     au_value_t value) {
-    rhashmap_put(&obj_dict->hashmap, key, value);
+    hm_put(&obj_dict->hashmap, key, value);
     return 1;
 }
 

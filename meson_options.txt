@@ -1,4 +1,4 @@
-option('compiler', type : 'boolean', value : true)
+option('compiler', type : 'boolean', value : false)
 option('tests', type : 'boolean', value : false)
 
 option('delayed_rc', type : 'boolean', value : true)
