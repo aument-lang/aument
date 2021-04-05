@@ -78,8 +78,8 @@ def local() {
     y = 0;
     print y;
 }
-local(); // 1
-print y; // 0
+local(); // 0
+print y; // 1
 ```
 
 This includes the top-level scope as well. In the example above, the function `local` cannot access the variable `x`.
