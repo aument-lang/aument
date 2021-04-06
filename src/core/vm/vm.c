@@ -18,6 +18,7 @@
 #include <alloca.h>
 #endif
 #define ALLOCA_MAX_VALUES 256
+#define ALLOCA_MAX_ARGS 4
 #endif
 
 #include "platform/arithmetic.h"
@@ -810,9 +811,23 @@ _AU_OP_JNIF:;
                 bc += 4;
 
                 const struct au_fn *call_fn = &p_data->fns.data[func_id];
-                int num_args = au_fn_num_args(call_fn);
+                size_t num_args = (size_t)au_fn_num_args(call_fn);
+
+#ifdef AU_USE_ALLOCA
+                int use_alloca = 0;
+                au_value_t *args;
+                if (AU_LIKELY(num_args <= ALLOCA_MAX_ARGS)) {
+                    args = alloca(num_args * sizeof(au_value_t));
+                    au_value_clear(args, num_args);
+                    use_alloca = 1;
+                } else {
+                    args = au_value_calloc(num_args);
+                }
+#else // clang-format off
                 au_value_t *args = au_value_calloc(num_args);
-                for (int i = 0; i < num_args;) {
+#endif // clang-format on
+
+                for (size_t i = 0; i < num_args;) {
                     bc++; // OP_PUSH_ARG
                     if (i < num_args) {
                         args[i] = frame.regs[*bc];
@@ -839,7 +854,7 @@ _AU_OP_JNIF:;
                         break;
                     }
                 }
-                for (int i = 0; i < num_args; i++)
+                for (size_t i = 0; i < num_args; i++)
                     au_value_ref(args[i]);
 
                 FLUSH_BC();
@@ -861,19 +876,23 @@ _AU_OP_JNIF:;
                 frame.regs[ret_reg] = callee_retval;
                 // INVARIANT(GC): native functions always return
                 // a RC'd value
-                if (is_native)
+                if (AU_UNLIKELY(is_native))
                     au_value_deref(callee_retval);
 #else
                 MOVE_VALUE(frame.regs[ret_reg], callee_retval);
 #endif // clang-format on
-                if (is_native) {
+                if (AU_UNLIKELY(is_native)) {
                     // Native functions do not clean up the argument stack
                     // for us, we have to do it manually.
-                    for (int i = 0; i < num_args; i++) {
+                    for (size_t i = 0; i < num_args; i++) {
                         au_value_deref(args[i]);
                     }
                 }
-                au_data_free(args);
+
+#ifdef AU_USE_ALLOCA
+                if (AU_UNLIKELY(!use_alloca))
+                    au_data_free(args);
+#endif
 
                 DISPATCH_JMP;
             }

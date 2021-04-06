@@ -117,7 +117,7 @@ static inline int32_t au_fn_num_args(const struct au_fn *fn) {
         return fn->as.dispatch_func.num_args;
     }
     default: {
-        return -1;
+        abort();
     }
     }
 }
