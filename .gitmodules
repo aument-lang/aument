@@ -1,3 +1,3 @@
-[submodule "deps/lyra"]
-	path = deps/lyra
+[submodule "subprojects/lyra"]
+	path = subprojects/lyra
 	url = https://github.com/aument-lang/lyra

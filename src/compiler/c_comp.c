@@ -8,19 +8,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "os/mmap.h"
-#include "os/path.h"
-
-#include "core/bc.h"
-#include "core/bit_array.h"
-#include "core/hm_vars.h"
-#include "core/int_error/error_printer.h"
-#include "core/parser/parser.h"
-#include "core/program.h"
-#include "core/rt/exception.h"
 #include "core/rt/malloc.h"
-#include "core/vm/module.h"
-#include "stdlib/au_stdlib.h"
 
 #include "c_comp.h"
 
@@ -32,10 +20,18 @@ char *TEST_RT_CODE;
 size_t TEST_RT_CODE_LEN;
 #endif
 
+void au_c_comp_state_del(struct au_c_comp_state *state) {
+    au_data_free(state->str.data);
+}
+
 struct au_interpreter_result
 au_c_comp(struct au_c_comp_state *state, const struct au_program *program,
           const struct au_c_comp_options *options,
           struct au_cc_options *cc) {
+    (void)state;
+    (void)program;
+    (void)options;
+    (void)cc;
     struct au_interpreter_result retval =
         (struct au_interpreter_result){.type = AU_INT_ERR_OK};
     return retval;
