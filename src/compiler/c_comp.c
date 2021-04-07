@@ -101,6 +101,62 @@ static struct au_interpreter_result function_to_lyra(
         pos++;
 
         switch (opcode) {
+        // Move instructions
+        case AU_OP_MOV_U16: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(n, 1);
+
+            struct lyra_insn *insn =
+                lyra_insn_imm(LYRA_OP_MOV_I32, LYRA_INSN_I32(((int32_t)n)),
+                              reg, fctx->lyra_fn->ctx);
+            lyra_block_add_insn(&fctx->current_block, insn);
+
+            pos += 3;
+            break;
+        }
+        case AU_OP_MOV_REG_LOCAL: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1);
+
+            struct lyra_insn *insn = lyra_insn_new(
+                LYRA_OP_MOV_VAR, reg, LYRA_INSN_REG(0),
+                LOCAL_TO_LYRA_VAR(local), fctx->lyra_fn->ctx);
+            lyra_block_add_insn(&fctx->current_block, insn);
+
+            pos += 3;
+            break;
+        }
+        case AU_OP_MOV_LOCAL_REG: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(local, 1);
+
+            struct lyra_insn *insn =
+                lyra_insn_new(LYRA_OP_MOV_VAR, LOCAL_TO_LYRA_VAR(local),
+                              LYRA_INSN_REG(0), reg, fctx->lyra_fn->ctx);
+            lyra_block_add_insn(&fctx->current_block, insn);
+
+            pos += 3;
+            break;
+        }
+        case AU_OP_MOV_BOOL: {
+            uint8_t n = bc(pos), reg = bc(pos + 1);
+
+            struct lyra_insn *insn = lyra_insn_imm(
+                LYRA_OP_MOV_BOOL, LYRA_INSN_I32(((int32_t)n)), reg,
+                fctx->lyra_fn->ctx);
+            lyra_block_add_insn(&fctx->current_block, insn);
+
+            pos += 3;
+            break;
+        }
+        case AU_OP_LOAD_NIL: {
+            uint8_t reg = bc(pos);
+
+            abort(); // TODO
+
+            pos += 3;
+            break;
+        }
         // Load/store constants
         case AU_OP_LOAD_CONST: {
             uint8_t reg = bc(pos);
@@ -110,6 +166,14 @@ static struct au_interpreter_result function_to_lyra(
                 &p_data->data_val.data[c];
             au_value_t value = data_val->real_value;
             switch (au_value_get_type(value)) {
+            case AU_VALUE_INT: {
+                struct lyra_insn *insn =
+                    lyra_insn_imm(LYRA_OP_MOV_I32,
+                                  LYRA_INSN_I32(au_value_get_int(value)),
+                                  reg, fctx->lyra_fn->ctx);
+                lyra_block_add_insn(&fctx->current_block, insn);
+                break;
+            }
             case AU_VALUE_DOUBLE: {
                 struct lyra_insn *insn = lyra_insn_imm(
                     LYRA_OP_MOV_F64,
@@ -139,19 +203,53 @@ static struct au_interpreter_result function_to_lyra(
             break;
         }
         // Binary operations
-        case AU_OP_ADD: {
-            uint8_t lhs = bc(pos);
-            uint8_t rhs = bc(pos + 1);
-            uint8_t res = bc(pos + 2);
-
-            struct lyra_insn *insn =
-                lyra_insn_new(LYRA_OP_ADD_VAR, lhs, LYRA_INSN_REG(rhs),
-                              res, fctx->lyra_fn->ctx);
-            lyra_block_add_insn(&fctx->current_block, insn);
-
-            pos += 3;
-            break;
-        }
+#define BIN_OP(LYRA_OP)                                                   \
+    {                                                                     \
+        uint8_t lhs = bc(pos);                                            \
+        uint8_t rhs = bc(pos + 1);                                        \
+        uint8_t res = bc(pos + 2);                                        \
+                                                                          \
+        struct lyra_insn *insn = lyra_insn_new(                           \
+            LYRA_OP, lhs, LYRA_INSN_REG(rhs), res, fctx->lyra_fn->ctx);   \
+        lyra_block_add_insn(&fctx->current_block, insn);                  \
+                                                                          \
+        pos += 3;                                                         \
+        break;                                                            \
+    }
+        case AU_OP_MUL:
+            BIN_OP(LYRA_OP_MUL_VAR)
+        case AU_OP_DIV:
+            BIN_OP(LYRA_OP_DIV_VAR)
+        case AU_OP_MOD:
+            BIN_OP(LYRA_OP_MOD_I32)
+        case AU_OP_ADD:
+            BIN_OP(LYRA_OP_ADD_VAR)
+        case AU_OP_SUB:
+            BIN_OP(LYRA_OP_SUB_VAR)
+        case AU_OP_EQ:
+            BIN_OP(LYRA_OP_EQ_VAR)
+        case AU_OP_NEQ:
+            BIN_OP(LYRA_OP_NEQ_VAR)
+        case AU_OP_LT:
+            BIN_OP(LYRA_OP_LT_VAR)
+        case AU_OP_GT:
+            BIN_OP(LYRA_OP_GT_VAR)
+        case AU_OP_LEQ:
+            BIN_OP(LYRA_OP_LEQ_VAR)
+        case AU_OP_GEQ:
+            BIN_OP(LYRA_OP_GEQ_VAR)
+        case AU_OP_BAND:
+            BIN_OP(LYRA_OP_BAND_I32)
+        case AU_OP_BOR:
+            BIN_OP(LYRA_OP_BOR_I32)
+        case AU_OP_BSHL:
+            BIN_OP(LYRA_OP_BSHL_I32)
+        case AU_OP_BSHR:
+            BIN_OP(LYRA_OP_BSHR_I32)
+#undef BIN_OP
+        // Unary instructions
+        // Jump instructions
+        // Call instructions
         // Return instructions
         case AU_OP_RET_NULL: {
             fctx->current_block.connector.type = LYRA_BLOCK_RET_NULL;
