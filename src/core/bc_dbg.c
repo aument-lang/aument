@@ -25,12 +25,6 @@ void au_program_dbg(const struct au_program *p) { (void)p; }
 void au_bc_dbg(const struct au_bc_storage *bcs,
                const struct au_program_data *data) {
 #define bc(x) au_bc_buf_at(&bcs->bc, x)
-    size_t pos = 0;
-    while (pos < bcs->bc.len) {
-        assert(pos % 4 == 0);
-        uint8_t opcode = bc(pos);
-        printf("%5" PRIdPTR ": %s", pos, au_opcode_dbg[opcode]);
-        pos++;
 
 #define DEF_BC16(VAR, OFFSET)                                             \
     uint16_t VAR;                                                         \
@@ -38,6 +32,13 @@ void au_bc_dbg(const struct au_bc_storage *bcs,
         assert(pos + OFFSET + 2 <= bcs->bc.len);                          \
         VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));               \
     } while (0)
+
+    size_t pos = 0;
+    while (pos < bcs->bc.len) {
+        assert(pos % 4 == 0);
+        uint8_t opcode = bc(pos);
+        printf("%5" PRIdPTR ": %s", pos, au_opcode_dbg[opcode]);
+        pos++;
 
         switch (opcode) {
         case AU_OP_LOAD_SELF: {
