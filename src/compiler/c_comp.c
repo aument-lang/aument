@@ -16,6 +16,7 @@
 #include "lyra/passes.h"
 
 #include "c_comp.h"
+#include "core/bit_array.h"
 #include "core/fn.h"
 #include "core/rt/malloc.h"
 
@@ -45,6 +46,19 @@ void au_c_comp_state_del(struct au_c_comp_state *state) {
     au_data_free(state->str.data);
 }
 
+AU_ARRAY_COPY(size_t, block_map, 1)
+
+static size_t block_map_search(struct block_map *bm, size_t au_pc) {
+    for (size_t i = 0; i < bm->len; i++) {
+        if (bm->data[i] == au_pc) {
+            return i;
+        }
+    }
+    au_fatal("unable to find %" PRIdMAX "\n", au_pc);
+}
+
+// ** Function context **
+
 struct function_ctx {
     struct lyra_function *lyra_fn;
     struct lyra_block current_block;
@@ -65,24 +79,26 @@ static void function_ctx_finalize(struct function_ctx *fctx) {
     lyra_function_finalize(fctx->lyra_fn);
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_check_multiple_use);
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_into_semi_ssa);
-    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_type_inference);
-    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_const_prop);
-    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_purge_dead_code);
+    lyra_function_all_blocks(fctx->lyra_fn,
+                             lyra_pass_partial_type_inference);
+    // TODO: full type inference
+    // lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_const_prop);
+    // lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_purge_dead_code);
     lyra_ctx_gc_run(fctx->lyra_fn->ctx);
 }
+
+// ** Global context **
 
 struct global_ctx {
     size_t main_idx;
 };
 
+// ** Compiler **
+
 static struct au_interpreter_result function_to_lyra(
     struct function_ctx *fctx, const struct au_bc_storage *bcs,
     const struct au_program_data *p_data, const struct global_ctx *gctx) {
     (void)gctx;
-
-    for (int i = 0; i < bcs->num_values; i++) {
-        lyra_function_add_variable(fctx->lyra_fn, LYRA_VALUE_UNTYPED);
-    }
 
 #define bc(x) au_bc_buf_at(&bcs->bc, x)
 
@@ -92,6 +108,62 @@ static struct au_interpreter_result function_to_lyra(
         assert(pos + OFFSET + 2 <= bcs->bc.len);                          \
         VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));               \
     } while (0)
+
+    const size_t labelled_lines_len = bcs->bc.len / 4;
+    au_bit_array labelled_lines =
+        au_data_calloc(1, AU_BA_LEN(labelled_lines_len));
+
+    for (size_t pos = 0; pos < bcs->bc.len;) {
+        uint8_t opcode = bc(pos);
+        pos++;
+
+        switch (opcode) {
+        case AU_OP_JIF:
+        case AU_OP_JNIF:
+        case AU_OP_JREL: {
+            DEF_BC16(x, 1);
+            const size_t offset = x * 4;
+            const size_t abs_offset = pos - 1 + offset;
+            AU_BA_SET_BIT(labelled_lines, (abs_offset / 4));
+            break;
+        }
+        case AU_OP_JRELB: {
+            DEF_BC16(x, 1);
+            const size_t offset = x * 4;
+            const size_t abs_offset = pos - 1 - offset;
+            AU_BA_SET_BIT(labelled_lines, (abs_offset / 4));
+            break;
+        }
+        case AU_OP_RET:
+        case AU_OP_RET_LOCAL:
+        case AU_OP_RET_NULL: {
+            AU_BA_SET_BIT(labelled_lines, (pos / 4));
+            break;
+        }
+        default:
+            break;
+        }
+
+        pos += 3;
+
+        // Fallthrough block
+        if (opcode == AU_OP_JIF || opcode == AU_OP_JNIF) {
+            AU_BA_SET_BIT(labelled_lines, (pos / 4));
+        }
+    }
+
+    struct block_map block_map = {0};
+    size_t expected_block_map_len = 0;
+    for (size_t i = 0; i < labelled_lines_len; i++) {
+        if (AU_BA_GET_BIT(labelled_lines, i)) {
+            printf("%ld\n", i * 4);
+            expected_block_map_len++;
+        }
+    }
+
+    for (int i = 0; i < bcs->num_values; i++) {
+        lyra_function_add_variable(fctx->lyra_fn, LYRA_VALUE_UNTYPED);
+    }
 
 #define LOCAL_TO_LYRA_VAR(X) ((X) + bcs->num_registers)
 
@@ -253,8 +325,9 @@ static struct au_interpreter_result function_to_lyra(
             uint8_t reg = bc(pos);
             uint8_t ret = bc(pos + 1);
 
-            struct lyra_insn *insn = lyra_insn_imm(
-                LYRA_OP_NOT_VAR, LYRA_INSN_REG(reg), ret, fctx->lyra_fn->ctx);
+            struct lyra_insn *insn =
+                lyra_insn_imm(LYRA_OP_NOT_VAR, LYRA_INSN_REG(reg), ret,
+                              fctx->lyra_fn->ctx);
             lyra_block_add_insn(&fctx->current_block, insn);
 
             pos += 3;
@@ -264,8 +337,9 @@ static struct au_interpreter_result function_to_lyra(
             uint8_t reg = bc(pos);
             uint8_t ret = bc(pos + 1);
 
-            struct lyra_insn *insn = lyra_insn_imm(
-                LYRA_OP_NEG_VAR, LYRA_INSN_REG(reg), ret, fctx->lyra_fn->ctx);
+            struct lyra_insn *insn =
+                lyra_insn_imm(LYRA_OP_NEG_VAR, LYRA_INSN_REG(reg), ret,
+                              fctx->lyra_fn->ctx);
             lyra_block_add_insn(&fctx->current_block, insn);
 
             pos += 3;
@@ -284,13 +358,54 @@ static struct au_interpreter_result function_to_lyra(
             break;
         }
         // Jump instructions
+        case AU_OP_JIF: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(x, 1);
+            const size_t offset = x * 4;
+            const size_t abs_offset = pos - 1 + offset;
+            fctx->current_block.connector.type = LYRA_BLOCK_JIF;
+            fctx->current_block.connector.var = reg;
+            fctx->current_block.connector.label = abs_offset;
+            pos += 3;
+            break;
+        }
+        case AU_OP_JNIF: {
+            uint8_t reg = bc(pos);
+            DEF_BC16(x, 1);
+            const size_t offset = x * 4;
+            const size_t abs_offset = pos - 1 + offset;
+            fctx->current_block.connector.type = LYRA_BLOCK_JNIF;
+            fctx->current_block.connector.var = reg;
+            fctx->current_block.connector.label = abs_offset;
+            pos += 3;
+            break;
+        }
+        case AU_OP_JREL: {
+            DEF_BC16(x, 1);
+            const size_t offset = x * 4;
+            const size_t abs_offset = pos - 1 + offset;
+            fctx->current_block.connector.type = LYRA_BLOCK_JMP;
+            fctx->current_block.connector.var = 0;
+            fctx->current_block.connector.label = abs_offset;
+            pos += 3;
+            break;
+        }
+        case AU_OP_JRELB: {
+            DEF_BC16(x, 1);
+            const size_t offset = x * 4;
+            const size_t abs_offset = pos - 1 - offset;
+            fctx->current_block.connector.type = LYRA_BLOCK_JMP;
+            fctx->current_block.connector.var = 0;
+            fctx->current_block.connector.label = abs_offset;
+            pos += 3;
+            break;
+        }
         // Call instructions
         // Return instructions
         case AU_OP_RET_NULL: {
             fctx->current_block.connector.type = LYRA_BLOCK_RET_NULL;
             fctx->current_block.connector.var = 0;
             fctx->current_block.connector.label = 0;
-            function_ctx_finish_block(fctx);
             pos += 3;
             break;
         }
@@ -316,8 +431,25 @@ static struct au_interpreter_result function_to_lyra(
         default:
             au_fatal("unimplemented: %s", au_opcode_dbg[opcode]);
         }
+
+        if (AU_BA_GET_BIT(labelled_lines, (pos / 4))) {
+            block_map_add(&block_map, pos);
+            function_ctx_finish_block(fctx);
+        }
     }
 
+    assert(block_map.len == expected_block_map_len);
+
+    for (size_t i = 0; i < fctx->lyra_fn->blocks.len; i++) {
+        struct lyra_block *block = &fctx->lyra_fn->blocks.data[i];
+        if (lyra_block_connector_type_is_jmp(block->connector.type)) {
+            block->connector.label =
+                block_map_search(&block_map, block->connector.label);
+        }
+    }
+
+    au_data_free(labelled_lines);
+    au_data_free(block_map.data);
     return (struct au_interpreter_result){.type = AU_INT_ERR_OK};
 }
 
@@ -331,7 +463,7 @@ au_c_comp(struct au_c_comp_state *state, const struct au_program *program,
     au_c_comp_state_append_nt(
         state,
         "/* Code for Aument's core library. Do not edit this. */\n");
-    au_c_comp_state_append(state, AU_RT_HDR, AU_RT_HDR_LEN);
+    // au_c_comp_state_append(state, AU_RT_HDR, AU_RT_HDR_LEN);
     au_c_comp_state_append_nt(
         state, "\n\n/* Code generated from source file */\n");
 
