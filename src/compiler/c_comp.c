@@ -60,6 +60,10 @@ static struct au_interpreter_result
 function_to_lyra(struct function_ctx *fctx,
                  const struct au_bc_storage *bcs,
                  const struct au_program_data *p_data) {
+    for(int i = 0; i < bcs->num_values; i++) {
+        lyra_function_add_variable(fctx->lyra_fn, LYRA_VALUE_UNTYPED);
+    }
+
 #define bc(x) au_bc_buf_at(&bcs->bc, x)
 
 #define DEF_BC16(VAR, OFFSET)                                             \
@@ -68,6 +72,8 @@ function_to_lyra(struct function_ctx *fctx,
         assert(pos + OFFSET + 2 <= bcs->bc.len);                          \
         VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));               \
     } while (0)
+
+#define LOCAL_TO_LYRA_VAR(X) ((X)+bcs->num_registers)
 
     size_t pos = 0;
     while (pos < bcs->bc.len) {
@@ -136,8 +142,13 @@ function_to_lyra(struct function_ctx *fctx,
         case AU_OP_PRINT: {
             uint8_t reg = bc(pos);
             
-            (void)reg;
-            abort(); // TODO
+            struct lyra_insn_call_args *args = lyra_insn_call_args_new(0, 1, fctx->lyra_fn->ctx);
+            args->data[0] = (size_t)reg;
+
+            size_t empty_reg = lyra_function_add_variable(fctx->lyra_fn, LYRA_VALUE_UNTYPED);
+            struct lyra_insn *insn = lyra_insn_imm(
+                LYRA_OP_CALL_FLAT, LYRA_INSN_CALL_ARGS(args), empty_reg, fctx->lyra_fn->ctx);
+            lyra_block_add_insn(&fctx->current_block, insn);
 
             pos += 3;
             break;
