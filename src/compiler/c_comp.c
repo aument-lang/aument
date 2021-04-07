@@ -152,6 +152,7 @@ static struct au_interpreter_result function_to_lyra(
         case AU_OP_LOAD_NIL: {
             uint8_t reg = bc(pos);
 
+            (void)reg;
             abort(); // TODO
 
             pos += 3;
@@ -248,6 +249,40 @@ static struct au_interpreter_result function_to_lyra(
             BIN_OP(LYRA_OP_BSHR_I32)
 #undef BIN_OP
         // Unary instructions
+        case AU_OP_NOT: {
+            uint8_t reg = bc(pos);
+            uint8_t ret = bc(pos + 1);
+
+            struct lyra_insn *insn = lyra_insn_imm(
+                LYRA_OP_NOT_VAR, LYRA_INSN_REG(reg), ret, fctx->lyra_fn->ctx);
+            lyra_block_add_insn(&fctx->current_block, insn);
+
+            pos += 3;
+            break;
+        }
+        case AU_OP_NEG: {
+            uint8_t reg = bc(pos);
+            uint8_t ret = bc(pos + 1);
+
+            struct lyra_insn *insn = lyra_insn_imm(
+                LYRA_OP_NEG_VAR, LYRA_INSN_REG(reg), ret, fctx->lyra_fn->ctx);
+            lyra_block_add_insn(&fctx->current_block, insn);
+
+            pos += 3;
+            break;
+        }
+        case AU_OP_BNOT: {
+            uint8_t reg = bc(pos);
+            uint8_t ret = bc(pos + 1);
+
+            struct lyra_insn *insn =
+                lyra_insn_imm(LYRA_OP_BNOT_I32, LYRA_INSN_REG(reg), ret,
+                              fctx->lyra_fn->ctx);
+            lyra_block_add_insn(&fctx->current_block, insn);
+
+            pos += 3;
+            break;
+        }
         // Jump instructions
         // Call instructions
         // Return instructions
@@ -279,7 +314,7 @@ static struct au_interpreter_result function_to_lyra(
             break;
         }
         default:
-            abort(); // TODO
+            au_fatal("unimplemented: %s", au_opcode_dbg[opcode]);
         }
     }
 
