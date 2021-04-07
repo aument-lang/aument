@@ -189,6 +189,7 @@ endif
 if has_compile_feature
     rt_hdr_depends = files(
         'src/platform/platform.h',
+        'src/platform/fastdiv.h',
         'src/platform/arithmetic.h',
         'src/core/rt/malloc.h',
         'src/core/array.h',

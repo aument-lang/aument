@@ -8,11 +8,11 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "lyra/context.h"
-#include "lyra/insn.h"
-#include "lyra/function.h"
 #include "lyra/block.h"
 #include "lyra/comp.h"
+#include "lyra/context.h"
+#include "lyra/function.h"
+#include "lyra/insn.h"
 #include "lyra/passes.h"
 
 #include "c_comp.h"
@@ -27,6 +27,20 @@ char *TEST_RT_CODE;
 size_t TEST_RT_CODE_LEN;
 #endif
 
+static inline void au_c_comp_state_append_nt(struct au_c_comp_state *state,
+                                             const char *s) {
+    for (size_t i = 0; s[i]; i++) {
+        au_char_array_add(&state->str, s[i]);
+    }
+}
+
+static void au_c_comp_state_append(struct au_c_comp_state *state,
+                                   const char *s, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        au_char_array_add(&state->str, s[i]);
+    }
+}
+
 void au_c_comp_state_del(struct au_c_comp_state *state) {
     au_data_free(state->str.data);
 }
@@ -36,7 +50,8 @@ struct function_ctx {
     struct lyra_block current_block;
 };
 
-static void function_ctx_init(struct function_ctx *fctx, struct lyra_function *lyra_fn) {
+static void function_ctx_init(struct function_ctx *fctx,
+                              struct lyra_function *lyra_fn) {
     fctx->lyra_fn = lyra_fn;
     lyra_block_init(&fctx->current_block);
 }
@@ -56,11 +71,16 @@ static void function_ctx_finalize(struct function_ctx *fctx) {
     lyra_ctx_gc_run(fctx->lyra_fn->ctx);
 }
 
-static struct au_interpreter_result
-function_to_lyra(struct function_ctx *fctx,
-                 const struct au_bc_storage *bcs,
-                 const struct au_program_data *p_data) {
-    for(int i = 0; i < bcs->num_values; i++) {
+struct global_ctx {
+    size_t main_idx;
+};
+
+static struct au_interpreter_result function_to_lyra(
+    struct function_ctx *fctx, const struct au_bc_storage *bcs,
+    const struct au_program_data *p_data, const struct global_ctx *gctx) {
+    (void)gctx;
+
+    for (int i = 0; i < bcs->num_values; i++) {
         lyra_function_add_variable(fctx->lyra_fn, LYRA_VALUE_UNTYPED);
     }
 
@@ -73,7 +93,7 @@ function_to_lyra(struct function_ctx *fctx,
         VAR = *((uint16_t *)(&bcs->bc.data[pos + OFFSET]));               \
     } while (0)
 
-#define LOCAL_TO_LYRA_VAR(X) ((X)+bcs->num_registers)
+#define LOCAL_TO_LYRA_VAR(X) ((X) + bcs->num_registers)
 
     size_t pos = 0;
     while (pos < bcs->bc.len) {
@@ -90,16 +110,18 @@ function_to_lyra(struct function_ctx *fctx,
                 &p_data->data_val.data[c];
             au_value_t value = data_val->real_value;
             switch (au_value_get_type(value)) {
-                case AU_VALUE_DOUBLE: {
-                    struct lyra_insn *insn = lyra_insn_imm(
-                        LYRA_OP_MOV_F64, LYRA_INSN_F64(au_value_get_double(value)), reg, fctx->lyra_fn->ctx);
-                    lyra_block_add_insn(&fctx->current_block, insn);
-                    break;
-                }
-                default: {
-                    abort(); // TODO
-                    break;
-                }
+            case AU_VALUE_DOUBLE: {
+                struct lyra_insn *insn = lyra_insn_imm(
+                    LYRA_OP_MOV_F64,
+                    LYRA_INSN_F64(au_value_get_double(value)), reg,
+                    fctx->lyra_fn->ctx);
+                lyra_block_add_insn(&fctx->current_block, insn);
+                break;
+            }
+            default: {
+                abort(); // TODO
+                break;
+            }
             }
 
             pos += 3;
@@ -122,8 +144,9 @@ function_to_lyra(struct function_ctx *fctx,
             uint8_t rhs = bc(pos + 1);
             uint8_t res = bc(pos + 2);
 
-            struct lyra_insn *insn = lyra_insn_new(
-                LYRA_OP_ADD_VAR, lhs, LYRA_INSN_REG(rhs), res, fctx->lyra_fn->ctx);
+            struct lyra_insn *insn =
+                lyra_insn_new(LYRA_OP_ADD_VAR, lhs, LYRA_INSN_REG(rhs),
+                              res, fctx->lyra_fn->ctx);
             lyra_block_add_insn(&fctx->current_block, insn);
 
             pos += 3;
@@ -141,13 +164,17 @@ function_to_lyra(struct function_ctx *fctx,
         // Other
         case AU_OP_PRINT: {
             uint8_t reg = bc(pos);
-            
-            struct lyra_insn_call_args *args = lyra_insn_call_args_new(0, 1, fctx->lyra_fn->ctx);
+
+            struct lyra_insn_call_args *args =
+                lyra_insn_call_args_new_name("au_value_print_wrapper", 1,
+                                             fctx->lyra_fn->ctx);
             args->data[0] = (size_t)reg;
 
-            size_t empty_reg = lyra_function_add_variable(fctx->lyra_fn, LYRA_VALUE_UNTYPED);
-            struct lyra_insn *insn = lyra_insn_imm(
-                LYRA_OP_CALL_FLAT, LYRA_INSN_CALL_ARGS(args), empty_reg, fctx->lyra_fn->ctx);
+            size_t empty_reg = lyra_function_add_variable(
+                fctx->lyra_fn, LYRA_VALUE_UNTYPED);
+            struct lyra_insn *insn =
+                lyra_insn_imm(LYRA_OP_CALL_FLAT, LYRA_INSN_CALL_ARGS(args),
+                              empty_reg, fctx->lyra_fn->ctx);
             lyra_block_add_insn(&fctx->current_block, insn);
 
             pos += 3;
@@ -165,29 +192,39 @@ struct au_interpreter_result
 au_c_comp(struct au_c_comp_state *state, const struct au_program *program,
           const struct au_c_comp_options *options,
           struct au_cc_options *cc) {
-    (void)state;
-    (void)program;
     (void)options;
     (void)cc;
+
+    au_c_comp_state_append_nt(
+        state,
+        "/* Code for Aument's core library. Do not edit this. */\n");
+    au_c_comp_state_append(state, AU_RT_HDR, AU_RT_HDR_LEN);
+    au_c_comp_state_append_nt(
+        state, "\n\n/* Code generated from source file */\n");
 
     struct lyra_ctx lctx;
     lyra_ctx_init(&lctx);
 
-    struct lyra_function *main_fn = lyra_function_new(0, 0, &lctx);
+    struct global_ctx gctx = (struct global_ctx){0};
+    gctx.main_idx = 0;
 
+    struct lyra_function *main_fn =
+        lyra_function_new(gctx.main_idx, 0, &lctx);
     {
         struct function_ctx fctx;
         function_ctx_init(&fctx, main_fn);
-        function_to_lyra(&fctx, &program->main, &program->data);
+        function_to_lyra(&fctx, &program->main, &program->data, &gctx);
         function_ctx_finalize(&fctx);
 
         struct lyra_comp lcomp = {0};
         lyra_comp_init(&lcomp, &lctx);
         lyra_function_comp(fctx.lyra_fn, &lcomp);
-        for(size_t i = 0; i < lcomp.source.len; i++)
-            au_char_array_add(&state->str, lcomp.source.data[i]);
+        au_c_comp_state_append(state, lcomp.source.data, lcomp.source.len);
+        au_c_comp_state_append_nt(state, "\n");
         lyra_comp_del(&lcomp);
     }
+
+    au_c_comp_state_append_nt(state, "int main() { f0(0); }\n");
 
     struct au_interpreter_result retval =
         (struct au_interpreter_result){.type = AU_INT_ERR_OK};
