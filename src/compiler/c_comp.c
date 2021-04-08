@@ -78,12 +78,15 @@ static void function_ctx_finish_block(struct function_ctx *fctx) {
 static void function_ctx_finalize(struct function_ctx *fctx) {
     lyra_function_finalize(fctx->lyra_fn);
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_check_multiple_use);
+    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_check_multiple_set);
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_into_semi_ssa);
     lyra_function_all_blocks(fctx->lyra_fn,
                              lyra_pass_partial_type_inference);
-    // TODO: full type inference
-    // lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_const_prop);
-    // lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_purge_dead_code);
+    lyra_function_full_type_inference(fctx->lyra_fn);
+    lyra_function_all_blocks(fctx->lyra_fn,
+                             lyra_pass_process_untyped_ops);
+    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_const_prop);
+    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_purge_dead_code);
     lyra_ctx_gc_run(fctx->lyra_fn->ctx);
 }
 
