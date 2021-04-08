@@ -156,6 +156,8 @@ static struct au_interpreter_result function_to_lyra(
     }
 
     struct block_map block_map = {0};
+    block_map_add(&block_map, 0);
+
     size_t expected_block_map_len = 0;
     for (size_t i = 0; i < labelled_lines_len; i++) {
         if (AU_BA_GET_BIT(labelled_lines, i)) {
@@ -440,8 +442,6 @@ static struct au_interpreter_result function_to_lyra(
             function_ctx_finish_block(fctx);
         }
     }
-
-    assert(block_map.len == expected_block_map_len);
 
     for (size_t i = 0; i < fctx->lyra_fn->blocks.len; i++) {
         struct lyra_block *block = &fctx->lyra_fn->blocks.data[i];
