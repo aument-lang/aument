@@ -13,6 +13,7 @@
 #include "lyra/context.h"
 #include "lyra/function.h"
 #include "lyra/insn.h"
+#include "lyra/lyra_string.h"
 #include "lyra/passes.h"
 
 #include "c_comp.h"
@@ -84,14 +85,12 @@ static void function_ctx_finalize(struct function_ctx *fctx) {
     lyra_function_all_blocks(fctx->lyra_fn,
                              lyra_pass_partial_type_inference);
     lyra_function_full_type_inference(fctx->lyra_fn);
-    lyra_function_all_blocks(fctx->lyra_fn,
-                             lyra_pass_correct_var_movs);
+    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_correct_var_movs);
 
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_remove_indirection);
     lyra_function_all_blocks(fctx->lyra_fn,
                              lyra_pass_partial_type_inference);
-    lyra_function_all_blocks(fctx->lyra_fn,
-                             lyra_pass_correct_var_movs);
+    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_correct_var_movs);
 
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_const_prop);
 
@@ -272,8 +271,19 @@ static struct au_interpreter_result function_to_lyra(
                 lyra_block_add_insn(&fctx->current_block, insn);
                 break;
             }
+            case AU_VALUE_STR: {
+                struct lyra_string *str = lyra_string_from_const(
+                    fctx->lyra_fn->ctx,
+                    (const char *)(&p_data->data_buf[data_val->buf_idx]),
+                    data_val->buf_len);
+                struct lyra_insn *insn =
+                    lyra_insn_imm(LYRA_OP_MOV_STR, LYRA_INSN_STR(str), reg,
+                                  fctx->lyra_fn->ctx);
+                lyra_block_add_insn(&fctx->current_block, insn);
+                break;
+            }
             default: {
-                abort(); // TODO
+                abort();
                 break;
             }
             }
@@ -431,15 +441,17 @@ static struct au_interpreter_result function_to_lyra(
             uint8_t reg = bc(pos);
 
             struct lyra_insn_call_args *args =
-                lyra_insn_call_args_new_name("au_value_print_wrapper", 1,
+                lyra_insn_call_args_new_name("au_value_print", 1,
                                              fctx->lyra_fn->ctx);
             args->data[0] = (size_t)reg;
 
-            size_t empty_reg = lyra_function_add_variable(
-                fctx->lyra_fn, LYRA_VALUE_UNTYPED);
             struct lyra_insn *insn =
-                lyra_insn_imm(LYRA_OP_CALL_FLAT, LYRA_INSN_CALL_ARGS(args),
-                              empty_reg, fctx->lyra_fn->ctx);
+                lyra_insn_imm(LYRA_OP_CALL, LYRA_INSN_CALL_ARGS(args), 0,
+                              fctx->lyra_fn->ctx);
+            insn->right_operand.call_args->flags |=
+                LYRA_INSN_CALL_NO_RET_FLAG;
+            insn->right_operand.call_args->flags |=
+                LYRA_INSN_CALL_FLAT_ARGS_FLAG;
             lyra_block_add_insn(&fctx->current_block, insn);
 
             pos += 3;

@@ -619,11 +619,3 @@ static AU_ALWAYS_INLINE au_value_t au_value_neq(au_value_t lhs,
 }
 
 void au_value_print(au_value_t value);
-
-#ifndef AU_IS_INTERPRETER
-static AU_UNUSED AU_ALWAYS_INLINE au_value_t
-au_value_print_wrapper(au_value_t value) {
-    au_value_print(value);
-    return au_value_none();
-}
-#endif
