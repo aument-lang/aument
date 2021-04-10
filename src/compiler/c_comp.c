@@ -172,7 +172,6 @@ static struct au_interpreter_result function_to_lyra(
     size_t expected_block_map_len = 0;
     for (size_t i = 0; i < labelled_lines_len; i++) {
         if (AU_BA_GET_BIT(labelled_lines, i)) {
-            printf("%ld\n", i * 4);
             expected_block_map_len++;
         }
     }
