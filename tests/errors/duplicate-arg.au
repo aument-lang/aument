@@ -1,2 +1,2 @@
-class A{}
-def (self: A) a(self) {}
+struct A{}
+func (self: A) a(self) {}

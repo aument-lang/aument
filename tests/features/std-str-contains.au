@@ -1,2 +1,2 @@
-print str::contains("abcdef", "def");
+print str::contains("abcfunc", "func");
 print str::contains("", "a");

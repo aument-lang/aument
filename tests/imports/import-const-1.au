@@ -1,1 +1,1 @@
-export const X = 10;
+public const X = 10;

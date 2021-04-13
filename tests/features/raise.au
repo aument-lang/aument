@@ -1,5 +1,5 @@
-def hello() {
-    raise "Hello World\n";
+func hello() {
+    raise "Hello World";
 }
 
 print hello()?;

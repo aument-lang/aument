@@ -1,5 +1,5 @@
-class A{}
+struct A{}
 
-def (self: A) a() {
+func (self: A) a() {
     @a = 1;
 }

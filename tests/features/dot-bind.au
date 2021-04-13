@@ -1,4 +1,4 @@
-def add(x,y) { print x + y; }
-five = 5;
-add_5 = five.add;
+func add(x,y) { print x + y; }
+let five = 5;
+let add_5 = five.add;
 add_5.(10);

@@ -1,2 +1,2 @@
-interpreter error(9) in -: unknown or unexported class 'a'
+interpreter error(9) in -: unknown or unexported struct 'a'
 1 | import "./empty.au" as mod;

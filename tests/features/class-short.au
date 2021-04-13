@@ -1,8 +1,8 @@
-class A;
+struct A;
 
-def (self: A) dispatch() {
+func (self: A) dispatch() {
     print 1;
 }
 
-a = new A;
+let a = new A;
 dispatch(a);

@@ -1,7 +1,7 @@
-class Class {
+struct Class {
 }
 
-def (self: Class) init() {
+func (self: Class) init() {
 }
 
 init("A");

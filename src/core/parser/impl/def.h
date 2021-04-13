@@ -27,6 +27,8 @@
 AU_ARRAY_COPY(size_t, size_t_array, 1)
 AU_ARRAY_COPY(uint8_t, reg_array, 1)
 
+AU_ARRAY_STRUCT(struct au_hm_vars, vars_array, 1)
+
 struct au_parser {
     /// Bytecode buffer that the parser is outputting to
     struct au_bc_buf bc;
@@ -41,7 +43,7 @@ struct au_parser {
     char pinned_regs[AU_BA_LEN(AU_REGS)];
 
     /// Hash table of local variables
-    struct au_hm_vars vars;
+    struct vars_array vars;
     /// Local => reg mapping
     struct reg_array local_to_reg;
 
@@ -140,3 +142,39 @@ static inline int is_assign_tok(struct au_token op) {
               op.src[0] == '/' || op.src[0] == '%') &&
              op.src[1] == '='));
 }
+
+#define PARSE_COMMA_LIST(END, EXPECTED, BLOCK)                            \
+    do {                                                                  \
+        struct au_token tok = au_lexer_peek(l);                           \
+        if (tok.type == AU_TOK_EOF ||                                     \
+            (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&               \
+             tok.src[0] == END)) {                                        \
+            au_lexer_next(l);                                             \
+            break;                                                        \
+        } else {                                                          \
+            BLOCK                                                         \
+        }                                                                 \
+        while (1) {                                                       \
+            struct au_token tok = au_lexer_next(l);                       \
+            if (tok.type == AU_TOK_EOF ||                                 \
+                (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&           \
+                 tok.src[0] == END)) {                                    \
+                break;                                                    \
+            } else if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&     \
+                       tok.src[0] == ',') {                               \
+                do {                                                      \
+                    struct au_token tok = au_lexer_peek(l);               \
+                    if (tok.type == AU_TOK_EOF ||                         \
+                        (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&   \
+                         tok.src[0] == END)) {                            \
+                        au_lexer_next(l);                                 \
+                        goto _end_comma_list;                             \
+                    }                                                     \
+                } while (0);                                              \
+                BLOCK                                                     \
+            } else {                                                      \
+                EXPECT_TOKEN(0, tok, EXPECTED);                           \
+            }                                                             \
+        }                                                                 \
+_end_comma_list:;                                                         \
+    } while (0)

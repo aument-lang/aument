@@ -1,11 +1,11 @@
-class A{}
+struct A{}
 
-def b() {
-    object = new A;
+func b() {
+    let object = new A;
     a(object);
 }
 
-def (self: A) a() {
+func (self: A) a() {
     print 10;
 }
 

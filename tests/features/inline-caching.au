@@ -1,4 +1,4 @@
-def f(a,b) {
+func f(a,b) {
     return a + b;
 }
 
