@@ -1,19 +1,19 @@
 struct Human { name }
 
 func human(name) {
-	return new Human {
-		name: name
-	};
+  return new Human {
+    name: name
+  };
 }
 
 func (self: Human) say() {
-	print "I'm ", @name, "\n";
+  print "I'm ", @name, "\n";
 }
 
 struct Cat;
 
 func (self: Cat) say() {
-	print "meow!";
+  print "meow!";
 }
 
 let alice = human("Alice");
