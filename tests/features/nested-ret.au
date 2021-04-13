@@ -1,8 +1,8 @@
-def b() {
+func b() {
     return 10;
 }
 
-def a() {
+func a() {
     return b();
 }
 

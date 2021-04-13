@@ -1,6 +1,6 @@
 const A = 0;
 
-def constant() {
+func constant() {
     return A;
 }
 

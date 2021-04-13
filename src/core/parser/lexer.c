@@ -52,9 +52,8 @@ void au_lexer_init(struct au_lexer *l, const char *src, size_t len) {
     l->src = src;
     l->pos = 0;
     l->len = len;
-
-    l->lh_read = 0;
-    l->lh_write = 0;
+    l->lookahead = (struct au_token){.type = AU_TOK_EOF};
+    l->has_lookahead = 0;
 }
 
 void au_lexer_del(struct au_lexer *l) {
@@ -62,25 +61,9 @@ void au_lexer_del(struct au_lexer *l) {
 }
 
 static struct au_token au_lexer_next_(struct au_lexer *l) {
-    if (l->lh_read < l->lh_write) {
-        assert(l->lh_read >= 0 && l->lh_read <= LOOKAHEAD_MAX);
-        struct au_token_lookahead lh = l->lh[l->lh_read];
-        l->lh_read++;
-        if (l->lh_read == l->lh_write) {
-            l->lh_read = 0;
-            l->lh_write = 0;
-        }
-
-        if (l->pos == lh.start_pos) {
-#ifdef DEBUG_LEXER
-            printf("(returns) ");
-            token_dbg(&lh.token);
-#endif
-            l->pos = lh.end_pos;
-            return lh.token;
-        }
-        l->lh_read = 0;
-        l->lh_write = 0;
+    if (l->has_lookahead) {
+        l->has_lookahead = 0;
+        return l->lookahead;
     }
 
 #define L_EOF() (l->pos >= l->len)
@@ -292,50 +275,13 @@ fail:
 #undef L_EOF
 }
 
-struct au_token au_lexer_peek(struct au_lexer *l, int lh_pos) {
-    const size_t old_pos = l->pos;
-    if (lh_pos == 0 && l->lh_write == 0) {
-        struct au_token t = au_lexer_next_(l);
-        struct au_token_lookahead *lh_new = &l->lh[l->lh_write++];
-        assert(l->lh_write <= LOOKAHEAD_MAX);
-        lh_new->token = t;
-        lh_new->start_pos = old_pos;
-        lh_new->end_pos = l->pos;
-        l->pos = old_pos;
-#ifdef DEBUG_LEXER
-        printf("peek %d:", lh_pos);
-        token_dbg(&t);
-#endif
-        return t;
-    } else if (lh_pos == l->lh_write) {
-        struct au_token_lookahead *lh_last = &l->lh[l->lh_write - 1];
-#ifdef DEBUG_LEXER
-        printf("! from:");
-        token_dbg(&lh_last->token);
-#endif
-        l->pos = lh_last->end_pos;
-        struct au_token t = au_lexer_next_(l);
-        struct au_token_lookahead *lh_new = &l->lh[l->lh_write++];
-        assert(l->lh_write <= LOOKAHEAD_MAX);
-        lh_new->token = t;
-        lh_new->start_pos = lh_last->end_pos;
-        lh_new->end_pos = l->pos;
-        l->pos = old_pos;
-#ifdef DEBUG_LEXER
-        printf("! peek %d:", lh_pos);
-        token_dbg(&t);
-#endif
-        return t;
-    } else if (lh_pos < l->lh_write) {
-        struct au_token_lookahead *lh = &l->lh[lh_pos];
-#ifdef DEBUG_LEXER
-        printf("peek %d:", lh_pos);
-        token_dbg(&lh->token);
-#endif
-        return lh->token;
-    } else {
-        AU_UNREACHABLE;
+struct au_token au_lexer_peek(struct au_lexer *l) {
+    if (l->has_lookahead) {
+        return l->lookahead;
     }
+    l->lookahead = au_lexer_next_(l);
+    l->has_lookahead = 1;
+    return l->lookahead;
 }
 
 #ifdef DEBUG_LEXER

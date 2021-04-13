@@ -107,7 +107,7 @@ void au_print_parser_error(struct au_parser_result res,
         break;
     }
     case X(DUPLICATE_CLASS): {
-        fprintf(stderr, "this class is already declared");
+        fprintf(stderr, "this struct is already declared");
         errored_token = res.data.duplicate_id.name_token;
         break;
     }
@@ -122,7 +122,7 @@ void au_print_parser_error(struct au_parser_result res,
         break;
     }
     case X(UNKNOWN_CLASS): {
-        fprintf(stderr, "unknown class %.*s",
+        fprintf(stderr, "unknown struct %.*s",
                 (int)res.data.unknown_id.name_token.len,
                 res.data.unknown_id.name_token.src);
         errored_token = res.data.unknown_id.name_token;
@@ -201,7 +201,7 @@ void au_print_interpreter_error(struct au_interpreter_result res,
         break;
     }
     case X(UNKNOWN_CLASS): {
-        fprintf(stderr, "unknown or unexported class '%s'",
+        fprintf(stderr, "unknown or unexported struct '%s'",
                 res.data.unknown_id.key);
         break;
     }

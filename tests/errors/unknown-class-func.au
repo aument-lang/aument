@@ -1,3 +1,3 @@
-def (self: A) init() {
+func (self: A) init() {
     
 }

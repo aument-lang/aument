@@ -1,16 +1,14 @@
-class A {
-    var a;
-}
+struct A { a }
 
-def (self: A) init() {
+func (self: A) init() {
     @a = 0;
 }
 
-def (self: A) method() {
+func (self: A) method() {
     @a += 1;
     print @a;
 }
 
-a = new A;
+let a = new A;
 init(a);
 method(a);

@@ -39,21 +39,13 @@ static inline int token_keyword_cmp(const struct au_token *t,
     return memcmp(t->src, str, t->len) == 0;
 }
 
-#define LOOKAHEAD_MAX 2
-
-struct au_token_lookahead {
-    struct au_token token;
-    size_t start_pos;
-    size_t end_pos;
-};
-
 struct au_lexer {
     /// This object does not own the src pointer
     const char *src;
     size_t len;
     size_t pos;
-    int lh_read, lh_write;
-    struct au_token_lookahead lh[LOOKAHEAD_MAX];
+    struct au_token lookahead;
+    int has_lookahead;
 };
 
 /// [func] Initializes a lexer instance
@@ -72,4 +64,4 @@ AU_PUBLIC struct au_token au_lexer_next(struct au_lexer *l);
 
 /// [func] Look ahead the next token in the lexer stream without
 /// consuming it
-AU_PUBLIC struct au_token au_lexer_peek(struct au_lexer *l, int lh_pos);
+AU_PUBLIC struct au_token au_lexer_peek(struct au_lexer *l);

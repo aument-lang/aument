@@ -1,3 +1,3 @@
-def x() {
+func x() {
     import 'a';
 }

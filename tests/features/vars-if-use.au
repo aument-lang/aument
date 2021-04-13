@@ -1,4 +1,4 @@
-def prev(n) {
+func prev(n) {
     if n <= 1 {
         return n;
     }

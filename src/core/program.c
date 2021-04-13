@@ -4,6 +4,7 @@
 // Licensed under Apache License v2.0 with Runtime Library Exception
 // See LICENSE.txt for license information
 #include <string.h>
+#include <stdlib.h>
 
 #include "core/rt/malloc.h"
 #include "program.h"
@@ -29,6 +30,8 @@ void au_imported_module_del(struct au_imported_module *data) {
 
 void au_program_data_init(struct au_program_data *data) {
     memset(data, 0, sizeof(struct au_program_data));
+    au_hm_vars_init(&data->fn_map);
+    au_hm_vars_init(&data->class_map);
 }
 
 void au_program_data_del(struct au_program_data *data) {

@@ -1,4 +1,4 @@
-def f(a,b,c,d,e,f) {
+func f(a,b,c,d,e,f) {
     return a + b + c + d + e + f;
 }
 

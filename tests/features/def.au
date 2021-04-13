@@ -1,4 +1,4 @@
-def a() {
+func a() {
     print 1;
 }
 
