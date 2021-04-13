@@ -66,7 +66,7 @@ int au_parser_exec_statement(struct au_parser *p, struct au_lexer *l) {
             retval = au_parser_exec_while_statement(p, l);
         } else if (token_keyword_cmp(&t, "print")) {
             au_lexer_next(l);
-            retval = WITH_SEMICOLON(au_parser_exec_print_statement);
+            retval = au_parser_exec_print_statement(p, l);
         } else if (token_keyword_cmp(&t, "return")) {
             au_lexer_next(l);
             retval = WITH_SEMICOLON(au_parser_exec_return_statement);
@@ -166,12 +166,11 @@ int au_parser_exec_export_statement(struct au_parser *p,
 
 int au_parser_exec_struct_statement(struct au_parser *p,
                                     struct au_lexer *l, int exported) {
-    // TODO: new struct syntax
-    abort();
-
     uint32_t class_flags = 0;
     if (exported)
         class_flags |= AU_CLASS_FLAG_EXPORTED;
+
+    // Identifier:
 
     const struct au_token id_tok = au_lexer_next(l);
     EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
@@ -194,50 +193,42 @@ int au_parser_exec_struct_statement(struct au_parser *p,
                             au_data_strndup(id_tok.src, id_tok.len));
     interface->flags = class_flags;
 
-    struct au_token t = au_lexer_next(l);
-    if (t.type == AU_TOK_OPERATOR && t.len == 1 && t.src[0] == ';') {
+    // Body:
+
+    const struct au_token struct_body_start = au_lexer_next(l);
+    if (struct_body_start.type == AU_TOK_OPERATOR &&
+        struct_body_start.len == 1 && struct_body_start.src[0] == ';') {
         au_class_interface_ptr_array_set(&p->p_data->classes, class_value,
                                          interface);
         return 1;
-    } else if (!(t.type == AU_TOK_OPERATOR && t.len == 1 &&
-                 t.src[0] == '{')) {
-        au_class_interface_deref(interface);
-        EXPECT_TOKEN(0, t, "'}'");
     }
+    EXPECT_TOKEN(struct_body_start.type == AU_TOK_OPERATOR &&
+                     struct_body_start.len == 1 &&
+                     struct_body_start.src[0] == '{',
+                 struct_body_start, "'{'");
 
-    while (1) {
-        t = au_lexer_next(l);
-        if (token_keyword_cmp(&t, "var")) {
-            const struct au_token name_tok = au_lexer_next(l);
-            EXPECT_TOKEN(name_tok.type == AU_TOK_IDENTIFIER, name_tok,
-                         "identifier");
-            au_hm_var_value_t prop_value = interface->map.nitems;
+#define RAISE_DUPLICATE_PROP(name_tok)                                    \
+    do {                                                                  \
+        p->res = (struct au_parser_result){                               \
+            .type = AU_PARSER_RES_DUPLICATE_PROP,                         \
+            .data.duplicate_id.name_token = name_tok,                     \
+        };                                                                \
+        return 0;                                                         \
+    } while (0)
 
-            const au_hm_var_value_t *old_prop_value = au_hm_vars_add(
-                &interface->map, name_tok.src, name_tok.len, prop_value);
-            if (old_prop_value != 0) {
-                p->res = (struct au_parser_result){
-                    .type = AU_PARSER_RES_DUPLICATE_PROP,
-                    .data.duplicate_id.name_token = name_tok,
-                };
-                return 0;
-            }
+    PARSE_COMMA_LIST('}', "struct field", {
+        const struct au_token name_tok = au_lexer_next(l);
+        EXPECT_TOKEN(name_tok.type == AU_TOK_IDENTIFIER, name_tok,
+                     "struct field name");
+        au_hm_var_value_t prop_value = interface->map.nitems;
 
-            const struct au_token semicolon = au_lexer_next(l);
-            if (semicolon.type == AU_TOK_OPERATOR && semicolon.len == 1) {
-                if (semicolon.src[0] == ';') {
-                    continue;
-                } else if (semicolon.src[0] == '}') {
-                    break;
-                }
-            }
-        } else if (t.type == AU_TOK_OPERATOR && t.len == 1 &&
-                   t.src[0] == '}') {
-            break;
-        }
-        au_class_interface_deref(interface);
-        EXPECT_TOKEN(0, t, "'}'");
-    }
+        const au_hm_var_value_t *old_prop_value = au_hm_vars_add(
+            &interface->map, name_tok.src, name_tok.len, prop_value);
+        if (old_prop_value != 0)
+            RAISE_DUPLICATE_PROP(name_tok);
+    });
+
+#undef RAISE_DUPLICATE_PROP
 
     au_class_interface_ptr_array_set(&p->p_data->classes, class_value,
                                      interface);

@@ -71,7 +71,7 @@ static int au_parser_exec_call_args(struct au_parser *p,
             owned_reg_state_array_add(params, state);
             continue;
         } else {
-            EXPECT_TOKEN(0, t, "',' or ')'");
+            EXPECT_TOKEN(0, t, "call arguments");
         }
     }
     return 1;
@@ -90,135 +90,135 @@ int au_parser_exec_logical_expr(struct au_parser *p, struct au_lexer *l) {
         return 0;
 
     const struct au_token t = au_lexer_peek(l, 0);
-    if (t.type == AU_TOK_OPERATOR && t.len == 2) {
-        if (t.src[0] == '&' && t.src[1] == '&') {
-            au_lexer_next(l);
+    if (t.type == AU_TOK_OPERATOR && t.len == 2 &&
+        (t.src[0] == '&' && t.src[1] == '&')) {
+        au_lexer_next(l);
 
-            au_parser_flush_cached_regs(p);
+        au_parser_flush_cached_regs(p);
 
-            uint8_t reg;
-            EXPECT_BYTECODE(au_parser_new_reg(p, &reg));
-            au_parser_swap_top_regs(p);
+        uint8_t reg;
+        EXPECT_BYTECODE(au_parser_new_reg(p, &reg));
+        au_parser_swap_top_regs(p);
 
-            au_parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
-            au_parser_emit_bc_u8(p, 0);
-            au_parser_emit_bc_u8(p, reg);
-            au_parser_emit_pad8(p);
+        au_parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
+        au_parser_emit_bc_u8(p, 0);
+        au_parser_emit_bc_u8(p, reg);
+        au_parser_emit_pad8(p);
 
-            const size_t left_len = p->bc.len;
-            au_parser_emit_bc_u8(p, AU_OP_JNIF);
-            au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
-            const size_t left_replace_idx = p->bc.len;
-            au_parser_emit_pad8(p);
-            au_parser_emit_pad8(p);
+        const size_t left_len = p->bc.len;
+        au_parser_emit_bc_u8(p, AU_OP_JNIF);
+        au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
+        const size_t left_replace_idx = p->bc.len;
+        au_parser_emit_pad8(p);
+        au_parser_emit_pad8(p);
 
-            if (!au_parser_exec_expr(p, l))
-                return 0;
+        if (!au_parser_exec_expr(p, l))
+            return 0;
 
-            au_parser_flush_cached_regs(p);
+        au_parser_flush_cached_regs(p);
 
-            const size_t right_len = p->bc.len;
-            au_parser_emit_bc_u8(p, AU_OP_JNIF);
-            au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
-            const size_t right_replace_idx = p->bc.len;
-            au_parser_emit_pad8(p);
-            au_parser_emit_pad8(p);
+        const size_t right_len = p->bc.len;
+        au_parser_emit_bc_u8(p, AU_OP_JNIF);
+        au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
+        const size_t right_replace_idx = p->bc.len;
+        au_parser_emit_pad8(p);
+        au_parser_emit_pad8(p);
 
-            au_parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
-            au_parser_emit_bc_u8(p, 1);
-            au_parser_emit_bc_u8(p, reg);
-            au_parser_emit_pad8(p);
+        au_parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
+        au_parser_emit_bc_u8(p, 1);
+        au_parser_emit_bc_u8(p, reg);
+        au_parser_emit_pad8(p);
 
-            const size_t end_label = p->bc.len;
-            au_parser_replace_bc_u16(p, left_replace_idx,
-                                     (end_label - left_len) / 4);
-            au_parser_replace_bc_u16(p, right_replace_idx,
-                                     (end_label - right_len) / 4);
+        const size_t end_label = p->bc.len;
+        au_parser_replace_bc_u16(p, left_replace_idx,
+                                 (end_label - left_len) / 4);
+        au_parser_replace_bc_u16(p, right_replace_idx,
+                                 (end_label - right_len) / 4);
 
-            // The resulting bytecode should look like this:
-            //      register = 0
-            //   left:
-            //      (eval left)
-            //      (flush locals)
-            //      jnif end
-            //   right:
-            //      (eval right)
-            //      (flush locals)
-            //      jnif end
-            //   body:
-            //       register = 1
-            //   end:
-            //       ...
-        } else if (t.src[0] == '|' && t.src[1] == '|') {
-            au_lexer_next(l);
+        // The resulting bytecode should look like this:
+        //      register = 0
+        //   left:
+        //      (eval left)
+        //      (flush locals)
+        //      jnif end
+        //   right:
+        //      (eval right)
+        //      (flush locals)
+        //      jnif end
+        //   body:
+        //       register = 1
+        //   end:
+        //       ...
+    } else if (t.type == AU_TOK_OPERATOR && t.len == 2 &&
+               (t.src[0] == '|' && t.src[1] == '|')) {
+        au_lexer_next(l);
 
-            au_parser_flush_cached_regs(p);
+        au_parser_flush_cached_regs(p);
 
-            uint8_t reg;
-            EXPECT_BYTECODE(au_parser_new_reg(p, &reg));
-            au_parser_swap_top_regs(p);
+        uint8_t reg;
+        EXPECT_BYTECODE(au_parser_new_reg(p, &reg));
+        au_parser_swap_top_regs(p);
 
-            const size_t left_len = p->bc.len;
-            au_parser_emit_bc_u8(p, AU_OP_JIF);
-            au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
-            const size_t left_replace_idx = p->bc.len;
-            au_parser_emit_pad8(p);
-            au_parser_emit_pad8(p);
+        const size_t left_len = p->bc.len;
+        au_parser_emit_bc_u8(p, AU_OP_JIF);
+        au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
+        const size_t left_replace_idx = p->bc.len;
+        au_parser_emit_pad8(p);
+        au_parser_emit_pad8(p);
 
-            if (!au_parser_exec_expr(p, l))
-                return 0;
-            au_parser_flush_cached_regs(p);
+        if (!au_parser_exec_expr(p, l))
+            return 0;
+        au_parser_flush_cached_regs(p);
 
-            const size_t right_len = p->bc.len;
-            au_parser_emit_bc_u8(p, AU_OP_JIF);
-            au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
-            const size_t right_replace_idx = p->bc.len;
-            au_parser_emit_pad8(p);
-            au_parser_emit_pad8(p);
+        const size_t right_len = p->bc.len;
+        au_parser_emit_bc_u8(p, AU_OP_JIF);
+        au_parser_emit_bc_u8(p, au_parser_pop_reg(p));
+        const size_t right_replace_idx = p->bc.len;
+        au_parser_emit_pad8(p);
+        au_parser_emit_pad8(p);
 
-            au_parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
-            au_parser_emit_bc_u8(p, 0);
-            au_parser_emit_bc_u8(p, reg);
-            au_parser_emit_pad8(p);
-            const size_t false_len = p->bc.len;
-            au_parser_emit_bc_u8(p, AU_OP_JREL);
-            au_parser_emit_pad8(p);
-            const size_t false_replace_idx = p->bc.len;
-            au_parser_emit_pad8(p);
-            au_parser_emit_pad8(p);
+        au_parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
+        au_parser_emit_bc_u8(p, 0);
+        au_parser_emit_bc_u8(p, reg);
+        au_parser_emit_pad8(p);
+        const size_t false_len = p->bc.len;
+        au_parser_emit_bc_u8(p, AU_OP_JREL);
+        au_parser_emit_pad8(p);
+        const size_t false_replace_idx = p->bc.len;
+        au_parser_emit_pad8(p);
+        au_parser_emit_pad8(p);
 
-            const size_t truth_len = p->bc.len;
-            au_parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
-            au_parser_emit_bc_u8(p, 1);
-            au_parser_emit_bc_u8(p, reg);
-            au_parser_emit_pad8(p);
+        const size_t truth_len = p->bc.len;
+        au_parser_emit_bc_u8(p, AU_OP_MOV_BOOL);
+        au_parser_emit_bc_u8(p, 1);
+        au_parser_emit_bc_u8(p, reg);
+        au_parser_emit_pad8(p);
 
-            const size_t end_label = p->bc.len;
-            au_parser_replace_bc_u16(p, false_replace_idx,
-                                     (end_label - false_len) / 4);
-            au_parser_replace_bc_u16(p, left_replace_idx,
-                                     (truth_len - left_len) / 4);
-            au_parser_replace_bc_u16(p, right_replace_idx,
-                                     (truth_len - right_len) / 4);
+        const size_t end_label = p->bc.len;
+        au_parser_replace_bc_u16(p, false_replace_idx,
+                                 (end_label - false_len) / 4);
+        au_parser_replace_bc_u16(p, left_replace_idx,
+                                 (truth_len - left_len) / 4);
+        au_parser_replace_bc_u16(p, right_replace_idx,
+                                 (truth_len - right_len) / 4);
 
-            // The resulting bytecode should look like this:
-            //       (flush locals)
-            //   left:
-            //       (eval left)
-            //       (flush locals)
-            //       jif end
-            //   right:
-            //       (eval right)
-            //       (flush locals)
-            //       jif end
-            //   body:
-            //       register = 0
-            //       jmp end1
-            //   end:
-            //       register = 1
-            //   end1:
-            //       ...
-        }
+        // The resulting bytecode should look like this:
+        //       (flush locals)
+        //   left:
+        //       (eval left)
+        //       (flush locals)
+        //       jif end
+        //   right:
+        //       (eval right)
+        //       (flush locals)
+        //       jif end
+        //   body:
+        //       register = 0
+        //       jmp end1
+        //   end:
+        //       register = 1
+        //   end1:
+        //       ...
     }
     return 1;
 }
@@ -229,7 +229,7 @@ enum operator_assoc {
 };
 
 struct operator_info {
-    size_t precedence;
+    int precedence;
     enum operator_assoc assoc;
     char src[4];
     enum au_opcode op;
@@ -1179,6 +1179,8 @@ int au_parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
 
         struct new_initializer_array array = {0};
 
+        // Identifier:
+
         struct au_class_interface *interface =
             au_class_interface_ptr_array_at(&p->p_data->classes,
                                             class_idx);
@@ -1186,47 +1188,44 @@ int au_parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
             abort(); // TODO
         }
 
-        while (1) {
-            tok = au_lexer_next(l);
-            if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
-                tok.src[0] == '}') {
-                break;
-            } else if (tok.type == AU_TOK_IDENTIFIER) {
-                struct au_token name_tok = tok;
-                const au_hm_var_value_t *key_value = au_hm_vars_get(
-                    &interface->map, name_tok.src, name_tok.len);
-                if (key_value == 0) {
-                    p->res = (struct au_parser_result){
-                        .type = AU_PARSER_RES_UNKNOWN_VAR,
-                        .data.unknown_id.name_token = name_tok,
-                    };
-                    return 0;
-                }
+        // NewInits:
 
-                tok = au_lexer_next(l);
-                EXPECT_TOKEN(tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
-                                 tok.src[0] == ':',
-                             tok, "':'");
+#define RAISE_UNKNOWN_VAR(name_tok)                                       \
+    do {                                                                  \
+        p->res = (struct au_parser_result){                               \
+            .type = AU_PARSER_RES_UNKNOWN_VAR,                            \
+            .data.unknown_id.name_token = name_tok,                       \
+        };                                                                \
+        return 0;                                                         \
+    } while (0)
 
-                if (!au_parser_exec_expr(p, l))
-                    return 0;
+        PARSE_COMMA_LIST('}', "new initializer", {
+            const struct au_token name_tok = au_lexer_next(l);
+            EXPECT_BYTECODE(name_tok.type == AU_TOK_IDENTIFIER);
 
-                const struct owned_reg_state right_reg =
-                    au_parser_pop_reg_take_ownership(p);
-                new_initializer_array_add(&array,
-                                          (struct new_initializer){
-                                              .reg_state = right_reg,
-                                              .local = *key_value,
-                                          });
+            const au_hm_var_value_t *key_value = au_hm_vars_get(
+                &interface->map, name_tok.src, name_tok.len);
+            if (key_value == 0)
+                RAISE_UNKNOWN_VAR(name_tok);
 
-                tok = au_lexer_next(l);
-                EXPECT_TOKEN(tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
-                                 tok.src[0] == ',',
-                             tok, "','");
-            } else {
-                EXPECT_TOKEN(0, tok, "'}' or identifier");
-            }
-        }
+            const struct au_token separator_tok = au_lexer_next(l);
+            EXPECT_TOKEN(separator_tok.type == AU_TOK_OPERATOR &&
+                             separator_tok.len == 1 &&
+                             separator_tok.src[0] == ':',
+                         separator_tok, "':'");
+
+            if (!au_parser_exec_expr(p, l))
+                return 0;
+            const struct owned_reg_state right_reg =
+                au_parser_pop_reg_take_ownership(p);
+
+            struct new_initializer new_init;
+            new_init.reg_state = right_reg;
+            new_init.local = *key_value;
+            new_initializer_array_add(&array, new_init);
+        });
+
+#undef RAISE_UNKNOWN_VAR
 
         if (array.len == 0) {
             uint8_t result_reg;
