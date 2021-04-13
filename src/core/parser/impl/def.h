@@ -145,7 +145,7 @@ static inline int is_assign_tok(struct au_token op) {
 
 #define PARSE_COMMA_LIST(END, EXPECTED, BLOCK)                            \
     do {                                                                  \
-        struct au_token tok = au_lexer_peek(l, 0);                        \
+        struct au_token tok = au_lexer_peek(l);                           \
         if (tok.type == AU_TOK_EOF ||                                     \
             (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&               \
              tok.src[0] == END)) {                                        \
@@ -163,7 +163,7 @@ static inline int is_assign_tok(struct au_token op) {
             } else if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&     \
                        tok.src[0] == ',') {                               \
                 do {                                                      \
-                    struct au_token tok = au_lexer_peek(l, 0);            \
+                    struct au_token tok = au_lexer_peek(l);               \
                     if (tok.type == AU_TOK_EOF ||                         \
                         (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&   \
                          tok.src[0] == END)) {                            \

@@ -1,7 +1,7 @@
 struct A{}
 
 func b() {
-    object = new A;
+    let object = new A;
     a(object);
 }
 

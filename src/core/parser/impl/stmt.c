@@ -17,63 +17,63 @@ int au_parser_exec_with_semicolon(struct au_parser *p, struct au_lexer *l,
                                   int retval) {
     if (!retval)
         return retval;
-    struct au_token t = au_lexer_next(l);
-    if (t.type == AU_TOK_EOF)
+    struct au_token tok = au_lexer_next(l);
+    if (tok.type == AU_TOK_EOF)
         return 1;
-    EXPECT_TOKEN(t.type == AU_TOK_OPERATOR && t.len == 1 &&
-                     t.src[0] == ';',
-                 t, "';'");
+    EXPECT_TOKEN(tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
+                     tok.src[0] == ';',
+                 tok, "';'");
     return 1;
 }
 
 int au_parser_exec_statement(struct au_parser *p, struct au_lexer *l) {
 #define WITH_SEMICOLON(FUNC)                                              \
     au_parser_exec_with_semicolon(p, l, FUNC(p, l))
-    const struct au_token t = au_lexer_peek(l, 0);
+    const struct au_token tok = au_lexer_peek(l);
     const size_t bc_from = p->bc.len;
     int retval = 0;
-    if (t.type == AU_TOK_EOF) {
+    if (tok.type == AU_TOK_EOF) {
         return -1;
-    } else if (t.type == AU_TOK_IDENTIFIER) {
+    } else if (tok.type == AU_TOK_IDENTIFIER) {
         // Top level statements
-        if (token_keyword_cmp(&t, "struct")) {
-            EXPECT_GLOBAL_SCOPE(t);
+        if (token_keyword_cmp(&tok, "struct")) {
+            EXPECT_GLOBAL_SCOPE(tok);
             au_lexer_next(l);
             retval = au_parser_exec_struct_statement(p, l, 0);
-        } else if (token_keyword_cmp(&t, "func")) {
-            EXPECT_GLOBAL_SCOPE(t);
+        } else if (token_keyword_cmp(&tok, "func")) {
+            EXPECT_GLOBAL_SCOPE(tok);
             au_lexer_next(l);
             retval = au_parser_exec_func_statement(p, l, 0);
-        } else if (token_keyword_cmp(&t, "import")) {
-            EXPECT_GLOBAL_SCOPE(t);
+        } else if (token_keyword_cmp(&tok, "import")) {
+            EXPECT_GLOBAL_SCOPE(tok);
             au_lexer_next(l);
             retval = WITH_SEMICOLON(au_parser_exec_import_statement);
-        } else if (token_keyword_cmp(&t, "export")) {
-            EXPECT_GLOBAL_SCOPE(t);
+        } else if (token_keyword_cmp(&tok, "export")) {
+            EXPECT_GLOBAL_SCOPE(tok);
             au_lexer_next(l);
             retval = au_parser_exec_export_statement(p, l);
         }
         // Regular statements
-        else if (token_keyword_cmp(&t, "let")) {
+        else if (token_keyword_cmp(&tok, "let")) {
             au_lexer_next(l);
             retval = WITH_SEMICOLON(au_parser_exec_let_statement);
-        } else if (token_keyword_cmp(&t, "const")) {
+        } else if (token_keyword_cmp(&tok, "const")) {
             au_lexer_next(l);
             retval = au_parser_exec_with_semicolon(
                 p, l, au_parser_exec_const_statement(p, l, 0));
-        } else if (token_keyword_cmp(&t, "if")) {
+        } else if (token_keyword_cmp(&tok, "if")) {
             au_lexer_next(l);
             retval = au_parser_exec_if_statement(p, l);
-        } else if (token_keyword_cmp(&t, "while")) {
+        } else if (token_keyword_cmp(&tok, "while")) {
             au_lexer_next(l);
             retval = au_parser_exec_while_statement(p, l);
-        } else if (token_keyword_cmp(&t, "print")) {
+        } else if (token_keyword_cmp(&tok, "print")) {
             au_lexer_next(l);
             retval = au_parser_exec_print_statement(p, l);
-        } else if (token_keyword_cmp(&t, "return")) {
+        } else if (token_keyword_cmp(&tok, "return")) {
             au_lexer_next(l);
             retval = WITH_SEMICOLON(au_parser_exec_return_statement);
-        } else if (token_keyword_cmp(&t, "raise")) {
+        } else if (token_keyword_cmp(&tok, "raise")) {
             au_lexer_next(l);
             retval = WITH_SEMICOLON(au_parser_exec_raise_statement);
         } else {
@@ -84,7 +84,7 @@ int au_parser_exec_statement(struct au_parser *p, struct au_lexer *l) {
     }
     if (retval) {
         const size_t bc_to = p->bc.len;
-        const size_t source_start = t.src - l->src;
+        const size_t source_start = tok.src - l->src;
         if (bc_from != bc_to) {
             struct au_program_source_map map =
                 (struct au_program_source_map){
@@ -109,7 +109,7 @@ int au_parser_exec_import_statement(struct au_parser *p,
     path_dup[path_tok.len] = 0;
 
     const size_t idx = p->p_data->imports.len;
-    struct au_token tok = au_lexer_peek(l, 0);
+    struct au_token tok = au_lexer_peek(l);
     if (token_keyword_cmp(&tok, "as")) {
         au_lexer_next(l);
         const struct au_token module_tok = au_lexer_next(l);
@@ -250,7 +250,7 @@ int au_parser_exec_func_statement(struct au_parser *p, struct au_lexer *l,
 
     // FuncHead:
 
-    const struct au_token lookahead = au_lexer_peek(l, 0);
+    const struct au_token lookahead = au_lexer_peek(l);
     if (lookahead.type == AU_TOK_OPERATOR && lookahead.len == 1 &&
         lookahead.src[0] == '(') {
         au_lexer_next(l);
@@ -683,14 +683,14 @@ int au_parser_exec_if_statement(struct au_parser *p, struct au_lexer *l) {
     // IfTail:
 
     {
-        const struct au_token t = au_lexer_peek(l, 0);
-        if (token_keyword_cmp(&t, "else")) {
+        const struct au_token tok = au_lexer_peek(l);
+        if (token_keyword_cmp(&tok, "else")) {
             au_lexer_next(l);
 
             const size_t else_start = p->bc.len;
             {
-                const struct au_token t = au_lexer_peek(l, 0);
-                if (token_keyword_cmp(&t, "if")) {
+                const struct au_token tok = au_lexer_peek(l);
+                if (token_keyword_cmp(&tok, "if")) {
                     au_lexer_next(l);
                     if (!au_parser_exec_if_statement(p, l))
                         return 0;
@@ -892,14 +892,14 @@ int au_parser_exec_block(struct au_parser *p, struct au_lexer *l,
         vars_array_add(&p->vars, vars);
     }
 
-    struct au_token t = au_lexer_next(l);
-    EXPECT_TOKEN(t.type == AU_TOK_OPERATOR && t.len == 1 &&
-                     t.src[0] == '{',
-                 t, "'{'");
+    struct au_token tok = au_lexer_next(l);
+    EXPECT_TOKEN(tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
+                     tok.src[0] == '{',
+                 tok, "'{'");
 
     while (1) {
-        t = au_lexer_peek(l, 0);
-        if (t.type == AU_TOK_OPERATOR && t.len == 1 && t.src[0] == '}') {
+        tok = au_lexer_peek(l);
+        if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == '}') {
             au_lexer_next(l);
             break;
         }

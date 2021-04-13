@@ -4,5 +4,5 @@ func (self: A) dispatch() {
     print 1;
 }
 
-a = new A;
+let a = new A;
 dispatch(a);

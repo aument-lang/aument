@@ -28,7 +28,7 @@ static int au_parser_exec_call_args(struct au_parser *p,
                                     enum calling_type *calling_type_out) {
     *calling_type_out = CA_NORMAL;
     {
-        const struct au_token tok = au_lexer_peek(l, 0);
+        const struct au_token tok = au_lexer_peek(l);
         if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
             tok.src[0] == ')') {
             au_lexer_next(l);
@@ -82,171 +82,160 @@ static int au_parser_exec_call_args(struct au_parser *p,
 // ** Main function **
 
 int au_parser_exec_expr(struct au_parser *p, struct au_lexer *l) {
-    return au_parser_exec_assign_expr(p, l);
+    return au_parser_exec_logical_expr(p, l);
 }
 
 // ** Binary operations **
 
-int au_parser_exec_assign_expr(struct au_parser *p, struct au_lexer *l) {
-    const struct au_token id_tok = au_lexer_peek(l, 0);
-    const struct au_token op = au_lexer_peek(l, 1);
+int au_parser_exec_assign_expr(struct au_parser *p, struct au_lexer *l,
+                               const struct au_token id_tok) {
+    const struct au_token op = au_lexer_next(l);
 
-    if ((id_tok.type == AU_TOK_IDENTIFIER ||
-         id_tok.type == AU_TOK_AT_IDENTIFIER) &&
-        is_assign_tok(op)) {
+    if (!au_parser_exec_expr(p, l))
+        return 0;
 
-        au_lexer_next(l);
-        au_lexer_next(l);
-
-        if (!au_parser_exec_expr(p, l))
+    if (id_tok.type == AU_TOK_AT_IDENTIFIER) {
+        const struct au_class_interface *interface = p->class_interface;
+        if (interface == 0) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_CLASS_SCOPE_ONLY,
+                .data.class_scope.at_token = id_tok,
+            };
             return 0;
+        }
 
-        if (id_tok.type == AU_TOK_AT_IDENTIFIER) {
-            const struct au_class_interface *interface =
-                p->class_interface;
-            if (interface == 0) {
-                p->res = (struct au_parser_result){
-                    .type = AU_PARSER_RES_CLASS_SCOPE_ONLY,
-                    .data.class_scope.at_token = id_tok,
-                };
-                return 0;
-            }
+        const au_hm_var_value_t *value = au_hm_vars_get(
+            &interface->map, &id_tok.src[1], id_tok.len - 1);
+        if (value == 0) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_UNKNOWN_VAR,
+                .data.unknown_id.name_token = id_tok,
+            };
+            return 0;
+        }
 
-            const au_hm_var_value_t *value = au_hm_vars_get(
-                &interface->map, &id_tok.src[1], id_tok.len - 1);
-            if (value == 0) {
-                p->res = (struct au_parser_result){
-                    .type = AU_PARSER_RES_UNKNOWN_VAR,
-                    .data.unknown_id.name_token = id_tok,
-                };
-                return 0;
-            }
+        if (!(op.len == 1 && op.src[0] == '=')) {
+            uint8_t reg;
+            EXPECT_BYTECODE(au_parser_new_reg(p, &reg));
+            au_parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
+            au_parser_emit_bc_u8(p, reg);
+            au_parser_emit_bc_u16(p, *value);
 
-            if (!(op.len == 1 && op.src[0] == '=')) {
-                uint8_t reg;
-                EXPECT_BYTECODE(au_parser_new_reg(p, &reg));
-                au_parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
-                au_parser_emit_bc_u8(p, reg);
-                au_parser_emit_bc_u16(p, *value);
-
-                switch (op.src[0]) {
+            switch (op.src[0]) {
 #define BIN_OP_ASG(OP, OPCODE)                                            \
     case OP: {                                                            \
         au_parser_emit_bc_u8(p, OPCODE);                                  \
         break;                                                            \
     }
-                    BIN_OP_ASG('*', AU_OP_MUL)
-                    BIN_OP_ASG('/', AU_OP_DIV)
-                    BIN_OP_ASG('+', AU_OP_ADD)
-                    BIN_OP_ASG('-', AU_OP_SUB)
-                    BIN_OP_ASG('%', AU_OP_MOD)
+                BIN_OP_ASG('*', AU_OP_MUL)
+                BIN_OP_ASG('/', AU_OP_DIV)
+                BIN_OP_ASG('+', AU_OP_ADD)
+                BIN_OP_ASG('-', AU_OP_SUB)
+                BIN_OP_ASG('%', AU_OP_MOD)
 #undef BIN_OP_ASG
-                }
-
-                const uint8_t right = au_parser_pop_reg(p);
-                const uint8_t left = au_parser_pop_reg(p);
-
-                au_parser_emit_bc_u8(p, left);
-                au_parser_emit_bc_u8(p, right);
-
-                uint8_t result_reg;
-                EXPECT_BYTECODE(au_parser_new_reg(p, &result_reg));
-                au_parser_emit_bc_u8(p, result_reg);
             }
 
-            au_parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
-            au_parser_emit_bc_u8(p, au_parser_last_reg(p));
-            au_parser_emit_bc_u16(p, *value);
+            const uint8_t right = au_parser_pop_reg(p);
+            const uint8_t left = au_parser_pop_reg(p);
 
-            return 1;
-        }
+            au_parser_emit_bc_u8(p, left);
+            au_parser_emit_bc_u8(p, right);
 
-        if (op.len == 1 && op.src[0] == '=') {
-            au_parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
-
-            const uint8_t new_reg = au_parser_last_reg(p);
-            au_parser_emit_bc_u8(p, new_reg);
-
-            const au_hm_var_value_t *old_value =
-                au_parser_resolve_identifier(p, id_tok);
-
-            if (old_value) {
-                if (*old_value < p->local_to_reg.len) {
-                    const uint8_t old_reg =
-                        p->local_to_reg.data[*old_value];
-                    AU_BA_RESET_BIT(p->pinned_regs, old_reg);
-                    p->local_to_reg.data[*old_value] = new_reg;
-                    AU_BA_SET_BIT(p->pinned_regs, new_reg);
-                }
-                au_parser_emit_bc_u16(p, *old_value);
-            } else {
-                p->res = (struct au_parser_result){
-                    .type = AU_PARSER_RES_UNKNOWN_VAR,
-                    .data.unknown_id.name_token = id_tok,
-                };
-                return 0;
-            }
-        } else {
-            const au_hm_var_value_t *local_value =
-                au_parser_resolve_identifier(p, id_tok);
-            if (local_value == 0) {
-                p->res = (struct au_parser_result){
-                    .type = AU_PARSER_RES_UNKNOWN_VAR,
-                    .data.unknown_id.name_token = id_tok,
-                };
-                return 0;
-            }
-
-            const au_hm_var_value_t local = *local_value;
-            const uint8_t modifier_reg = au_parser_last_reg(p);
             uint8_t result_reg;
-
-            if (local < p->local_to_reg.len &&
-                p->local_to_reg.data[local] != CACHED_REG_NONE) {
-                result_reg = p->local_to_reg.data[local];
-            } else {
-                EXPECT_BYTECODE(au_parser_new_reg(p, &result_reg));
-                for (size_t i = p->local_to_reg.len; i < (size_t)local + 1;
-                     i++) {
-                    reg_array_add(&p->local_to_reg, CACHED_REG_NONE);
-                }
-                p->local_to_reg.data[local] = result_reg;
-            }
-
-            au_parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
+            EXPECT_BYTECODE(au_parser_new_reg(p, &result_reg));
             au_parser_emit_bc_u8(p, result_reg);
-            au_parser_emit_bc_u16(p, local);
-
-            if (op.src[0] == '*')
-                au_parser_emit_bc_u8(p, AU_OP_MUL);
-            else if (op.src[0] == '/')
-                au_parser_emit_bc_u8(p, AU_OP_DIV);
-            else if (op.src[0] == '+')
-                au_parser_emit_bc_u8(p, AU_OP_ADD);
-            else if (op.src[0] == '-')
-                au_parser_emit_bc_u8(p, AU_OP_SUB);
-            else if (op.src[0] == '%')
-                au_parser_emit_bc_u8(p, AU_OP_MOD);
-            else
-                au_fatal("unimplemented op '%.*s'\n", (int)op.len, op.src);
-            au_parser_emit_bc_u8(p, result_reg);
-            au_parser_emit_bc_u8(p, modifier_reg);
-            au_parser_emit_bc_u8(p, result_reg);
-
-            au_parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
-            au_parser_emit_bc_u8(p, result_reg);
-            au_parser_emit_bc_u16(p, local);
         }
+
+        au_parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
+        au_parser_emit_bc_u8(p, au_parser_last_reg(p));
+        au_parser_emit_bc_u16(p, *value);
+
         return 1;
     }
-    return au_parser_exec_logical_expr(p, l);
+
+    if (op.len == 1 && op.src[0] == '=') {
+        au_parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
+
+        const uint8_t new_reg = au_parser_last_reg(p);
+        au_parser_emit_bc_u8(p, new_reg);
+
+        const au_hm_var_value_t *old_value =
+            au_parser_resolve_identifier(p, id_tok);
+
+        if (old_value) {
+            if (*old_value < p->local_to_reg.len) {
+                const uint8_t old_reg = p->local_to_reg.data[*old_value];
+                AU_BA_RESET_BIT(p->pinned_regs, old_reg);
+                p->local_to_reg.data[*old_value] = new_reg;
+                AU_BA_SET_BIT(p->pinned_regs, new_reg);
+            }
+            au_parser_emit_bc_u16(p, *old_value);
+        } else {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_UNKNOWN_VAR,
+                .data.unknown_id.name_token = id_tok,
+            };
+            return 0;
+        }
+    } else {
+        const au_hm_var_value_t *local_value =
+            au_parser_resolve_identifier(p, id_tok);
+        if (local_value == 0) {
+            p->res = (struct au_parser_result){
+                .type = AU_PARSER_RES_UNKNOWN_VAR,
+                .data.unknown_id.name_token = id_tok,
+            };
+            return 0;
+        }
+
+        const au_hm_var_value_t local = *local_value;
+        const uint8_t modifier_reg = au_parser_last_reg(p);
+        uint8_t result_reg;
+
+        if (local < p->local_to_reg.len &&
+            p->local_to_reg.data[local] != CACHED_REG_NONE) {
+            result_reg = p->local_to_reg.data[local];
+        } else {
+            EXPECT_BYTECODE(au_parser_new_reg(p, &result_reg));
+            for (size_t i = p->local_to_reg.len; i < (size_t)local + 1;
+                 i++) {
+                reg_array_add(&p->local_to_reg, CACHED_REG_NONE);
+            }
+            p->local_to_reg.data[local] = result_reg;
+        }
+
+        au_parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
+        au_parser_emit_bc_u8(p, result_reg);
+        au_parser_emit_bc_u16(p, local);
+
+        if (op.src[0] == '*')
+            au_parser_emit_bc_u8(p, AU_OP_MUL);
+        else if (op.src[0] == '/')
+            au_parser_emit_bc_u8(p, AU_OP_DIV);
+        else if (op.src[0] == '+')
+            au_parser_emit_bc_u8(p, AU_OP_ADD);
+        else if (op.src[0] == '-')
+            au_parser_emit_bc_u8(p, AU_OP_SUB);
+        else if (op.src[0] == '%')
+            au_parser_emit_bc_u8(p, AU_OP_MOD);
+        else
+            au_fatal("unimplemented op '%.*s'\n", (int)op.len, op.src);
+        au_parser_emit_bc_u8(p, result_reg);
+        au_parser_emit_bc_u8(p, modifier_reg);
+        au_parser_emit_bc_u8(p, result_reg);
+
+        au_parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
+        au_parser_emit_bc_u8(p, result_reg);
+        au_parser_emit_bc_u16(p, local);
+    }
+    return 1;
 }
 
 int au_parser_exec_logical_expr(struct au_parser *p, struct au_lexer *l) {
     if (!au_parser_exec_binary_expr(p, l))
         return 0;
 
-    const struct au_token tok = au_lexer_peek(l, 0);
+    const struct au_token tok = au_lexer_peek(l);
     if (tok.type == AU_TOK_OPERATOR && tok.len == 2 &&
         (tok.src[0] == '&' && tok.src[1] == '&')) {
         au_lexer_next(l);
@@ -439,12 +428,14 @@ int au_parser_exec_binary_expr(struct au_parser *p, struct au_lexer *l) {
         // Multiply/div
         { .src = "/",  .precedence = 30, .assoc = ASSOC_LEFT,  .op = AU_OP_DIV  },
         { .src = "*",  .precedence = 30, .assoc = ASSOC_LEFT,  .op = AU_OP_MUL  },
+        { .src = "%",  .precedence = 30, .assoc = ASSOC_LEFT,  .op = AU_OP_MOD  },
         // Comparison ops
         { .src = ">",  .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_GT   },
         { .src = ">=", .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_GEQ  },
         { .src = "<",  .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_LT   },
         { .src = "<=", .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_LEQ  },
         { .src = "==", .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_EQ   },
+        { .src = "!=", .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_NEQ  },
         // clang-format on
     };
     const size_t infos_len = sizeof(infos) / sizeof(infos[0]);
@@ -455,7 +446,7 @@ int au_parser_exec_binary_expr(struct au_parser *p, struct au_lexer *l) {
     int balance = 0;
 
     while (1) {
-        tok = au_lexer_peek(l, 0);
+        tok = au_lexer_peek(l);
         const struct operator_info *cur_op;
         if ((cur_op = get_operator_info(infos, infos_len, tok)) != 0) {
             au_lexer_next(l);
@@ -496,7 +487,7 @@ int au_parser_exec_binary_expr(struct au_parser *p, struct au_lexer *l) {
 // ** Unary operations **
 
 int au_parser_exec_unary_expr(struct au_parser *p, struct au_lexer *l) {
-    struct au_token tok = au_lexer_peek(l, 0);
+    struct au_token tok = au_lexer_peek(l);
 #define UNARY_EXPR_BODY(OPCODE)                                           \
     do {                                                                  \
         au_lexer_next(l);                                                 \
@@ -531,7 +522,7 @@ int au_parser_exec_index_expr(struct au_parser *p, struct au_lexer *l) {
     uint8_t left_reg = 0;
     while (1) {
         left_reg = au_parser_last_reg(p);
-        struct au_token tok = au_lexer_peek(l, 0);
+        struct au_token tok = au_lexer_peek(l);
         if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
             tok.src[0] == '[') {
             au_lexer_next(l);
@@ -544,7 +535,7 @@ int au_parser_exec_index_expr(struct au_parser *p, struct au_lexer *l) {
                              tok.src[0] == ']',
                          tok, "']'");
 
-            tok = au_lexer_peek(l, 0);
+            tok = au_lexer_peek(l);
             if (is_assign_tok(tok)) {
                 au_lexer_next(l);
                 if (!au_parser_exec_expr(p, l))
@@ -679,7 +670,7 @@ int au_parser_exec_index_expr(struct au_parser *p, struct au_lexer *l) {
                 EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok,
                              "identifier or arguments");
 
-                struct au_token peek = au_lexer_peek(l, 0);
+                struct au_token peek = au_lexer_peek(l);
                 struct au_token module_tok =
                     (struct au_token){.type = AU_TOK_EOF};
 
@@ -690,7 +681,7 @@ int au_parser_exec_index_expr(struct au_parser *p, struct au_lexer *l) {
                     id_tok = au_lexer_next(l);
                     EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok,
                                  "identifier");
-                    peek = au_lexer_peek(l, 0);
+                    peek = au_lexer_peek(l);
                 }
 
                 if (peek.type == AU_TOK_OPERATOR && peek.len == 1 &&
@@ -910,7 +901,7 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
     }
     case AU_TOK_OPERATOR: {
         if (tok.len == 1 && tok.src[0] == '(') {
-            tok = au_lexer_peek(l, 0);
+            tok = au_lexer_peek(l);
             if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
                 tok.src[0] == '-') {
                 au_lexer_next(l);
@@ -941,7 +932,7 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             tok = au_lexer_next(l);
             EXPECT_TOKEN(tok.type == AU_TOK_IDENTIFIER, tok, "identifier");
 
-            struct au_token peek = au_lexer_peek(l, 0);
+            struct au_token peek = au_lexer_peek(l);
             struct au_token module_tok =
                 (struct au_token){.type = AU_TOK_EOF};
 
@@ -1006,7 +997,11 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             return 1;
         }
 
-        struct au_token peek = au_lexer_peek(l, 0);
+        struct au_token peek = au_lexer_peek(l);
+
+        if (is_assign_tok(peek)) {
+            return au_parser_exec_assign_expr(p, l, tok);
+        }
 
         if (token_keyword_cmp(&tok, "new")) {
             if (peek.type == AU_TOK_OPERATOR && peek.len == 1 &&
@@ -1024,7 +1019,7 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             au_lexer_next(l);
             tok = au_lexer_next(l);
             EXPECT_TOKEN(tok.type == AU_TOK_IDENTIFIER, tok, "identifier");
-            peek = au_lexer_peek(l, 0);
+            peek = au_lexer_peek(l);
         }
 
         if (peek.type == AU_TOK_OPERATOR && peek.len == 1 &&
@@ -1191,6 +1186,11 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             };
             return 0;
         }
+
+        const struct au_token peek = au_lexer_peek(l);
+        if (is_assign_tok(peek))
+            return au_parser_exec_assign_expr(p, l, tok);
+
         uint8_t reg;
         EXPECT_BYTECODE(au_parser_new_reg(p, &reg));
         au_parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
@@ -1229,7 +1229,7 @@ int au_parser_exec_array_or_tuple(struct au_parser *p, struct au_lexer *l,
     const size_t cap_offset = p->bc.len;
     au_parser_emit_bc_u16(p, 0);
 
-    struct au_token tok = au_lexer_peek(l, 0);
+    struct au_token tok = au_lexer_peek(l);
     if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == ']') {
         au_lexer_next(l);
         return 1;
@@ -1240,16 +1240,11 @@ int au_parser_exec_array_or_tuple(struct au_parser *p, struct au_lexer *l,
         if (!au_parser_exec_expr(p, l))
             return 0;
 
-        if (is_tuple) {
-            EXPECT_BYTECODE(capacity != UINT16_MAX);
-        }
-        capacity += 1;
-
         const uint8_t value_reg = au_parser_pop_reg(p);
         if (is_tuple) {
             au_parser_emit_bc_u8(p, AU_OP_IDX_SET_STATIC);
             au_parser_emit_bc_u8(p, array_reg);
-            au_parser_emit_bc_u8(p, 0);
+            au_parser_emit_bc_u8(p, capacity);
             au_parser_emit_bc_u8(p, value_reg);
         } else {
             au_parser_emit_bc_u8(p, AU_OP_ARRAY_PUSH);
@@ -1257,6 +1252,11 @@ int au_parser_exec_array_or_tuple(struct au_parser *p, struct au_lexer *l,
             au_parser_emit_bc_u8(p, value_reg);
             au_parser_emit_pad8(p);
         }
+
+        if (is_tuple) {
+            EXPECT_BYTECODE(capacity != UINT16_MAX);
+        }
+        capacity += 1;
     });
 
     au_parser_replace_bc_u16(p, cap_offset, capacity);
@@ -1302,7 +1302,7 @@ int au_parser_exec_new_expr(struct au_parser *p, struct au_lexer *l) {
 
     size_t class_idx = *class_value;
 
-    struct au_token tok = au_lexer_peek(l, 0);
+    struct au_token tok = au_lexer_peek(l);
     if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == '{') {
         au_lexer_next(l);
 
@@ -1405,7 +1405,7 @@ int au_parser_exec_fixed_element_name(struct au_parser *p,
                                       struct au_token *id_tok_out) {
     struct au_token module_tok = (struct au_token){.type = AU_TOK_EOF};
     struct au_token id_tok = au_lexer_next(l);
-    const struct au_token peek = au_lexer_peek(l, 0);
+    const struct au_token peek = au_lexer_peek(l);
     if (peek.type == AU_TOK_OPERATOR && peek.len == 2 &&
         peek.src[0] == ':' && peek.src[1] == ':') {
         module_tok = id_tok;

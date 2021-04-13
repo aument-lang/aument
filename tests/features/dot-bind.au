@@ -1,4 +1,4 @@
 func add(x,y) { print x + y; }
-five = 5;
-add_5 = five.add;
+let five = 5;
+let add_5 = five.add;
 add_5.(10);

@@ -8,10 +8,10 @@ func (self: B) dispatch() { print 2; }
 func (self: C) dispatch() { print 3; }
 func (self: D) dispatch() { print 4; }
 
-a = new A;
-b = new B;
-c = new C;
-d = new D;
+let a = new A;
+let b = new B;
+let c = new C;
+let d = new D;
 dispatch(a);
 dispatch(b);
 dispatch(c);

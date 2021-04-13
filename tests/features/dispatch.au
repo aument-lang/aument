@@ -12,7 +12,7 @@ func (self: B) dispatch() {
     print "B";
 }
 
-a = new A;
-b = new B;
+let a = new A;
+let b = new B;
 dispatch(a);
 dispatch(b);

@@ -4,5 +4,5 @@ struct B{}
 func dispatch(self) { print "fallback"; }
 func (self: A) dispatch() { print "A"; }
 
-b = new B;
+let b = new B;
 dispatch(b);

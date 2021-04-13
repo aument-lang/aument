@@ -1,2 +1,2 @@
-bound_bool = .bool::into;
+let bound_bool = .bool::into;
 print bound_bool.(true);

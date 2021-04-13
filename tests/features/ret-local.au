@@ -1,5 +1,5 @@
 func y() {
-    x = 10;
+    let x = 10;
     return x;
 }
 

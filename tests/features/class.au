@@ -6,5 +6,5 @@ func (self: Class) init() {
     print @a + @b;
 }
 
-my_struct = new Class;
+let my_struct = new Class;
 init(my_struct);

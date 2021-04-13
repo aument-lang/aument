@@ -9,6 +9,6 @@ func (self: A) method() {
     print @a;
 }
 
-a = new A;
+let a = new A;
 init(a);
 method(a);

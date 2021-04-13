@@ -1,12 +1,12 @@
 struct A{}
 
-func (self: A) func() {
-  print true;
+func (self: A) func0() {
+    print true;
 }
 
 func (self: A) func1() {
-  func(self);
+    func0(self);
 }
 
-a = new A;
+let a = new A;
 func1(a);

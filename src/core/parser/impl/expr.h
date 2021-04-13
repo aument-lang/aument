@@ -14,7 +14,8 @@ struct au_lexer;
 AU_PRIVATE int au_parser_exec_expr(struct au_parser *p,
                                    struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_assign_expr(struct au_parser *p,
-                                          struct au_lexer *l);
+                                          struct au_lexer *l,
+                                          const struct au_token id_tok);
 AU_PRIVATE int au_parser_exec_logical_expr(struct au_parser *p,
                                            struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_binary_expr(struct au_parser *p,

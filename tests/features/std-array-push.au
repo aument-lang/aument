@@ -1,3 +1,3 @@
-a=[];
+let a=[];
 a.array::push(10);
 print a[0];
