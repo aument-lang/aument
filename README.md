@@ -12,8 +12,8 @@ The **Aument Language** is a work-in-progress, dynamically-typed scripting langu
 
 An example fibonacci program:
 
-```
-def fib(n) {
+```swift
+func fib(n) {
     if n <= 1 {
         return n;
     }
