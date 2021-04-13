@@ -1,4 +1,4 @@
-def hello() {
+func hello() {
     raise "Hello World\n";
 }
 

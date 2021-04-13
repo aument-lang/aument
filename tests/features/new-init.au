@@ -1,8 +1,6 @@
-class A{
-    var prop;
-}
+struct A{ prop }
 
-def (self: A) get_prop() {
+func (self: A) get_prop() {
     return @prop;
 }
 

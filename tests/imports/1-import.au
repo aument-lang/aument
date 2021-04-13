@@ -1,7 +1,7 @@
-def private() {
+func private() {
     return "OK\n";
 }
 
-export def func() {
+export func func() {
     return private();
 }

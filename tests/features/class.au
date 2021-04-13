@@ -1,13 +1,10 @@
-class Class {
-    var a;
-    var b;
-}
+struct Class { a, b }
 
-def (self: Class) init() {
+func (self: Class) init() {
     @a = 1;
     @b = 2;
     print @a + @b;
 }
 
-my_class = new Class;
-init(my_class);
+my_struct = new Class;
+init(my_struct);

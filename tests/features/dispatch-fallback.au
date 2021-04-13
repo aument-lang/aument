@@ -1,8 +1,8 @@
-class A{}
-class B{}
+struct A{}
+struct B{}
 
-def dispatch(self) { print "fallback"; }
-def (self: A) dispatch() { print "A"; }
+func dispatch(self) { print "fallback"; }
+func (self: A) dispatch() { print "A"; }
 
 b = new B;
 dispatch(b);

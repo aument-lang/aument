@@ -1,3 +1,3 @@
-export def a() {
+export func a() {
     print 10, '\n';
 }

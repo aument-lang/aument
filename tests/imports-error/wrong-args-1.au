@@ -1,1 +1,1 @@
-export def x() {}
+export func x() {}

@@ -1,5 +1,3 @@
-class Class {
-    var a; var b;
-}
+struct Class { a, b }
 
-my_class != new Class;
+my_struct != new Class;

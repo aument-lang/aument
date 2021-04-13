@@ -1,15 +1,15 @@
-class A{}
-class B{}
+struct A{}
+struct B{}
 
-def (self: A) other() {
+func (self: A) other() {
     return 1;
 }
 
-def (self: A) other_call(value) {
+func (self: A) other_call(value) {
     print value;
 }
 
-def (self: A) call() {
+func (self: A) call() {
     self.other_call(self.other());
 }
 

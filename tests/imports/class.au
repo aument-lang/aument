@@ -1,11 +1,11 @@
-class B {
+struct B {
 }
-import "./class-import.au" as import;
+import "./struct-import.au" as import;
 
-def (self: import::A) func() {
+func (self: import::A) func() {
     print "A\n";
 }
-def (self: B) func() {
+func (self: B) func() {
     print "B\n";
 }
 a = import::make();

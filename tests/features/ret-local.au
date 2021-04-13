@@ -1,4 +1,4 @@
-def y() {
+func y() {
     x = 10;
     return x;
 }

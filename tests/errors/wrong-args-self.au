@@ -1,5 +1,5 @@
-class A{}
+struct A{}
 
-def (self: A) fn() {
+func (self: A) fn() {
     fn(1,2,3);
 }

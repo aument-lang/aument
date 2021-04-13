@@ -1,10 +1,10 @@
-class A{}
+struct A{}
 
-def (self: A) func() {
+func (self: A) func() {
   print true;
 }
 
-def (self: A) func1() {
+func (self: A) func1() {
   func(self);
 }
 
