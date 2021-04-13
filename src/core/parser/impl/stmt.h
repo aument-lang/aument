@@ -14,7 +14,8 @@ struct au_lexer;
 AU_PRIVATE int au_parser_exec_statement(struct au_parser *p,
                                         struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_block(struct au_parser *p,
-                                    struct au_lexer *l);
+                                    struct au_lexer *l,
+                                    const int allocate_local_vars);
 
 AU_PRIVATE int au_parser_exec_export_statement(struct au_parser *p,
                                                struct au_lexer *l);

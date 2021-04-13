@@ -513,7 +513,7 @@ int au_parser_exec_func_statement(struct au_parser *p, struct au_lexer *l,
     // Block:
 
     const size_t source_map_start = p->p_data->source_map.len;
-    if (!au_parser_exec_block(&func_p, l)) {
+    if (!au_parser_exec_block(&func_p, l, 0)) {
         p->res = func_p.res;
         func_p.res = (struct au_parser_result){0};
         au_parser_del(&func_p);
@@ -666,7 +666,7 @@ int au_parser_exec_if_statement(struct au_parser *p, struct au_lexer *l) {
 
     size_t body_len;
     size_t body_replace_idx = (size_t)-1;
-    if (!au_parser_exec_block(p, l))
+    if (!au_parser_exec_block(p, l, 1))
         return 0;
     au_parser_flush_cached_regs(p);
 
@@ -695,7 +695,7 @@ int au_parser_exec_if_statement(struct au_parser *p, struct au_lexer *l) {
                     if (!au_parser_exec_if_statement(p, l))
                         return 0;
                 } else {
-                    if (!au_parser_exec_block(p, l))
+                    if (!au_parser_exec_block(p, l, 1))
                         return 0;
                 }
             }
@@ -790,7 +790,7 @@ int au_parser_exec_while_statement(struct au_parser *p,
 
     // Block:
 
-    if (!au_parser_exec_block(p, l))
+    if (!au_parser_exec_block(p, l, 1))
         return 0;
     au_parser_flush_cached_regs(p);
 
@@ -882,8 +882,15 @@ int au_parser_exec_raise_statement(struct au_parser *p,
     return 1;
 }
 
-int au_parser_exec_block(struct au_parser *p, struct au_lexer *l) {
+int au_parser_exec_block(struct au_parser *p, struct au_lexer *l,
+                         const int allocate_local_vars) {
     p->block_level++;
+
+    if (allocate_local_vars) {
+        struct au_hm_vars vars = {0};
+        au_hm_vars_init(&vars);
+        vars_array_add(&p->vars, vars);
+    }
 
     struct au_token t = au_lexer_next(l);
     EXPECT_TOKEN(t.type == AU_TOK_OPERATOR && t.len == 1 &&
@@ -903,6 +910,10 @@ int au_parser_exec_block(struct au_parser *p, struct au_lexer *l) {
         else if (retval == -1)
             break;
         au_parser_flush_free_regs(p);
+    }
+
+    if (allocate_local_vars) {
+        au_hm_vars_del(&p->vars.data[--p->vars.len]);
     }
 
     p->block_level--;

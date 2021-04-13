@@ -9,6 +9,9 @@
 #include "def.h"
 #include "platform/platform.h"
 
+AU_PRIVATE const au_hm_var_value_t *
+au_parser_resolve_identifier(const struct au_parser *p, struct au_token id_tok);
+
 AU_PRIVATE struct au_imported_module *
 au_parser_resolve_module(struct au_parser *p, struct au_token module_tok,
                          size_t *module_idx_out);

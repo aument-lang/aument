@@ -6,6 +6,18 @@
 
 #include "def.h"
 
+const au_hm_var_value_t *
+au_parser_resolve_identifier(const struct au_parser *p, struct au_token id_tok) {
+    for(size_t i = p->vars.len; i-- > 0;) {
+        struct au_hm_vars *vars = &p->vars.data[i];
+        const au_hm_var_value_t *retval = 0;
+        if ((retval = au_hm_vars_get(vars, id_tok.src, id_tok.len)) != 0) {
+            return retval;
+        }
+    }
+    return 0;
+}
+
 struct au_imported_module *
 au_parser_resolve_module(struct au_parser *p, struct au_token module_tok,
                          size_t *module_idx_out) {
