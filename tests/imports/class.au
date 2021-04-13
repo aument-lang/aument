@@ -1,6 +1,6 @@
 struct B {
 }
-import "./struct-import.au" as import;
+import "./class-import.au" as import;
 
 func (self: import::A) func() {
     print "A\n";
