@@ -48,10 +48,10 @@ int au_parser_exec_statement(struct au_parser *p, struct au_lexer *l) {
             EXPECT_GLOBAL_SCOPE(tok);
             au_lexer_next(l);
             retval = WITH_SEMICOLON(au_parser_exec_import_statement);
-        } else if (token_keyword_cmp(&tok, "export")) {
+        } else if (token_keyword_cmp(&tok, "public")) {
             EXPECT_GLOBAL_SCOPE(tok);
             au_lexer_next(l);
-            retval = au_parser_exec_export_statement(p, l);
+            retval = au_parser_exec_public_statement(p, l);
         }
         // Regular statements
         else if (token_keyword_cmp(&tok, "let")) {
@@ -150,7 +150,7 @@ int au_parser_exec_import_statement(struct au_parser *p,
     return 1;
 }
 
-int au_parser_exec_export_statement(struct au_parser *p,
+int au_parser_exec_public_statement(struct au_parser *p,
                                     struct au_lexer *l) {
     struct au_token tok = au_lexer_next(l);
     if (token_keyword_cmp(&tok, "func")) {

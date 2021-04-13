@@ -2,7 +2,7 @@ Program = TopLevelStatement*
 
 TopLevelStatement
     = "import" String ("as" Identifier)? ";"
-    / "export" ExportableStatement
+    / "public" ExportableStatement
     / "func" FuncHead? Identifier "(" FuncArguments ")" Block
     / "struct" Identifier "{" StructFields "}"
     / Statement
@@ -61,6 +61,7 @@ BinExpr
     / Expression "+"   BinExpr
     / Expression "-"   BinExpr
     / Expression "*"   BinExpr
+    / Expression "%"   BinExpr
     / Expression "/"   BinExpr
     / Expression "^"   BinExpr
     / Expression "&"   BinExpr

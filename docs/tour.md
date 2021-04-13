@@ -312,11 +312,11 @@ print module::random(); // => 4
 
 ### Exports
 
-All files are executed separately and you cannot directly use an imported file's variables/functions (unless exported). To export a function, use the `export` statement:
+All files are executed separately and you cannot directly use an imported file's variables/functions (unless exported). To export a function, use the `public` statement:
 
 ```swift
 // importee.au
-export func random() {
+public func random() {
     return 4;
 }
 ```
@@ -324,9 +324,7 @@ export func random() {
 You can also export a struct:
 
 ```swift
-export struct Human {
-    val name;
-}
+public struct Human { name }
 ```
 
 ### Importing native DLLs

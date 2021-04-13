@@ -1,4 +1,4 @@
-export func f() {
+public func f() {
     return "Import\n";
 }
 

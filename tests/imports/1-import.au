@@ -2,6 +2,6 @@ func private() {
     return "OK\n";
 }
 
-export func func() {
+public func func() {
     return private();
 }
