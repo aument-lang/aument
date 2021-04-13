@@ -20,12 +20,12 @@ AU_PRIVATE int au_parser_exec_export_statement(struct au_parser *p,
                                                struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_import_statement(struct au_parser *p,
                                                struct au_lexer *l);
-AU_PRIVATE int au_parser_exec_class_statement(struct au_parser *p,
-                                              struct au_lexer *l,
-                                              int exported);
-AU_PRIVATE int au_parser_exec_def_statement(struct au_parser *p,
-                                            struct au_lexer *l,
-                                            int exported);
+AU_PRIVATE int au_parser_exec_struct_statement(struct au_parser *p,
+                                               struct au_lexer *l,
+                                               int exported);
+AU_PRIVATE int au_parser_exec_func_statement(struct au_parser *p,
+                                             struct au_lexer *l,
+                                             int exported);
 AU_PRIVATE int au_parser_exec_const_statement(struct au_parser *p,
                                               struct au_lexer *l,
                                               int exported);

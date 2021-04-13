@@ -13,21 +13,10 @@ struct au_lexer;
 
 AU_PRIVATE int au_parser_exec_expr(struct au_parser *p,
                                    struct au_lexer *l);
-AU_PRIVATE int au_parser_exec_assign(struct au_parser *p,
-                                     struct au_lexer *l);
-AU_PRIVATE int au_parser_exec_logical(struct au_parser *p,
-                                      struct au_lexer *l);
-AU_PRIVATE int au_parser_emit_bc_binary_expr(struct au_parser *p);
-AU_PRIVATE int au_parser_exec_eq(struct au_parser *p, struct au_lexer *l);
-AU_PRIVATE int au_parser_exec_cmp(struct au_parser *p, struct au_lexer *l);
-AU_PRIVATE int au_parser_exec_addsub(struct au_parser *p,
-                                     struct au_lexer *l);
-AU_PRIVATE int au_parser_exec_muldiv(struct au_parser *p,
-                                     struct au_lexer *l);
-AU_PRIVATE int au_parser_exec_bitwise_logic(struct au_parser *p,
-                                            struct au_lexer *l);
-AU_PRIVATE int au_parser_exec_bitwise_shift(struct au_parser *p,
-                                            struct au_lexer *l);
+AU_PRIVATE int au_parser_exec_logical_expr(struct au_parser *p,
+                                           struct au_lexer *l);
+AU_PRIVATE int au_parser_exec_binary_expr(struct au_parser *p,
+                                          struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_unary_expr(struct au_parser *p,
                                          struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_index_expr(struct au_parser *p,
@@ -45,3 +34,8 @@ AU_PRIVATE int au_parser_exec_dict(struct au_parser *p,
                                    struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_new_expr(struct au_parser *p,
                                        struct au_lexer *l);
+
+AU_PRIVATE int
+au_parser_exec_fixed_element_name(struct au_parser *p, struct au_lexer *l,
+                                  struct au_token *module_tok_out,
+                                  struct au_token *id_tok_out);

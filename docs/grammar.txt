@@ -1,0 +1,102 @@
+Program = TopLevelStatement*
+
+TopLevelStatement
+    = "import" String ("as" Identifier)? ";"
+    / "export" ExportableStatement
+    / "func" FuncHead? Identifier "(" FuncArguments ")" Block
+    / "struct" Identifier "{" StructFields "}"
+    / Statement
+
+ExportableStatement
+    = "func" FuncHead? Identifier "(" FuncArguments ")" Block
+    / "struct" Identifier "{" StructFields "}"
+    / "const" Identifier "=" Expression ";"
+
+Statement
+    = "const" Identifier "=" Expression ";"
+    / "let" Identifier "=" Expression ";"
+    / "if" Expression Block IfTail?
+    / "while" Expression Block
+    / "print" CallArguments ";"
+    / "return" Expression ";"
+    / "raise" Expression ";"
+    / Expression ";"
+
+Block
+    = "{" Statement* "}"
+
+// struct statement
+
+StructFields
+    = StructField ("," StructField)*
+
+StructField
+    = Identifier
+
+// func statement
+
+FuncHead
+    = "(" Identifier ":" FixedElementName ")"
+
+FuncArguments
+    = Identifier ("," Identifier)*
+
+// if statement
+
+IfTail
+    = "else" "if" Expression Block IfTail
+    / "else" Block
+
+// Expressions (in precedence order)
+
+Expression
+    = Identifier AssignOp Expression
+    / BinExpr
+    / UnaryExpr
+
+BinExpr
+    = Expression "&&"  BinExpr 
+    / Expression "||"  BinExpr 
+    / Expression CmpOp BinExpr  
+    / Expression "+"   BinExpr
+    / Expression "-"   BinExpr
+    / Expression "*"   BinExpr
+    / Expression "/"   BinExpr
+    / Expression "^"   BinExpr
+    / Expression "&"   BinExpr
+    / Expression "|"   BinExpr
+    / Expression "<<"  BinExpr 
+    / Expression ">>"  BinExpr
+    / Expression
+
+UnaryExpr
+    = "-" IndexExpr
+    / "!" IndexExpr
+    / IndexExpr
+
+IndexExpr
+    = CallExpr IndexExprTail+
+    / CallExpr
+
+IndexExprTail
+    = "[" Expression "]"
+    / "." CallExpr
+
+CallExpr
+    = FixedElementName "(" CallArguments ")"
+    / Value
+
+CallArguments
+    = Expression ("," Expression)*
+
+Value
+    = "[" Expression ("," Expression)* "]"
+    / "#[" Expression ("," Expression)* "]"
+    / "{" DictPair ("," DictPair)* "}"
+    / Primitive
+
+// Types
+
+FixedElementName
+    = Identifier "::" Identifier
+    / Identifier

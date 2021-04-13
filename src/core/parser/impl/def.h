@@ -140,3 +140,29 @@ static inline int is_assign_tok(struct au_token op) {
               op.src[0] == '/' || op.src[0] == '%') &&
              op.src[1] == '='));
 }
+
+#define PARSE_COMMA_LIST(END, EXPECTED, BLOCK)                            \
+    do {                                                                  \
+        struct au_token tok = au_lexer_peek(l, 0);                        \
+        if (tok.type == AU_TOK_EOF ||                                     \
+            (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&               \
+             tok.src[0] == END)) {                                        \
+            au_lexer_next(l);                                             \
+            break;                                                        \
+        } else {                                                          \
+            BLOCK                                                         \
+        }                                                                 \
+        while (1) {                                                       \
+            struct au_token tok = au_lexer_next(l);                       \
+            if (tok.type == AU_TOK_EOF ||                                 \
+                (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&           \
+                 tok.src[0] == END)) {                                    \
+                break;                                                    \
+            } else if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&     \
+                       tok.src[0] == ',') {                               \
+                BLOCK                                                     \
+            } else {                                                      \
+                EXPECT_TOKEN(0, tok, EXPECTED);                           \
+            }                                                             \
+        }                                                                 \
+    } while (0)
