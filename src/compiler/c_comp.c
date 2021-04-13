@@ -82,14 +82,8 @@ static void function_ctx_finalize(struct function_ctx *fctx) {
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_check_multiple_set);
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_into_semi_ssa);
 
-    lyra_function_all_blocks(fctx->lyra_fn,
-                             lyra_pass_partial_type_inference);
-    lyra_function_full_type_inference(fctx->lyra_fn);
-    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_correct_var_movs);
-
-    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_remove_indirection);
-    lyra_function_all_blocks(fctx->lyra_fn,
-                             lyra_pass_partial_type_inference);
+    lyra_function_type_inference(fctx->lyra_fn);
+    lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_add_casts);
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_correct_var_movs);
 
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_const_prop);
@@ -97,7 +91,7 @@ static void function_ctx_finalize(struct function_ctx *fctx) {
     lyra_function_reset_managed_vars(fctx->lyra_fn);
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_check_multiple_use);
     lyra_function_all_blocks(fctx->lyra_fn, lyra_pass_purge_dead_code);
-
+    
     lyra_ctx_gc_run(fctx->lyra_fn->ctx);
 }
 
