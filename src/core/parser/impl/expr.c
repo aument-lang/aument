@@ -29,7 +29,8 @@ static int au_parser_exec_call_args(struct au_parser *p,
     *calling_type_out = CA_NORMAL;
     {
         const struct au_token tok = au_lexer_peek(l, 0);
-        if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == ')') {
+        if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
+            tok.src[0] == ')') {
             au_lexer_next(l);
             return 1;
         } else if (tok.type == AU_TOK_OPERATOR && tok.len == 2 &&
@@ -52,7 +53,8 @@ static int au_parser_exec_call_args(struct au_parser *p,
     while (1) {
         const struct au_token tok = au_lexer_next(l);
         if (tok.type == AU_TOK_EOF ||
-            (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == ')')) {
+            (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
+             tok.src[0] == ')')) {
             return 1;
         } else if (tok.type == AU_TOK_OPERATOR && tok.len == 2 &&
                    tok.src[0] == ')' && tok.src[1] == '?') {
@@ -775,7 +777,8 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             EXPECT_TOKEN(tok.len == 1 && tok.src[0] == ')', tok, "')'");
         } else if (tok.len == 1 && tok.src[0] == '[') {
             return au_parser_exec_array_or_tuple(p, l, 0);
-        } else if (tok.len == 2 && tok.src[0] == '#' && tok.src[1] == '[') {
+        } else if (tok.len == 2 && tok.src[0] == '#' &&
+                   tok.src[1] == '[') {
             return au_parser_exec_array_or_tuple(p, l, 1);
         } else if (tok.len == 1 && tok.src[0] == '{') {
             return au_parser_exec_dict(p, l);
@@ -792,7 +795,8 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
                 module_tok = tok;
                 au_lexer_next(l);
                 tok = au_lexer_next(l);
-                EXPECT_TOKEN(tok.type == AU_TOK_IDENTIFIER, tok, "identifier");
+                EXPECT_TOKEN(tok.type == AU_TOK_IDENTIFIER, tok,
+                             "identifier");
             }
 
             size_t func_idx = 0;
@@ -884,8 +888,9 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
                 return 0;
             }
 
-            au_hm_var_value_t *const_val = au_hm_vars_add(
-                &module->const_map, tok.src, tok.len, p->p_data->data_val.len);
+            au_hm_var_value_t *const_val =
+                au_hm_vars_add(&module->const_map, tok.src, tok.len,
+                               p->p_data->data_val.len);
             size_t idx;
             if (const_val == 0) {
                 idx = p->p_data->data_val.len;
@@ -900,7 +905,8 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             au_parser_emit_bc_u8(p, reg);
             au_parser_emit_bc_u16(p, idx);
         } else {
-            const au_hm_var_value_t *val = au_parser_resolve_identifier(p, tok);
+            const au_hm_var_value_t *val =
+                au_parser_resolve_identifier(p, tok);
             if (val != NULL) {
                 const uint16_t local = *val;
                 uint8_t cached_reg;
@@ -990,7 +996,8 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
         int idx = -1;
         if (is_char_string) {
             int32_t codepoint = 0;
-            if (utf8_codepoint(tok.src, &tok.src[tok.len], &codepoint) == 0)
+            if (utf8_codepoint(tok.src, &tok.src[tok.len], &codepoint) ==
+                0)
                 abort(); // TODO
 
             idx = au_program_data_add_data(p->p_data,
@@ -1073,61 +1080,29 @@ int au_parser_exec_array_or_tuple(struct au_parser *p, struct au_lexer *l,
         return 1;
     }
 
-    uint16_t capacity = 1;
-    if (!au_parser_exec_expr(p, l))
-        return 0;
-    const uint8_t value_reg = au_parser_pop_reg(p);
-    if (is_tuple) {
-        au_parser_emit_bc_u8(p, AU_OP_IDX_SET_STATIC);
-        au_parser_emit_bc_u8(p, array_reg);
-        au_parser_emit_bc_u8(p, 0);
-        au_parser_emit_bc_u8(p, value_reg);
-    } else {
-        au_parser_emit_bc_u8(p, AU_OP_ARRAY_PUSH);
-        au_parser_emit_bc_u8(p, array_reg);
-        au_parser_emit_bc_u8(p, value_reg);
-        au_parser_emit_pad8(p);
-    }
+    uint16_t capacity = 0;
+    PARSE_COMMA_LIST(']', "array item", {
+        if (!au_parser_exec_expr(p, l))
+            return 0;
 
-    while (1) {
-        tok = au_lexer_peek(l, 0);
-        if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
-            tok.src[0] == ']') {
-            au_lexer_next(l);
-            break;
-        } else if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
-                   tok.src[0] == ',') {
-            au_lexer_next(l);
-
-            tok = au_lexer_peek(l, 0);
-            if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
-                tok.src[0] == ']')
-                break;
-
-            if (!au_parser_exec_expr(p, l))
-                return 0;
-            const uint8_t value_reg = au_parser_pop_reg(p);
-
-            if (is_tuple) {
-                au_parser_emit_bc_u8(p, AU_OP_IDX_SET_STATIC);
-                au_parser_emit_bc_u8(p, array_reg);
-                au_parser_emit_bc_u8(p, capacity);
-                au_parser_emit_bc_u8(p, value_reg);
-                capacity++;
-                EXPECT_BYTECODE(capacity < AU_MAX_STATIC_IDX);
-            } else {
-                au_parser_emit_bc_u8(p, AU_OP_ARRAY_PUSH);
-                au_parser_emit_bc_u8(p, array_reg);
-                au_parser_emit_bc_u8(p, value_reg);
-                au_parser_emit_pad8(p);
-                if (capacity < (AU_MAX_ARRAY - 1)) {
-                    capacity++;
-                }
-            }
-        } else {
-            EXPECT_TOKEN(0, tok, "',' or ']'");
+        if (is_tuple) {
+            EXPECT_BYTECODE(capacity != UINT16_MAX);
         }
-    }
+        capacity += 1;
+
+        const uint8_t value_reg = au_parser_pop_reg(p);
+        if (is_tuple) {
+            au_parser_emit_bc_u8(p, AU_OP_IDX_SET_STATIC);
+            au_parser_emit_bc_u8(p, array_reg);
+            au_parser_emit_bc_u8(p, 0);
+            au_parser_emit_bc_u8(p, value_reg);
+        } else {
+            au_parser_emit_bc_u8(p, AU_OP_ARRAY_PUSH);
+            au_parser_emit_bc_u8(p, array_reg);
+            au_parser_emit_bc_u8(p, value_reg);
+            au_parser_emit_pad8(p);
+        }
+    });
 
     au_parser_replace_bc_u16(p, cap_offset, capacity);
     return 1;
