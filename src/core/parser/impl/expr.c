@@ -82,10 +82,165 @@ static int au_parser_exec_call_args(struct au_parser *p,
 // ** Main function **
 
 int au_parser_exec_expr(struct au_parser *p, struct au_lexer *l) {
-    return au_parser_exec_logical_expr(p, l);
+    return au_parser_exec_assign_expr(p, l);
 }
 
 // ** Binary operations **
+
+int au_parser_exec_assign_expr(struct au_parser *p, struct au_lexer *l) {
+    const struct au_token id_tok = au_lexer_peek(l, 0);
+    const struct au_token op = au_lexer_peek(l, 1);
+
+    if ((id_tok.type == AU_TOK_IDENTIFIER ||
+         id_tok.type == AU_TOK_AT_IDENTIFIER) &&
+        is_assign_tok(op)) {
+
+        au_lexer_next(l);
+        au_lexer_next(l);
+
+        if (!au_parser_exec_expr(p, l))
+            return 0;
+
+        if (id_tok.type == AU_TOK_AT_IDENTIFIER) {
+            const struct au_class_interface *interface =
+                p->class_interface;
+            if (interface == 0) {
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_CLASS_SCOPE_ONLY,
+                    .data.class_scope.at_token = id_tok,
+                };
+                return 0;
+            }
+
+            const au_hm_var_value_t *value = au_hm_vars_get(
+                &interface->map, &id_tok.src[1], id_tok.len - 1);
+            if (value == 0) {
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNKNOWN_VAR,
+                    .data.unknown_id.name_token = id_tok,
+                };
+                return 0;
+            }
+
+            if (!(op.len == 1 && op.src[0] == '=')) {
+                uint8_t reg;
+                EXPECT_BYTECODE(au_parser_new_reg(p, &reg));
+                au_parser_emit_bc_u8(p, AU_OP_CLASS_GET_INNER);
+                au_parser_emit_bc_u8(p, reg);
+                au_parser_emit_bc_u16(p, *value);
+
+                switch (op.src[0]) {
+#define BIN_OP_ASG(OP, OPCODE)                                            \
+    case OP: {                                                            \
+        au_parser_emit_bc_u8(p, OPCODE);                                  \
+        break;                                                            \
+    }
+                    BIN_OP_ASG('*', AU_OP_MUL)
+                    BIN_OP_ASG('/', AU_OP_DIV)
+                    BIN_OP_ASG('+', AU_OP_ADD)
+                    BIN_OP_ASG('-', AU_OP_SUB)
+                    BIN_OP_ASG('%', AU_OP_MOD)
+#undef BIN_OP_ASG
+                }
+
+                const uint8_t right = au_parser_pop_reg(p);
+                const uint8_t left = au_parser_pop_reg(p);
+
+                au_parser_emit_bc_u8(p, left);
+                au_parser_emit_bc_u8(p, right);
+
+                uint8_t result_reg;
+                EXPECT_BYTECODE(au_parser_new_reg(p, &result_reg));
+                au_parser_emit_bc_u8(p, result_reg);
+            }
+
+            au_parser_emit_bc_u8(p, AU_OP_CLASS_SET_INNER);
+            au_parser_emit_bc_u8(p, au_parser_last_reg(p));
+            au_parser_emit_bc_u16(p, *value);
+
+            return 1;
+        }
+
+        if (op.len == 1 && op.src[0] == '=') {
+            au_parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
+
+            const uint8_t new_reg = au_parser_last_reg(p);
+            au_parser_emit_bc_u8(p, new_reg);
+
+            const au_hm_var_value_t *old_value =
+                au_parser_resolve_identifier(p, id_tok);
+
+            if (old_value) {
+                if (*old_value < p->local_to_reg.len) {
+                    const uint8_t old_reg =
+                        p->local_to_reg.data[*old_value];
+                    AU_BA_RESET_BIT(p->pinned_regs, old_reg);
+                    p->local_to_reg.data[*old_value] = new_reg;
+                    AU_BA_SET_BIT(p->pinned_regs, new_reg);
+                }
+                au_parser_emit_bc_u16(p, *old_value);
+            } else {
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNKNOWN_VAR,
+                    .data.unknown_id.name_token = id_tok,
+                };
+                return 0;
+            }
+        } else {
+            const au_hm_var_value_t *local_value =
+                au_parser_resolve_identifier(p, id_tok);
+            if (local_value == 0) {
+                p->res = (struct au_parser_result){
+                    .type = AU_PARSER_RES_UNKNOWN_VAR,
+                    .data.unknown_id.name_token = id_tok,
+                };
+                return 0;
+            }
+
+            const au_hm_var_value_t local = *local_value;
+            const uint8_t modifier_reg = au_parser_last_reg(p);
+            uint8_t result_reg;
+
+            if (local < p->local_to_reg.len &&
+                p->local_to_reg.data[local] != CACHED_REG_NONE) {
+                result_reg = p->local_to_reg.data[local];
+            } else {
+                EXPECT_BYTECODE(au_parser_new_reg(p, &result_reg));
+                for (size_t i = p->local_to_reg.len; i < (size_t)local + 1;
+                     i++) {
+                    reg_array_add(&p->local_to_reg, CACHED_REG_NONE);
+                }
+                p->local_to_reg.data[local] = result_reg;
+            }
+
+            au_parser_emit_bc_u8(p, AU_OP_MOV_LOCAL_REG);
+            au_parser_emit_bc_u8(p, result_reg);
+            au_parser_emit_bc_u16(p, local);
+
+            if (op.src[0] == '*')
+                au_parser_emit_bc_u8(p, AU_OP_MUL);
+            else if (op.src[0] == '/')
+                au_parser_emit_bc_u8(p, AU_OP_DIV);
+            else if (op.src[0] == '+')
+                au_parser_emit_bc_u8(p, AU_OP_ADD);
+            else if (op.src[0] == '-')
+                au_parser_emit_bc_u8(p, AU_OP_SUB);
+            else if (op.src[0] == '%')
+                au_parser_emit_bc_u8(p, AU_OP_MOD);
+            else
+                au_fatal("unimplemented op '%.*s'\n", (int)op.len, op.src);
+            au_parser_emit_bc_u8(p, result_reg);
+            au_parser_emit_bc_u8(p, modifier_reg);
+            au_parser_emit_bc_u8(p, result_reg);
+
+            au_parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
+            au_parser_emit_bc_u8(p, result_reg);
+            au_parser_emit_bc_u16(p, local);
+        }
+        return 1;
+    }
+    return au_parser_exec_logical_expr(p, l);
+}
 
 int au_parser_exec_logical_expr(struct au_parser *p, struct au_lexer *l) {
     if (!au_parser_exec_binary_expr(p, l))
