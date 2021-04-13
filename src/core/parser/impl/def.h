@@ -160,9 +160,19 @@ static inline int is_assign_tok(struct au_token op) {
                 break;                                                    \
             } else if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&     \
                        tok.src[0] == ',') {                               \
+                do {                                                      \
+                    struct au_token tok = au_lexer_peek(l, 0);            \
+                    if (tok.type == AU_TOK_EOF ||                         \
+                        (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&   \
+                         tok.src[0] == END)) {                            \
+                        au_lexer_next(l);                                 \
+                        goto _end_comma_list;                             \
+                    }                                                     \
+                } while (0);                                              \
                 BLOCK                                                     \
             } else {                                                      \
                 EXPECT_TOKEN(0, tok, EXPECTED);                           \
             }                                                             \
         }                                                                 \
+_end_comma_list:;                                                         \
     } while (0)
