@@ -27,6 +27,8 @@
 AU_ARRAY_COPY(size_t, size_t_array, 1)
 AU_ARRAY_COPY(uint8_t, reg_array, 1)
 
+AU_ARRAY_STRUCT(struct au_hm_vars, vars_array, 1)
+
 struct au_parser {
     /// Bytecode buffer that the parser is outputting to
     struct au_bc_buf bc;
@@ -41,7 +43,7 @@ struct au_parser {
     char pinned_regs[AU_BA_LEN(AU_REGS)];
 
     /// Hash table of local variables
-    struct au_hm_vars vars;
+    struct vars_array vars;
     /// Local => reg mapping
     struct reg_array local_to_reg;
 

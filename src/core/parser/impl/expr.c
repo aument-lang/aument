@@ -900,8 +900,8 @@ int au_parser_exec_value(struct au_parser *p, struct au_lexer *l) {
             au_parser_emit_bc_u8(p, reg);
             au_parser_emit_bc_u16(p, idx);
         } else {
-            const au_hm_var_value_t *val =
-                au_hm_vars_get(&p->vars, t.src, t.len);
+            const au_hm_var_value_t *val = au_hm_vars_get(
+                &p->vars.data[p->vars.len - 1], t.src, t.len);
             if (val == NULL) {
                 const au_hm_var_value_t *const_val = 0;
 

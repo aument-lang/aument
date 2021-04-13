@@ -29,6 +29,8 @@ AU_PRIVATE int au_parser_exec_func_statement(struct au_parser *p,
 AU_PRIVATE int au_parser_exec_const_statement(struct au_parser *p,
                                               struct au_lexer *l,
                                               int exported);
+AU_PRIVATE int au_parser_exec_let_statement(struct au_parser *p,
+                                            struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_while_statement(struct au_parser *p,
                                               struct au_lexer *l);
 AU_PRIVATE int au_parser_exec_if_statement(struct au_parser *p,

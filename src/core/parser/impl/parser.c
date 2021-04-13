@@ -14,13 +14,17 @@ void au_parser_init(struct au_parser *p, struct au_program_data *p_data) {
     memset(p, 0, sizeof(struct au_parser));
 
     p->bc = (struct au_bc_buf){0};
-    au_hm_vars_init(&p->vars);
     au_hm_vars_init(&p->consts);
     p->p_data = p_data;
 
     p->num_locals = 0;
     p->max_register = -1;
     p->block_level = 0;
+
+    p->vars = (struct vars_array){0};
+    struct au_hm_vars vars = {0};
+    au_hm_vars_init(&vars);
+    vars_array_add(&p->vars, vars);
 
     p->local_to_reg = (struct reg_array){0};
 
@@ -43,7 +47,10 @@ void au_parser_init(struct au_parser *p, struct au_program_data *p_data) {
 
 void au_parser_del(struct au_parser *p) {
     au_data_free(p->bc.data);
-    au_hm_vars_del(&p->vars);
+    for (size_t i = 0; i < p->vars.len; i++) {
+        au_hm_vars_del(&p->vars.data[i]);
+    }
+    au_data_free(p->vars.data);
     au_data_free(p->local_to_reg.data);
     au_hm_vars_del(&p->consts);
     au_data_free(p->self_fill_call.data);

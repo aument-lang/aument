@@ -54,7 +54,10 @@ int au_parser_exec_statement(struct au_parser *p, struct au_lexer *l) {
             retval = au_parser_exec_export_statement(p, l);
         }
         // Regular statements
-        else if (token_keyword_cmp(&t, "const")) {
+        else if (token_keyword_cmp(&t, "let")) {
+            au_lexer_next(l);
+            retval = WITH_SEMICOLON(au_parser_exec_let_statement);
+        } else if (token_keyword_cmp(&t, "const")) {
             au_lexer_next(l);
             retval = au_parser_exec_with_semicolon(
                 p, l, au_parser_exec_const_statement(p, l, 0));
@@ -436,7 +439,8 @@ int au_parser_exec_func_statement(struct au_parser *p, struct au_lexer *l,
         if (!token_keyword_cmp(&self_tok, "_")) {
             func_p.self_keyword = self_tok.src;
             func_p.self_keyword_len = self_tok.len;
-            au_hm_vars_add(&func_p.vars, self_tok.src, self_tok.len, 0);
+            au_hm_vars_add(&func_p.vars.data[func_p.vars.len - 1],
+                           self_tok.src, self_tok.len, 0);
         }
         bcs.num_args++;
         func_p.num_locals++;
@@ -463,7 +467,8 @@ int au_parser_exec_func_statement(struct au_parser *p, struct au_lexer *l,
         struct au_token tok = au_lexer_next(l);
         EXPECT_TOKEN(tok.type == AU_TOK_IDENTIFIER, tok, "identifier");
         const au_hm_var_value_t *old =
-            au_hm_vars_add(&func_p.vars, tok.src, tok.len, bcs.num_args);
+            au_hm_vars_add(&func_p.vars.data[func_p.vars.len - 1], tok.src,
+                           tok.len, bcs.num_args);
         if (old != NULL)
             RAISE_DUPLICATE_ARG(tok);
         func_p.num_locals++;
@@ -543,6 +548,48 @@ int au_parser_exec_func_statement(struct au_parser *p, struct au_lexer *l,
     };
 
     au_parser_del(&func_p);
+
+    return 1;
+}
+
+int au_parser_exec_let_statement(struct au_parser *p, struct au_lexer *l) {
+    // Identifier:
+
+    const struct au_token id_tok = au_lexer_next(l);
+    EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok, "identifier");
+
+    // "=":
+
+    const struct au_token eq_tok = au_lexer_next(l);
+    EXPECT_TOKEN(eq_tok.type == AU_TOK_OPERATOR &&
+                     (eq_tok.len == 1 && eq_tok.src[0] == '='),
+                 eq_tok, "'='");
+
+    // Expression:
+
+    if (!au_parser_exec_expr(p, l))
+        return 0;
+    const uint8_t new_reg = au_parser_last_reg(p);
+
+    au_parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
+    au_parser_emit_bc_u8(p, new_reg);
+
+    const au_hm_var_value_t new_value = p->num_locals;
+    const au_hm_var_value_t *old_value = au_hm_vars_add(
+        &p->vars.data[p->vars.len - 1], id_tok.src, id_tok.len, new_value);
+    if (old_value) {
+        if (*old_value < p->local_to_reg.len) {
+            const uint8_t old_reg = p->local_to_reg.data[*old_value];
+            AU_BA_RESET_BIT(p->pinned_regs, old_reg);
+            p->local_to_reg.data[*old_value] = new_reg;
+            AU_BA_SET_BIT(p->pinned_regs, new_reg);
+        }
+        au_parser_emit_bc_u16(p, *old_value);
+    } else {
+        p->num_locals++;
+        EXPECT_BYTECODE(p->num_locals <= AU_MAX_LOCALS);
+        au_parser_emit_bc_u16(p, new_value);
+    }
 
     return 1;
 }
