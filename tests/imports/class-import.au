@@ -1,6 +1,6 @@
-export class A {
+public struct A {
 }
 
-export def make() {
+public func make() {
     return new A;
 }

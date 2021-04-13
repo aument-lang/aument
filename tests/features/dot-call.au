@@ -1,2 +1,2 @@
-def f(x) { print x; }
+func f(x) { print x; }
 "a".f();

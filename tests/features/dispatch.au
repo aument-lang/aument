@@ -1,18 +1,18 @@
-class A {
+struct A {
 }
 
-class B {
+struct B {
 }
 
-def (self: A) dispatch() {
+func (self: A) dispatch() {
     print "A";
 }
 
-def (self: B) dispatch() {
+func (self: B) dispatch() {
     print "B";
 }
 
-a = new A;
-b = new B;
+let a = new A;
+let b = new B;
 dispatch(a);
 dispatch(b);

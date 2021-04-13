@@ -12,6 +12,7 @@
 
 void au_class_interface_init(struct au_class_interface *interface,
                              char *name) {
+    memset(interface, 0, sizeof(struct au_class_interface));
     interface->name = name;
     interface->flags = 0;
     interface->rc = 1;

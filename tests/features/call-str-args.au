@@ -1,4 +1,4 @@
-def call(x) {
+func call(x) {
     print x;
 }
 

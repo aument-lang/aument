@@ -1,5 +1,5 @@
-def a() {
+func a() {
     b(1,2,3);
 }
 
-def b() {}
+func b() {}

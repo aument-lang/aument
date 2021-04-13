@@ -144,7 +144,7 @@ static au_hm_var_value_t *hm_insert(struct au_hm_vars *hmap,
     entry.psl = 0;
 
     int entry_initialized = 1;
-    if(key_idx == NEW_KEY)
+    if (key_idx == NEW_KEY)
         entry_initialized = 0;
 
     /*

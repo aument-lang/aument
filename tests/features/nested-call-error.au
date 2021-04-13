@@ -1,4 +1,4 @@
-def x(a) {
+func x(a) {
     raise a;
 }
 
