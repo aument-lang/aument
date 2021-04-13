@@ -1,27 +1,25 @@
-class Human {
-	var name;
+struct Human { name }
+
+func human(name) {
+	return new Human {
+		name: name
+	};
 }
 
-def (self: Human) init(name) {
-	@name = name;
-}
-
-class Cat {}
-
-def (self: Human) say() {
+func (self: Human) say() {
 	print "I'm ", @name, "\n";
 }
 
-def (self: Cat) say() {
+struct Cat;
+
+func (self: Cat) say() {
 	print "meow!";
 }
 
-alice = new Human;
-init(alice, "Alice");
-bob = new Human;
-init(bob, "Bob");
-cat = new Cat;
+let alice = human("Alice");
+let bob = human("Bob");
+let cat = new Cat;
 
-say(alice);
-say(bob);
-say(cat);
+alice.say();
+bob.say();
+cat.say();
