@@ -269,7 +269,7 @@ int au_parser_exec_func_statement(struct au_parser *p, struct au_lexer *l,
         struct au_token name_tok = (struct au_token){.type = AU_TOK_EOF};
         if (!au_parser_exec_fixed_element_name(p, l, &module_tok,
                                                &name_tok))
-            return 1;
+            return 0;
 
         if (module_tok.type != AU_TOK_EOF) {
             struct au_imported_module *module =

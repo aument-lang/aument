@@ -1405,13 +1405,14 @@ int au_parser_exec_fixed_element_name(struct au_parser *p,
                                       struct au_token *id_tok_out) {
     struct au_token module_tok = (struct au_token){.type = AU_TOK_EOF};
     struct au_token id_tok = au_lexer_next(l);
-    if (id_tok.type == AU_TOK_OPERATOR && id_tok.len == 2 &&
-        id_tok.src[0] == ':' && id_tok.src[1] == ':') {
+    const struct au_token peek = au_lexer_peek(l, 0);
+    if (peek.type == AU_TOK_OPERATOR && peek.len == 2 &&
+        peek.src[0] == ':' && peek.src[1] == ':') {
         module_tok = id_tok;
+        au_lexer_next(l); // ::
         id_tok = au_lexer_next(l);
         EXPECT_TOKEN(id_tok.type == AU_TOK_IDENTIFIER, id_tok,
                      "identifier");
-        id_tok = au_lexer_next(l);
     }
     *module_tok_out = module_tok;
     *id_tok_out = id_tok;
