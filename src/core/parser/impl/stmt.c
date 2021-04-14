@@ -443,7 +443,7 @@ int au_parser_exec_func_statement(struct au_parser *p, struct au_lexer *l,
                            self_tok.src, self_tok.len, 0);
         }
         bcs.num_args++;
-        func_p.num_locals++;
+        au_parser_bump_local(&func_p);
     }
 
     // FuncArgs:
@@ -471,8 +471,8 @@ int au_parser_exec_func_statement(struct au_parser *p, struct au_lexer *l,
                            tok.len, bcs.num_args);
         if (old != NULL)
             RAISE_DUPLICATE_ARG(tok);
-        func_p.num_locals++;
-        EXPECT_BYTECODE(func_p.num_locals < AU_MAX_LOCALS);
+        func_p.local_placement++;
+        EXPECT_BYTECODE(func_p.local_placement < AU_MAX_LOCALS);
         bcs.num_args++;
     });
 
@@ -527,7 +527,7 @@ int au_parser_exec_func_statement(struct au_parser *p, struct au_lexer *l,
         abort(); // TODO
     }
 
-    bcs.num_locals = func_p.num_locals;
+    bcs.num_locals = func_p.max_locals;
     bcs.num_registers = func_p.max_register + 1;
     bcs.num_values = bcs.num_locals + bcs.num_registers;
     bcs.bc = func_p.bc;
@@ -574,9 +574,8 @@ int au_parser_exec_let_statement(struct au_parser *p, struct au_lexer *l) {
     au_parser_emit_bc_u8(p, AU_OP_MOV_REG_LOCAL);
     au_parser_emit_bc_u8(p, new_reg);
 
-    const au_hm_var_value_t new_value = p->num_locals;
-    const au_hm_var_value_t *old_value = au_hm_vars_add(
-        &p->vars.data[p->vars.len - 1], id_tok.src, id_tok.len, new_value);
+    const au_hm_var_value_t *old_value = au_hm_vars_get(
+        &p->vars.data[p->vars.len - 1], id_tok.src, id_tok.len);
     if (old_value) {
         if (*old_value < p->local_to_reg.len) {
             const uint8_t old_reg = p->local_to_reg.data[*old_value];
@@ -586,8 +585,11 @@ int au_parser_exec_let_statement(struct au_parser *p, struct au_lexer *l) {
         }
         au_parser_emit_bc_u16(p, *old_value);
     } else {
-        p->num_locals++;
-        EXPECT_BYTECODE(p->num_locals <= AU_MAX_LOCALS);
+        const au_hm_var_value_t new_value =
+            (au_hm_var_value_t)au_parser_bump_local(p);
+        EXPECT_BYTECODE(new_value <= AU_MAX_LOCALS);
+        au_hm_vars_add(&p->vars.data[p->vars.len - 1], id_tok.src,
+                       id_tok.len, new_value);
         au_parser_emit_bc_u16(p, new_value);
     }
 
@@ -899,7 +901,8 @@ int au_parser_exec_block(struct au_parser *p, struct au_lexer *l,
 
     while (1) {
         tok = au_lexer_peek(l);
-        if (tok.type == AU_TOK_OPERATOR && tok.len == 1 && tok.src[0] == '}') {
+        if (tok.type == AU_TOK_OPERATOR && tok.len == 1 &&
+            tok.src[0] == '}') {
             au_lexer_next(l);
             break;
         }
@@ -913,7 +916,9 @@ int au_parser_exec_block(struct au_parser *p, struct au_lexer *l,
     }
 
     if (allocate_local_vars) {
-        au_hm_vars_del(&p->vars.data[--p->vars.len]);
+        struct au_hm_vars last_vars = p->vars.data[--p->vars.len];
+        au_parser_pop_locals(p, last_vars.nitems);
+        au_hm_vars_del(&last_vars);
     }
 
     p->block_level--;
