@@ -416,26 +416,27 @@ static int operator_info_generate(const struct operator_info *info,
 int au_parser_exec_binary_expr(struct au_parser *p, struct au_lexer *l) {
     static const struct operator_info infos[] = {
         // clang-format off
-        { .src = ">>", .precedence = 0,  .assoc = ASSOC_LEFT,  .op = AU_OP_BSHR },
-        { .src = "<<", .precedence = 0,  .assoc = ASSOC_LEFT,  .op = AU_OP_BSHL },
-        // Bitwise ops
-        { .src = "^",  .precedence = 10, .assoc = ASSOC_LEFT,  .op = AU_OP_BXOR },
-        { .src = "&",  .precedence = 10, .assoc = ASSOC_LEFT,  .op = AU_OP_BAND },
-        { .src = "|",  .precedence = 10, .assoc = ASSOC_LEFT,  .op = AU_OP_BOR  },
-        // Add/sub
-        { .src = "-",  .precedence = 20, .assoc = ASSOC_RIGHT, .op = AU_OP_SUB  },
-        { .src = "+",  .precedence = 20, .assoc = ASSOC_LEFT,  .op = AU_OP_ADD  },
-        // Multiply/div
-        { .src = "/",  .precedence = 30, .assoc = ASSOC_LEFT,  .op = AU_OP_DIV  },
-        { .src = "*",  .precedence = 30, .assoc = ASSOC_LEFT,  .op = AU_OP_MUL  },
-        { .src = "%",  .precedence = 30, .assoc = ASSOC_LEFT,  .op = AU_OP_MOD  },
         // Comparison ops
-        { .src = ">",  .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_GT   },
-        { .src = ">=", .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_GEQ  },
-        { .src = "<",  .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_LT   },
-        { .src = "<=", .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_LEQ  },
-        { .src = "==", .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_EQ   },
-        { .src = "!=", .precedence = 40, .assoc = ASSOC_LEFT,  .op = AU_OP_NEQ  },
+        { .src = ">",  .precedence = 0, .assoc = ASSOC_LEFT,  .op = AU_OP_GT   },
+        { .src = ">=", .precedence = 0, .assoc = ASSOC_LEFT,  .op = AU_OP_GEQ  },
+        { .src = "<",  .precedence = 0, .assoc = ASSOC_LEFT,  .op = AU_OP_LT   },
+        { .src = "<=", .precedence = 0, .assoc = ASSOC_LEFT,  .op = AU_OP_LEQ  },
+        { .src = "==", .precedence = 0, .assoc = ASSOC_LEFT,  .op = AU_OP_EQ   },
+        { .src = "!=", .precedence = 0, .assoc = ASSOC_LEFT,  .op = AU_OP_NEQ  },
+        // Add/sub
+        { .src = "-",  .precedence = 1, .assoc = ASSOC_LEFT,  .op = AU_OP_SUB  },
+        { .src = "+",  .precedence = 1, .assoc = ASSOC_LEFT,  .op = AU_OP_ADD  },
+        // Shift ops
+        { .src = ">>", .precedence = 2,  .assoc = ASSOC_LEFT,  .op = AU_OP_BSHR },
+        { .src = "<<", .precedence = 2,  .assoc = ASSOC_LEFT,  .op = AU_OP_BSHL },
+        // Multiply/div
+        { .src = "/",  .precedence = 3, .assoc = ASSOC_LEFT,  .op = AU_OP_DIV  },
+        { .src = "*",  .precedence = 3, .assoc = ASSOC_LEFT,  .op = AU_OP_MUL  },
+        { .src = "%",  .precedence = 3, .assoc = ASSOC_LEFT,  .op = AU_OP_MOD  },
+        // Bitwise ops
+        { .src = "^",  .precedence = 4, .assoc = ASSOC_LEFT,  .op = AU_OP_BXOR },
+        { .src = "&",  .precedence = 4, .assoc = ASSOC_LEFT,  .op = AU_OP_BAND },
+        { .src = "|",  .precedence = 4, .assoc = ASSOC_LEFT,  .op = AU_OP_BOR  },
         // clang-format on
     };
     const size_t infos_len = sizeof(infos) / sizeof(infos[0]);
