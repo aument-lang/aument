@@ -53,8 +53,10 @@ struct au_parser {
     /// Global program data. This struct does not own this pointer.
     struct au_program_data *p_data;
 
-    /// Number of local registers
-    int num_locals;
+    /// Placement local index
+    int local_placement;
+    /// Maximum lcal index used
+    int max_locals;
     /// Maximum register index used
     int max_register;
     /// Current scope level
@@ -95,6 +97,9 @@ struct au_parser {
 AU_PRIVATE void au_parser_init(struct au_parser *p,
                                struct au_program_data *p_data);
 AU_PRIVATE void au_parser_del(struct au_parser *p);
+
+AU_PRIVATE int au_parser_bump_local(struct au_parser *p);
+AU_PRIVATE void au_parser_pop_locals(struct au_parser *p, int locals);
 
 #define EXPECT_TOKEN(CONDITION, TOKEN, EXPECTED)                          \
     do {                                                                  \

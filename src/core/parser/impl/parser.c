@@ -17,7 +17,8 @@ void au_parser_init(struct au_parser *p, struct au_program_data *p_data) {
     au_hm_vars_init(&p->consts);
     p->p_data = p_data;
 
-    p->num_locals = 0;
+    p->local_placement = 0;
+    p->max_locals = 0;
     p->max_register = -1;
     p->block_level = 0;
 
@@ -111,7 +112,7 @@ struct au_parser_result au_parse(const char *src, size_t len,
     au_bc_storage_init(&p_main);
     p_main.func_idx = AU_SM_FUNC_ID_MAIN;
     p_main.bc = p.bc;
-    p_main.num_locals = p.num_locals;
+    p_main.num_locals = p.max_locals;
     p_main.num_registers = p.max_register + 1;
     p_main.num_values = p_main.num_locals + p_main.num_registers;
     p.bc = (struct au_bc_buf){0};
@@ -125,4 +126,15 @@ struct au_parser_result au_parse(const char *src, size_t len,
     return (struct au_parser_result){
         .type = AU_PARSER_RES_OK,
     };
+}
+
+int au_parser_bump_local(struct au_parser *p) {
+    int local = p->local_placement++;
+    if (local > p->max_locals)
+        p->max_locals = local;
+    return local;
+}
+
+void au_parser_pop_locals(struct au_parser *p, int locals) {
+    p->local_placement -= locals;
 }
