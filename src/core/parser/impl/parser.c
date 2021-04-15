@@ -130,8 +130,8 @@ struct au_parser_result au_parse(const char *src, size_t len,
 
 int au_parser_bump_local(struct au_parser *p) {
     int local = p->local_placement++;
-    if (local > p->max_locals)
-        p->max_locals = local;
+    if (p->local_placement > p->max_locals)
+        p->max_locals = p->local_placement;
     return local;
 }
 
