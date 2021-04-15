@@ -176,8 +176,7 @@ static struct au_interpreter_result function_to_lyra(
 
 #define LOCAL_TO_LYRA_VAR(X) ((X) + bcs->num_registers)
 
-    size_t pos = 0;
-    while (pos < bcs->bc.len) {
+    for (size_t pos = 0; pos < bcs->bc.len; ) {
         uint8_t opcode = bc(pos);
         pos++;
 
@@ -459,6 +458,9 @@ static struct au_interpreter_result function_to_lyra(
             function_ctx_finish_block(fctx);
         }
     }
+
+    block_map_add(&block_map, bcs->bc.len);
+    function_ctx_finish_block(fctx);
 
     for (size_t i = 0; i < fctx->lyra_fn->blocks.len; i++) {
         struct lyra_block *block = &fctx->lyra_fn->blocks.data[i];
