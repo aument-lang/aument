@@ -7,6 +7,8 @@ project(
     ]
 )
 
+incs = ['src']
+
 is_testing = get_option('tests')
 is_coverage = get_option('b_coverage')
 
@@ -27,8 +29,10 @@ compiler = meson.get_compiler('c')
 prog_python = import('python').find_installation('python3')
 
 au_exe_cflags = []
+au_exe_depends = []
 au_hdr_cflags = []
 au_depends = []
+
 au_supports_dll_import = false
 
 # Preconfigs
@@ -185,6 +189,7 @@ endif
 if has_compile_feature
     rt_hdr_depends = files(
         'src/platform/platform.h',
+        'src/platform/fastdiv.h',
         'src/platform/arithmetic.h',
         'src/core/rt/malloc.h',
         'src/core/array.h',
@@ -233,6 +238,11 @@ if has_compile_feature
             '--ident', 'AU_RT_HDR',
             '--files'] + rt_hdr_depends + ['--cpp', 'DAU_IS_STDLIB'] + au_hdr_cflags,
     )
+
+    lyra = subproject('lyra')
+    lyra_dep = declare_dependency(link_with: lyra.get_variable('liblyra'))
+    au_exe_depends += [lyra_dep]
+    incs += ['subprojects/lyra']
 
     sources += [
         'src/os/cc.c',
@@ -320,9 +330,6 @@ if get_option('buildtype') == 'release' or get_option('buildtype') == 'debugopti
     endif
 endif
 
-incs = include_directories('src')
-
-
 # These header files must be ordered by hand
 aument_header_files = [
 'src/lib/begin.h',
@@ -401,6 +408,8 @@ aument_header = custom_target(
     install_dir: get_option('includedir')
 )
 
+incs = include_directories(incs)
+
 if is_testing
     if has_compile_feature
         au_runtime = static_library('au_runtime', au_runtime_sources,
@@ -413,7 +422,7 @@ if is_testing
         sources + ['src/main.c'],
         include_directories: incs,
         c_args: ['-DAU_TEST_EXE'],
-        dependencies: au_depends,
+        dependencies: au_depends + au_exe_depends,
         export_dynamic: au_supports_dll_import,
         implib: au_supports_dll_import)
 
@@ -537,7 +546,7 @@ else
         c_args: au_exe_cflags,
         link_args: link_args,
         install: true,
-        dependencies: au_depends,
+        dependencies: au_depends + au_exe_depends,
         export_dynamic: au_supports_dll_import,
         implib: au_supports_dll_import)
 endif

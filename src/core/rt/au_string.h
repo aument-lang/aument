@@ -20,6 +20,8 @@ struct au_string {
     char data[];
 };
 
+typedef struct au_string *au_string_ptr;
+
 /// [func] Creates an au_string from a constant array of chars
 /// @param s Pointer to the array of chars
 /// @param len Byte size of the string

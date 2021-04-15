@@ -31,8 +31,10 @@
 #ifndef _FASTDIV_H_
 #define _FASTDIV_H_
 
+#ifdef AU_IS_INTERPRETER
 #include <inttypes.h>
 #include <limits.h>
+#endif
 
 /*
  * Find first bit.
